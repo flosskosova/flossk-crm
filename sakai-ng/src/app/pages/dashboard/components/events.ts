@@ -29,7 +29,7 @@ import { AuthService } from '@/pages/service/auth.service';
         
         <div class="card">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold m-0">Events Calendar</h2>
+                <h2 class="text-2xl font-semibold m-0"></h2>
                 <div class="flex gap-2" *ngIf="isAdmin()">
                     <p-button 
                         *ngIf="!calendarEvent" 

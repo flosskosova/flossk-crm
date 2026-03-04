@@ -1,6 +1,6 @@
 namespace FlosskMS.Business.DTOs;
 
-public class SubmitDamageReportDto
+public class SubmitRepairReportDto
 {
     public string? Notes { get; set; }
 }

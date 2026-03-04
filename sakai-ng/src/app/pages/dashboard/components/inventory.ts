@@ -333,6 +333,15 @@ interface PaginatedInventoryResponse {
                                     pTooltip="Report Damage"
                                     (onClick)="confirmReportDamage(item)"
                                 />
+                                <p-button
+                                    *ngIf="item.condition === 'Damaged'"
+                                    icon="pi pi-wrench"
+                                    [rounded]="true"
+                                    [text]="true"
+                                    severity="success"
+                                    pTooltip="Report Repair"
+                                    (onClick)="confirmReportRepair(item)"
+                                />
                                 </td>
                     </tr>
                 </ng-template>
@@ -562,17 +571,6 @@ interface PaginatedInventoryResponse {
                 <p class="text-sm text-muted-color">
                     Are you sure you want to report <strong>{{ damageReportItem?.name }}</strong> as damaged?
                 </p>
-                <div class="flex flex-col gap-2">
-                    <label for="damageNotes" class="font-semibold">Notes (optional)</label>
-                    <textarea
-                        pTextarea
-                        id="damageNotes"
-                        [(ngModel)]="damageReportNotes"
-                        rows="3"
-                        placeholder="Describe the damage…"
-                        class="w-full"
-                    ></textarea>
-                </div>
             </div>
             <ng-template #footer>
                 <div class="flex justify-end gap-2 mt-4">
@@ -585,6 +583,35 @@ interface PaginatedInventoryResponse {
                         label="Report Damage"
                         severity="danger"
                         (onClick)="submitDamageReport()"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
+
+        <!-- Repair Report Dialog -->
+        <p-dialog
+            [(visible)]="repairReportVisible"
+            header="Report Repair"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+        >
+            <div class="flex flex-col gap-4">
+                <p class="text-sm text-muted-color">
+                    Are you sure you want to report <strong>{{ repairReportItem?.name }}</strong> as repaired?
+                </p>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end gap-2 mt-4">
+                    <p-button
+                        label="Cancel"
+                        severity="secondary"
+                        (onClick)="repairReportVisible = false"
+                    />
+                    <p-button
+                        label="Report Repair"
+                        severity="success"
+                        (onClick)="submitRepairReport()"
                     />
                 </div>
             </ng-template>
@@ -636,10 +663,10 @@ export class Inventory implements OnInit {
             `page=${this.currentPage}`,
             `pageSize=${this.pageSize}`
         ];
-        if (this.filterSearch)       params.push(`search=${encodeURIComponent(this.filterSearch)}`);
-        if (this.filterCategory)     params.push(`category=${encodeURIComponent(this.filterCategory)}`);
-        if (this.filterStatus)       params.push(`status=${encodeURIComponent(this.filterStatus)}`);
-        if (this.filterCondition)    params.push(`condition=${encodeURIComponent(this.filterCondition)}`);
+        if (this.filterSearch) params.push(`search=${encodeURIComponent(this.filterSearch)}`);
+        if (this.filterCategory) params.push(`category=${encodeURIComponent(this.filterCategory)}`);
+        if (this.filterStatus) params.push(`status=${encodeURIComponent(this.filterStatus)}`);
+        if (this.filterCondition) params.push(`condition=${encodeURIComponent(this.filterCondition)}`);
         if (this.filterUsage === 'mine') {
             const uid = this.authService.currentUser()?.id;
             if (uid) params.push(`currentUserId=${encodeURIComponent(uid)}`);
@@ -689,7 +716,8 @@ export class Inventory implements OnInit {
     selectedItem: InventoryItem | null = null;
     damageReportVisible = false;
     damageReportItem: InventoryItem | null = null;
-    damageReportNotes = '';
+    repairReportVisible = false;
+    repairReportItem: InventoryItem | null = null;
     inventoryItems: InventoryItem[] = [];
     totalRecords = 0;
     currentPage = 1;
@@ -1064,13 +1092,12 @@ export class Inventory implements OnInit {
 
     confirmReportDamage(item: InventoryItem) {
         this.damageReportItem = item;
-        this.damageReportNotes = '';
         this.damageReportVisible = true;
     }
 
     submitDamageReport() {
         if (!this.damageReportItem) return;
-        this.http.post(`${this.apiUrl}/${this.damageReportItem.id}/report-damage`, { notes: this.damageReportNotes }).subscribe({
+        this.http.post(`${this.apiUrl}/${this.damageReportItem.id}/report-damage`, {}).subscribe({
             next: () => {
                 this.messageService.add({
                     severity: 'warn',
@@ -1085,6 +1112,33 @@ export class Inventory implements OnInit {
                     severity: 'error',
                     summary: 'Error',
                     detail: error.error?.message || 'Failed to submit damage report'
+                });
+            }
+        });
+    }
+
+    confirmReportRepair(item: InventoryItem) {
+        this.repairReportItem = item;
+        this.repairReportVisible = true;
+    }
+
+    submitRepairReport() {
+        if (!this.repairReportItem) return;
+        this.http.post(`${this.apiUrl}/${this.repairReportItem.id}/report-repair`, {}).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Repair Reported',
+                    detail: `${this.repairReportItem!.name} has been marked as repaired`
+                });
+                this.repairReportVisible = false;
+                this.loadInventoryItems();
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error.error?.message || 'Failed to submit repair report'
                 });
             }
         });
@@ -1168,7 +1222,7 @@ export class Inventory implements OnInit {
         if (!fullName) return '?';
         const names = fullName.trim().split(' ');
         if (names.length === 1) return names[0].charAt(0).toUpperCase();
-        return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+        return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase()
     }
 
     checkedOutByLoggedInUser(item: InventoryItem): boolean {

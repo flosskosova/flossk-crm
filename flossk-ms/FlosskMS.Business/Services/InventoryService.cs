@@ -432,7 +432,7 @@ public class InventoryService : IInventoryService
         return new OkObjectResult(new { Message = "Inventory item checked in successfully.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
-    public async Task<IActionResult> ReportDamageAsync(Guid id, string userId, SubmitDamageReportDto? dto = null)
+    public async Task<IActionResult> ReportDamageAsync(Guid id, string userId)
     {
         var item = await GetItemWithIncludesAsync(id);
 
@@ -457,12 +457,43 @@ public class InventoryService : IInventoryService
             EntityId = item.Id.ToString(),
             EntityName = item.Name,
             Action = "Damage reported",
-            Detail = !string.IsNullOrWhiteSpace(dto?.Notes) ? dto.Notes : null,
             UserId = userId
         });
 
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Damage report submitted. Item marked as damaged.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
+    }
+
+    public async Task<IActionResult> ReportRepairAsync(Guid id, string userId)
+    {
+        var item = await GetItemWithIncludesAsync(id);
+
+        if (item == null)
+        {
+            return new NotFoundObjectResult(new { Message = "Inventory item not found." });
+        }
+
+        if (item.Condition == InventoryCondition.Good)
+        {
+            return new BadRequestObjectResult(new { Message = "This inventory item is already in good condition." });
+        }
+
+        item.Condition = InventoryCondition.Good;
+        item.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Inventory",
+            EntityId = item.Id.ToString(),
+            EntityName = item.Name,
+            Action = "Repair reported",
+            UserId = userId
+        });
+
+        var updatedItem = await GetItemWithIncludesAsync(item.Id);
+        return new OkObjectResult(new { Message = "Repair report submitted. Item marked as repaired.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
     public async Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId, string userId)
