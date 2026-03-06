@@ -37,6 +37,9 @@ interface InventoryItem {
     description?: string;
     category: string;
     quantity?: number;
+    checkedOutQuantity?: number;
+    quantityInUse?: number;
+    quantityAvailable?: number;
     status: string;
     createdAt: string;
     updatedAt?: string;
@@ -251,7 +254,17 @@ interface PaginatedInventoryResponse {
                         </td>
                         <td>{{ item.category }}</td>
                         <td>
-                            <span class="font-semibold">{{ item.quantity || 0 }}</span>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-semibold">{{ item.quantityAvailable || 0 }}</span>
+                                    <span class="text-muted-color text-sm">/ {{ item.quantity || 0 }}</span>
+                                    <span class="text-muted-color text-xs">available</span>
+                                </div>
+                                <div *ngIf="(item.quantityInUse || 0) > 0" class="flex items-center gap-1">
+                                    <i class="pi pi-user text-xs text-muted-color"></i>
+                                    <span class="text-xs text-muted-color">{{ item.quantityInUse }} in use</span>
+                                </div>
+                            </div>
                         </td>
                         <td>
                             <div class="flex items-center gap-2">
@@ -286,8 +299,9 @@ interface PaginatedInventoryResponse {
                             />
                         </td>
                         <td>
+                            <div class="flex gap-1">
                                 <p-button 
-                                    *ngIf="item.status === 'Free'"
+                                    *ngIf="(item.quantityAvailable || 0) > 0"
                                     icon="pi pi-sign-in" 
                                     [rounded]="true" 
                                     [text]="true" 
@@ -304,7 +318,9 @@ interface PaginatedInventoryResponse {
                                     pTooltip="Check In"
                                     (onClick)="checkInItem(item)"
                                 />
-                                <td>
+                            </div>
+                        </td>
+                        <td>
                                     <p-button 
                                     icon="pi pi-pencil" 
                                     [rounded]="true" 
@@ -635,6 +651,98 @@ interface PaginatedInventoryResponse {
             </ng-template>
         </p-dialog>
 
+        <!-- Checkout Dialog -->
+        <p-dialog
+            [(visible)]="checkoutDialogVisible"
+            header="Check Out Item"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+        >
+            <div class="flex flex-col gap-4">
+                <p class="text-sm text-muted-color mb-2">
+                    How many units of <strong>{{ checkoutItem?.name }}</strong> would you like to check out?
+                </p>
+                <div class="flex flex-col gap-2">
+                    <label for="checkoutQuantity" class="font-semibold">Quantity</label>
+                    <p-inputNumber
+                        id="checkoutQuantity"
+                        [(ngModel)]="checkoutQuantity"
+                        [min]="1"
+                        [max]="checkoutItem?.quantityAvailable || 1"
+                        [showButtons]="true"
+                        buttonLayout="horizontal"
+                        incrementButtonIcon="pi pi-plus"
+                        decrementButtonIcon="pi pi-minus"
+                        class="w-full"
+                    />
+                    <small class="text-muted-color">
+                        Available: {{ checkoutItem?.quantityAvailable || 0 }} units
+                    </small>
+                </div>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end gap-2 mt-4">
+                    <p-button
+                        label="Cancel"
+                        severity="secondary"
+                        (onClick)="checkoutDialogVisible = false"
+                    />
+                    <p-button
+                        label="Check Out"
+                        severity="success"
+                        (onClick)="submitCheckout()"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
+
+        <!-- Checkin Dialog -->
+        <p-dialog
+            [(visible)]="checkinDialogVisible"
+            header="Check In Item"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+        >
+            <div class="flex flex-col gap-4">
+                <p class="text-sm text-muted-color mb-2">
+                    How many units of <strong>{{ checkinItem?.name }}</strong> would you like to check in?
+                </p>
+                <div class="flex flex-col gap-2">
+                    <label for="checkinQuantity" class="font-semibold">Quantity</label>
+                    <p-inputNumber
+                        id="checkinQuantity"
+                        [(ngModel)]="checkinQuantity"
+                        [min]="1"
+                        [max]="checkinItem?.quantityInUse || 1"
+                        [showButtons]="true"
+                        buttonLayout="horizontal"
+                        incrementButtonIcon="pi pi-plus"
+                        decrementButtonIcon="pi pi-minus"
+                        class="w-full"
+                    />
+                    <small class="text-muted-color">
+                        Checked out by you: {{ checkinItem?.quantityInUse || 0 }} units
+                    </small>
+                </div>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end gap-2 mt-4">
+                    <p-button
+                        label="Cancel"
+                        severity="secondary"
+                        (onClick)="checkinDialogVisible = false"
+                    />
+                    <p-button
+                        label="Check In"
+                        severity="success"
+                        (onClick)="submitCheckin()"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
+
         <!-- Gallery Dialog -->
         <p-dialog 
             [(visible)]="galleryVisible" 
@@ -736,6 +844,12 @@ export class Inventory implements OnInit {
     damageReportItem: InventoryItem | null = null;
     repairReportVisible = false;
     repairReportItem: InventoryItem | null = null;
+    checkoutDialogVisible = false;
+    checkoutItem: InventoryItem | null = null;
+    checkoutQuantity = 1;
+    checkinDialogVisible = false;
+    checkinItem: InventoryItem | null = null;
+    checkinQuantity = 1;
     inventoryItems: InventoryItem[] = [];
     totalRecords = 0;
     currentPage = 1;
@@ -1190,14 +1304,25 @@ export class Inventory implements OnInit {
     }
 
     checkOutItem(item: InventoryItem) {
-        this.http.post(`${this.apiUrl}/${item.id}/checkout`, {}).subscribe({
+        this.checkoutItem = item;
+        this.checkoutQuantity = 1;
+        this.checkoutDialogVisible = true;
+    }
+
+    submitCheckout() {
+        if (!this.checkoutItem) return;
+        
+        this.http.post(`${this.apiUrl}/${this.checkoutItem.id}/checkout`, {
+            quantity: this.checkoutQuantity
+        }).subscribe({
             next: (response) => {
                 console.log('Check-out response:', response);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
-                    detail: `${item.name} checked out successfully`
+                    detail: `${this.checkoutQuantity} unit(s) of ${this.checkoutItem!.name} checked out successfully`
                 });
+                this.checkoutDialogVisible = false;
                 this.loadInventoryItems();
             },
             error: (error) => {
@@ -1205,21 +1330,32 @@ export class Inventory implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Failed to check out item'
+                    detail: error.error?.Message || error.error?.message || 'Failed to check out item'
                 });
             }
         });
     }
 
     checkInItem(item: InventoryItem) {
-        this.http.post(`${this.apiUrl}/${item.id}/checkin`, {}).subscribe({
+        this.checkinItem = item;
+        this.checkinQuantity = item.quantityInUse || 1;
+        this.checkinDialogVisible = true;
+    }
+
+    submitCheckin() {
+        if (!this.checkinItem) return;
+        
+        this.http.post(`${this.apiUrl}/${this.checkinItem.id}/checkin`, {
+            quantity: this.checkinQuantity
+        }).subscribe({
             next: (response) => {
                 console.log('Check-in response:', response);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
-                    detail: `${item.name} checked in successfully`
+                    detail: `${this.checkinQuantity} unit(s) of ${this.checkinItem!.name} checked in successfully`
                 });
+                this.checkinDialogVisible = false;
                 this.loadInventoryItems();
             },
             error: (error) => {
@@ -1227,7 +1363,7 @@ export class Inventory implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Failed to check in item'
+                    detail: error.error?.Message || error.error?.message || 'Failed to check in item'
                 });
             }
         });

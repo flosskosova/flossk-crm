@@ -25,4 +25,5 @@ public class InventoryItem
 
     // Navigation properties
     public ICollection<InventoryItemImage> Images { get; set; } = [];
+    public ICollection<InventoryItemCheckout> Checkouts { get; set; } = [];
 }

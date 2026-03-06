@@ -61,6 +61,20 @@ import { environment } from '@environments/environment.prod';
                 </div>
             </div>
 
+            <div class="card">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-3xl font-bold text-surface-900 dark:text-surface-0 m-0 mb-2">Custom Election</h3>
+                        <p class="text-surface-600 dark:text-surface-400 m-0">
+                            Create a custom election of your choosing. Set your own rules.
+                        </p>
+                    </div>
+                    <div class="flex gap-2" *ngIf="isAdmin">
+                        <p-button label="New Election" icon="pi pi-plus" (onClick)="openCreateElectionDialog()" />
+                    </div>
+                </div>
+            </div>
+
             <!-- Loading skeleton -->
             <div *ngIf="loading" class="card">
                 <p-skeleton height="2rem" styleClass="mb-4" />
@@ -434,10 +448,8 @@ import { environment } from '@environments/environment.prod';
 
             <!-- No active/upcoming election -->
             <div *ngIf="!loading && !activeElection" class="card text-center py-12">
-                <i class="pi pi-inbox text-surface-400 text-5xl mb-4 block"></i>
                 <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-2">No Active Elections</h3>
                 <p class="text-surface-600 dark:text-surface-400 mb-6">There are currently no elections in progress.</p>
-                <p-button *ngIf="isAdmin" label="Create Election" icon="pi pi-plus" (onClick)="openCreateElectionDialog()" />
             </div>
 
         </div>

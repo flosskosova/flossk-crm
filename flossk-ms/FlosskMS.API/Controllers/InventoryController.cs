@@ -238,4 +238,51 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     }
 
     #endregion
+
+    #region Checkout Endpoints
+
+    /// <summary>
+    /// Get all active checkouts across all inventory items
+    /// </summary>
+    [HttpGet("checkouts")]
+    public async Task<IActionResult> GetAllCheckouts()
+    {
+        return await _inventoryService.GetAllCheckoutsAsync();
+    }
+
+    /// <summary>
+    /// Get all checkouts for a specific inventory item
+    /// </summary>
+    /// <param name="itemId">Inventory item ID</param>
+    [HttpGet("{itemId:guid}/checkouts")]
+    public async Task<IActionResult> GetCheckoutsByItem(Guid itemId)
+    {
+        return await _inventoryService.GetCheckoutsByItemIdAsync(itemId);
+    }
+
+    /// <summary>
+    /// Get all checkouts by a specific user
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    [HttpGet("checkouts/user/{userId}")]
+    public async Task<IActionResult> GetCheckoutsByUser(string userId)
+    {
+        return await _inventoryService.GetCheckoutsByUserIdAsync(userId);
+    }
+
+    /// <summary>
+    /// Get all checkouts by the logged-in user
+    /// </summary>
+    [HttpGet("checkouts/my-checkouts")]
+    public async Task<IActionResult> GetMyCheckouts()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.GetCheckoutsByUserIdAsync(userId);
+    }
 }
+
+    #endregion

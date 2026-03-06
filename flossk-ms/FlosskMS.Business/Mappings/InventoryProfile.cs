@@ -13,6 +13,8 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Condition, opt => opt.MapFrom(src => src.Condition.ToString()))
+            .ForMember(dest => dest.QuantityInUse, opt => opt.MapFrom(src => src.CheckedOutQuantity))
+            .ForMember(dest => dest.QuantityAvailable, opt => opt.MapFrom(src => src.Quantity - src.CheckedOutQuantity))
             .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Email : null))
             .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.FirstName : null))
             .ForMember(dest => dest.CurrentUserLastName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.LastName : null))
@@ -47,6 +49,8 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Condition, opt => opt.MapFrom(src => src.Condition.ToString()))
+            .ForMember(dest => dest.QuantityInUse, opt => opt.MapFrom(src => src.CheckedOutQuantity))
+            .ForMember(dest => dest.QuantityAvailable, opt => opt.MapFrom(src => src.Quantity - src.CheckedOutQuantity))
             .ForMember(dest => dest.CurrentUserId, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Id : null))
             .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Email : null))
             .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.FirstName : null))
@@ -79,6 +83,22 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.FileId, opt => opt.MapFrom(src => src.UploadedFileId))
             .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.UploadedFile.FileName))
             .ForMember(dest => dest.FilePath, opt => opt.MapFrom(src => "/uploads/" + src.UploadedFile.FileName));
+
+        CreateMap<InventoryItemCheckout, InventoryItemCheckoutDto>()
+            .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.Email))
+            .ForMember(dest => dest.UserFirstName, opt => opt.MapFrom(src => src.User.FirstName))
+            .ForMember(dest => dest.UserLastName, opt => opt.MapFrom(src => src.User.LastName))
+            .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src =>
+                src.User != null
+                    ? $"{src.User.FirstName} {src.User.LastName}".Trim()
+                    : string.Empty))
+            .ForMember(dest => dest.UserProfilePictureUrl, opt => opt.MapFrom(src =>
+                src.User != null && src.User.UploadedFiles != null
+                    ? src.User.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault()
+                    : null));
 
         CreateMap<CreateInventoryItemDto, InventoryItem>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())

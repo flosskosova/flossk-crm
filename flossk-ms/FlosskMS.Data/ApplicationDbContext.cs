@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CalendarEvent> CalendarEvents { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<InventoryItemImage> InventoryItemImages { get; set; }
+    public DbSet<InventoryItemCheckout> InventoryItemCheckouts { get; set; }
     public DbSet<Log> Logs { get; set; }
     public DbSet<Election> Elections { get; set; }
     public DbSet<ElectionCandidate> ElectionCandidates { get; set; }

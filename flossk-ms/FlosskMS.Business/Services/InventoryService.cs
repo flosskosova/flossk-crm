@@ -31,6 +31,9 @@ public class InventoryService : IInventoryService
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
+            .Include(i => i.Checkouts)
+                .ThenInclude(c => c.User)
+                    .ThenInclude(u => u.UploadedFiles)
             .AsQueryable();
 
         // Filter by category
@@ -392,7 +395,30 @@ public class InventoryService : IInventoryService
             return new BadRequestObjectResult(new { Message = "Quantity must be at least 1." });
         }
 
-        // Check out the item
+        // Check if user already has a checkout for this item
+        var existingCheckout = await _context.InventoryItemCheckouts
+            .FirstOrDefaultAsync(c => c.InventoryItemId == id && c.UserId == userId);
+
+        if (existingCheckout != null)
+        {
+            // Add to existing checkout
+            existingCheckout.Quantity += requestedQuantity;
+        }
+        else
+        {
+            // Create new checkout record
+            var checkout = new InventoryItemCheckout
+            {
+                Id = Guid.NewGuid(),
+                InventoryItemId = id,
+                UserId = userId,
+                Quantity = requestedQuantity,
+                CheckedOutAt = DateTime.UtcNow
+            };
+            await _context.InventoryItemCheckouts.AddAsync(checkout);
+        }
+
+        // Update item
         item.CheckedOutQuantity += requestedQuantity;
         item.Status = InventoryStatus.InUse;
         item.CurrentUserId = userId;
@@ -425,18 +451,17 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
         }
 
-        if (item.Status != InventoryStatus.InUse)
-        {
-            return new BadRequestObjectResult(new { Message = "This inventory item is not currently checked out." });
-        }
+        // Find user's checkout for this item
+        var userCheckout = await _context.InventoryItemCheckouts
+            .FirstOrDefaultAsync(c => c.InventoryItemId == id && c.UserId == userId);
 
-        if (item.CurrentUserId != userId)
+        if (userCheckout == null)
         {
-            return new BadRequestObjectResult(new { Message = "You can only check in items that you have checked out." });
+            return new BadRequestObjectResult(new { Message = "You don't have any checked out units for this item." });
         }
 
         // Get quantity to return (default to all if not provided)
-        int quantityToReturn = dto?.Quantity ?? item.CheckedOutQuantity;
+        int quantityToReturn = dto?.Quantity ?? userCheckout.Quantity;
 
         // Validate quantity
         if (quantityToReturn <= 0)
@@ -444,9 +469,21 @@ public class InventoryService : IInventoryService
             return new BadRequestObjectResult(new { Message = "Quantity must be at least 1." });
         }
 
-        if (quantityToReturn > item.CheckedOutQuantity)
+        if (quantityToReturn > userCheckout.Quantity)
         {
-            return new BadRequestObjectResult(new { Message = $"Cannot check in {quantityToReturn} units. You only have {item.CheckedOutQuantity} unit(s) checked out." });
+            return new BadRequestObjectResult(new { Message = $"Cannot check in {quantityToReturn} units. You only have {userCheckout.Quantity} unit(s) checked out." });
+        }
+
+        // Update or remove checkout record
+        if (quantityToReturn >= userCheckout.Quantity)
+        {
+            // User is returning all units, remove the checkout record
+            _context.InventoryItemCheckouts.Remove(userCheckout);
+        }
+        else
+        {
+            // User is returning partial units, update the checkout record
+            userCheckout.Quantity -= quantityToReturn;
         }
 
         // Return the specified quantity
@@ -783,9 +820,55 @@ public class InventoryService : IInventoryService
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
+            .Include(i => i.Checkouts)
+                .ThenInclude(c => c.User)
+                    .ThenInclude(u => u.UploadedFiles)
             .AsSplitQuery()
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
     #endregion
+
+    #region Checkout Specific Endpoints
+
+    public async Task<IActionResult> GetAllCheckoutsAsync()
+    {
+        var checkouts = await _context.InventoryItemCheckouts
+            .Include(c => c.User)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(c => c.InventoryItem)
+            .OrderByDescending(c => c.CheckedOutAt)
+            .ToListAsync();
+
+        var checkoutDtos = _mapper.Map<List<InventoryItemCheckoutDto>>(checkouts);
+        return new OkObjectResult(new { Data = checkoutDtos, Count = checkoutDtos.Count });
+    }
+
+    public async Task<IActionResult> GetCheckoutsByItemIdAsync(Guid itemId)
+    {
+        var checkouts = await _context.InventoryItemCheckouts
+            .Include(c => c.User)
+                .ThenInclude(u => u.UploadedFiles)
+            .Where(c => c.InventoryItemId == itemId)
+            .OrderByDescending(c => c.CheckedOutAt)
+            .ToListAsync();
+
+        var checkoutDtos = _mapper.Map<List<InventoryItemCheckoutDto>>(checkouts);
+        return new OkObjectResult(new { Data = checkoutDtos, Count = checkoutDtos.Count });
+    }
+
+    public async Task<IActionResult> GetCheckoutsByUserIdAsync(string userId)
+    {
+        var checkouts = await _context.InventoryItemCheckouts
+            .Include(c => c.User)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(c => c.InventoryItem)
+            .Where(c => c.UserId == userId)
+            .OrderByDescending(c => c.CheckedOutAt)
+            .ToListAsync();
+
+        var checkoutDtos = _mapper.Map<List<InventoryItemCheckoutDto>>(checkouts);
+        return new OkObjectResult(new { Data = checkoutDtos, Count = checkoutDtos.Count });
+    }
 }
+    #endregion

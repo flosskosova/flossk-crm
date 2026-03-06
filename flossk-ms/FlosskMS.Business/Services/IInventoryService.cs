@@ -19,4 +19,9 @@ public interface IInventoryService
     Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId, string userId);
     Task<IActionResult> SeedInventoryItemsAsync(string createdByUserId);
     Task<IActionResult> DeleteAllInventoryItemsAsync();
+    
+    // Checkout specific endpoints
+    Task<IActionResult> GetAllCheckoutsAsync();
+    Task<IActionResult> GetCheckoutsByItemIdAsync(Guid itemId);
+    Task<IActionResult> GetCheckoutsByUserIdAsync(string userId);
 }

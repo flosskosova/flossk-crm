@@ -7,6 +7,8 @@ public class InventoryItemDto
     public string Category { get; set; } = string.Empty;
     public int Quantity { get; set; } = 1;
     public int CheckedOutQuantity { get; set; } = 0;
+    public int QuantityInUse { get; set; } = 0;
+    public int QuantityAvailable { get; set; } = 0;
     public string Status { get; set; } = string.Empty;
     public string Condition { get; set; } = "Good";
     public string? Description { get; set; }
@@ -32,6 +34,9 @@ public class InventoryItemDto
 
     // Images
     public List<InventoryItemImageDto> Images { get; set; } = [];
+    
+    // Current checkouts
+    public List<InventoryItemCheckoutDto> Checkouts { get; set; } = [];
 }
 
 public class InventoryItemImageDto
