@@ -25,8 +25,6 @@ public class InventoryService : IInventoryService
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, string? currentUserId = null)
     {
         var query = _context.InventoryItems
-            .Include(i => i.CurrentUser!)
-                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.CreatedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
@@ -57,7 +55,7 @@ public class InventoryService : IInventoryService
         // Filter by current user (usage)
         if (!string.IsNullOrEmpty(currentUserId))
         {
-            query = query.Where(i => i.CurrentUserId == currentUserId);
+            query = query.Where(i => i.Checkouts.Any(c => c.UserId == currentUserId));
         }
 
         // Search by name or description
@@ -104,14 +102,15 @@ public class InventoryService : IInventoryService
         }
 
         var items = await _context.InventoryItems
-            .Include(i => i.CurrentUser!)
-                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.CreatedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
-            .Where(i => i.CurrentUserId == userId && i.Status == InventoryStatus.InUse)
-            .OrderByDescending(i => i.CheckedOutAt)
+            .Include(i => i.Checkouts)
+                .ThenInclude(c => c.User)
+                    .ThenInclude(u => u.UploadedFiles)
+            .Where(i => i.Checkouts.Any(c => c.UserId == userId) && i.Status == InventoryStatus.InUse)
+            .OrderByDescending(i => i.UpdatedAt)
             .ToListAsync();
 
         return new OkObjectResult(_mapper.Map<List<InventoryItemDto>>(items));
@@ -421,10 +420,7 @@ public class InventoryService : IInventoryService
         // Update item
         item.CheckedOutQuantity += requestedQuantity;
         item.Status = InventoryStatus.InUse;
-        item.CurrentUserId = userId;
-        item.CheckedOutAt = DateTime.UtcNow;
         item.UpdatedAt = DateTime.UtcNow;
-        item.CurrentUser = user;
 
         await _context.SaveChangesAsync();
 
@@ -494,8 +490,6 @@ public class InventoryService : IInventoryService
         if (item.CheckedOutQuantity == 0)
         {
             item.Status = InventoryStatus.Free;
-            item.CurrentUserId = null;
-            item.CheckedOutAt = null;
         }
 
         await _context.SaveChangesAsync();
@@ -680,100 +674,160 @@ public class InventoryService : IInventoryService
                 Id = Guid.NewGuid(),
                 Name = "Arduino Uno R3",
                 Category = InventoryCategory.Electronic,
-                Description = "Microcontroller board based on the ATmega328P",
+                Quantity = 5,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Microcontroller board based on the ATmega328P",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Raspberry Pi 4 Model B",
                 Category = InventoryCategory.Electronic,
-                Description = "Single-board computer with 4GB RAM",
+                Quantity = 3,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Single-board computer with 4GB RAM",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Soldering Iron Station",
                 Category = InventoryCategory.Tool,
-                Description = "Digital temperature controlled soldering station",
+                Quantity = 2,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Digital temperature controlled soldering station",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "3D Printer Filament (PLA)",
                 Category = InventoryCategory.Components,
-                Description = "1kg spools of PLA filament in various colors",
+                Quantity = 10,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "1kg spools of PLA filament in various colors",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Oscilloscope",
                 Category = InventoryCategory.Electronic,
-                Description = "Digital storage oscilloscope 100MHz",
+                Quantity = 1,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Digital storage oscilloscope 100MHz",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Breadboards",
                 Category = InventoryCategory.Components,
-                Description = "830 point solderless breadboards",
+                Quantity = 15,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "830 point solderless breadboards",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Screwdriver Set",
                 Category = InventoryCategory.Tool,
-                Description = "Precision screwdriver set with multiple bits",
+                Quantity = 4,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Precision screwdriver set with multiple bits",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Workbench",
                 Category = InventoryCategory.Furniture,
-                Description = "Heavy-duty electronics workbench with ESD protection",
+                Quantity = 1,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Heavy-duty electronics workbench with ESD protection",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Multimeter",
                 Category = InventoryCategory.Electronic,
-                Description = "Digital multimeter with auto-ranging",
+                Quantity = 6,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Digital multimeter with auto-ranging",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             },
             new InventoryItem
             {
                 Id = Guid.NewGuid(),
                 Name = "Wire Stripper",
                 Category = InventoryCategory.Tool,
-                Description = "Automatic wire stripper and cutter",
+                Quantity = 3,
+                CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                Description = "Automatic wire stripper and cutter",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
                 CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
+                Images = [],
+                Checkouts = []
             }
         };
 
@@ -798,7 +852,11 @@ public class InventoryService : IInventoryService
             return new OkObjectResult(new { Message = "No inventory items to delete." });
         }
 
-        // Delete all associated images first
+        // Delete all associated checkouts first
+        var allCheckouts = await _context.InventoryItemCheckouts.ToListAsync();
+        _context.InventoryItemCheckouts.RemoveRange(allCheckouts);
+
+        // Delete all associated images
         var allImages = await _context.InventoryItemImages.ToListAsync();
         _context.InventoryItemImages.RemoveRange(allImages);
 
@@ -814,8 +872,6 @@ public class InventoryService : IInventoryService
     private async Task<InventoryItem?> GetItemWithIncludesAsync(Guid id)
     {
         return await _context.InventoryItems
-            .Include(i => i.CurrentUser!)
-                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.CreatedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)

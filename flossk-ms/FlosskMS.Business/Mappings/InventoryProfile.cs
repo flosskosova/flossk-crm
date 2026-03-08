@@ -15,20 +15,37 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.Condition, opt => opt.MapFrom(src => src.Condition.ToString()))
             .ForMember(dest => dest.QuantityInUse, opt => opt.MapFrom(src => src.CheckedOutQuantity))
             .ForMember(dest => dest.QuantityAvailable, opt => opt.MapFrom(src => src.Quantity - src.CheckedOutQuantity))
-            .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Email : null))
-            .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.FirstName : null))
-            .ForMember(dest => dest.CurrentUserLastName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.LastName : null))
+            .ForMember(dest => dest.CurrentUserId, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.UserId 
+                    : null))
+            .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.Email 
+                    : null))
+            .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.FirstName 
+                    : null))
+            .ForMember(dest => dest.CurrentUserLastName, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.LastName 
+                    : null))
             .ForMember(dest => dest.CurrentUserFullName, opt => opt.MapFrom(src => 
-                src.CurrentUser != null 
-                    ? $"{src.CurrentUser.FirstName} {src.CurrentUser.LastName}".Trim() 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? $"{src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.FirstName} {src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.LastName}".Trim() 
                     : null))
             .ForMember(dest => dest.CurrentUserProfilePictureUrl, opt => opt.MapFrom(src => 
-                src.CurrentUser != null && src.CurrentUser.UploadedFiles != null
-                    ? src.CurrentUser.UploadedFiles
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null && src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.UploadedFiles != null
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.UploadedFiles
                         .Where(f => f.FileType == FileType.ProfilePicture)
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()
                     : null))
+            .ForMember(dest => dest.CheckedOutAt, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.CheckedOutAt 
+                    : (DateTime?)null))
             .ForMember(dest => dest.CreatedByUserEmail, opt => opt.MapFrom(src => src.CreatedByUser.Email))
             .ForMember(dest => dest.CreatedByUserFirstName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName))
             .ForMember(dest => dest.CreatedByUserLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
@@ -51,17 +68,29 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.Condition, opt => opt.MapFrom(src => src.Condition.ToString()))
             .ForMember(dest => dest.QuantityInUse, opt => opt.MapFrom(src => src.CheckedOutQuantity))
             .ForMember(dest => dest.QuantityAvailable, opt => opt.MapFrom(src => src.Quantity - src.CheckedOutQuantity))
-            .ForMember(dest => dest.CurrentUserId, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Id : null))
-            .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.Email : null))
-            .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.FirstName : null))
-            .ForMember(dest => dest.CurrentUserLastName, opt => opt.MapFrom(src => src.CurrentUser != null ? src.CurrentUser.LastName : null))
+            .ForMember(dest => dest.CurrentUserId, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.UserId 
+                    : null))
+            .ForMember(dest => dest.CurrentUserEmail, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.Email 
+                    : null))
+            .ForMember(dest => dest.CurrentUserFirstName, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.FirstName 
+                    : null))
+            .ForMember(dest => dest.CurrentUserLastName, opt => opt.MapFrom(src => 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.LastName 
+                    : null))
             .ForMember(dest => dest.CurrentUserFullName, opt => opt.MapFrom(src => 
-                src.CurrentUser != null 
-                    ? $"{src.CurrentUser.FirstName} {src.CurrentUser.LastName}".Trim() 
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null 
+                    ? $"{src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.FirstName} {src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.LastName}".Trim() 
                     : null))
             .ForMember(dest => dest.CurrentUserProfilePictureUrl, opt => opt.MapFrom(src => 
-                src.CurrentUser != null && src.CurrentUser.UploadedFiles != null
-                    ? src.CurrentUser.UploadedFiles
+                src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault() != null && src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.UploadedFiles != null
+                    ? src.Checkouts.OrderBy(c => c.CheckedOutAt).FirstOrDefault()!.User.UploadedFiles
                         .Where(f => f.FileType == FileType.ProfilePicture)
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()
@@ -105,12 +134,11 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.Status, opt => opt.Ignore())
-            .ForMember(dest => dest.CurrentUserId, opt => opt.Ignore())
-            .ForMember(dest => dest.CurrentUser, opt => opt.Ignore())
-            .ForMember(dest => dest.CheckedOutAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUser, opt => opt.Ignore())
             .ForMember(dest => dest.Images, opt => opt.Ignore())
+            .ForMember(dest => dest.Checkouts, opt => opt.Ignore())
+            .ForMember(dest => dest.CheckedOutQuantity, opt => opt.Ignore())
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => Enum.Parse<InventoryCategory>(src.Category, true)));
     }
 }

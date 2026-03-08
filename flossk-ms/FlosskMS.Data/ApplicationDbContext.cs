@@ -399,16 +399,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(e => e.CurrentUser)
-                .WithMany()
-                .HasForeignKey(e => e.CurrentUserId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.SetNull);
-
             entity.HasIndex(e => e.Name);
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.Status);
-            entity.HasIndex(e => e.CurrentUserId);
         });
 
         // InventoryItemImage configuration

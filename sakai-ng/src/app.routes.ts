@@ -24,6 +24,8 @@ import { Donate } from '@/pages/dashboard/components/donate';
 import { RfidConfigurer } from '@/pages/dashboard/components/rfid-configurer';
 import { Projects } from '@/pages/dashboard/components/projects';
 import { Voting } from '@/pages/dashboard/components/voting';
+import { Integrations } from '@/pages/dashboard/components/integrations';
+import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -40,6 +42,8 @@ export const appRoutes: Routes = [
             { path: 'users', component: Users },
             { path: 'voting', component: Voting, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'inventory', component: Inventory },
+            { path: 'integrations', component: Integrations },
+            { path: 'cert-builder', component: CertBuilder },
             { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },

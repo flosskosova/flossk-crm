@@ -44,7 +44,9 @@ export class AppMenu {
                     { label: 'Statistics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/statistics'] },
                     { label: 'Leaderboard', icon: 'pi pi-fw pi-graduation-cap', routerLink: ['/dashboard/leaderboard'] },
                     { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },
-                    { label: 'Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/settings'] },
+                { label: 'Integrations', icon: 'pi pi-fw pi-th-large', routerLink: ['/dashboard/integrations'] },
+                { label: 'Certificate Builder', icon: 'pi pi-fw pi-sparkles', routerLink: ['/dashboard/cert-builder'] },
+                { label: 'Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/settings'] },
                 ]
             },
             {

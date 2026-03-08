@@ -28,4 +28,7 @@ public class InventoryItemListDto
 
     // Images
     public List<InventoryItemImageDto> Images { get; set; } = [];
+    
+    // Current checkouts
+    public List<InventoryItemCheckoutDto> Checkouts { get; set; } = [];
 }
