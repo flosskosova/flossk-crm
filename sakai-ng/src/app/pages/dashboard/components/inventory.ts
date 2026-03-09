@@ -695,9 +695,11 @@ interface PaginatedInventoryResponse {
                         [min]="1"
                         [max]="checkoutItem?.quantityAvailable || 1"
                         [showButtons]="true"
+                        [useGrouping]="false"
                         buttonLayout="horizontal"
                         incrementButtonIcon="pi pi-plus"
                         decrementButtonIcon="pi pi-minus"
+                        inputmode="numeric"
                         class="w-full"
                     />
                     <small class="text-muted-color">
@@ -741,9 +743,11 @@ interface PaginatedInventoryResponse {
                         [min]="1"
                         [max]="getUserCheckedOutQuantity(checkinItem) || 1"
                         [showButtons]="true"
+                        [useGrouping]="false"
                         buttonLayout="horizontal"
                         incrementButtonIcon="pi pi-plus"
                         decrementButtonIcon="pi pi-minus"
+                        inputmode="numeric"
                         class="w-full"
                     />
                     <small class="text-muted-color">
@@ -1396,6 +1400,26 @@ export class Inventory implements OnInit {
     submitCheckout() {
         if (!this.checkoutItem) return;
         
+        // Validate quantity does not exceed available
+        const availableQty = this.checkoutItem.quantityAvailable || 0;
+        if (this.checkoutQuantity > availableQty) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid Quantity',
+                detail: `Cannot check out more than ${availableQty} available unit(s)`
+            });
+            return;
+        }
+        
+        if (this.checkoutQuantity < 1) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid Quantity',
+                detail: 'Quantity must be at least 1'
+            });
+            return;
+        }
+        
         this.http.post(`${this.apiUrl}/${this.checkoutItem.id}/checkout`, {
             quantity: this.checkoutQuantity
         }).subscribe({
@@ -1430,6 +1454,26 @@ export class Inventory implements OnInit {
 
     submitCheckin() {
         if (!this.checkinItem) return;
+        
+        // Validate quantity does not exceed user's checked out quantity
+        const userCheckedOutQty = this.getUserCheckedOutQuantity(this.checkinItem);
+        if (this.checkinQuantity > userCheckedOutQty) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid Quantity',
+                detail: `Cannot check in more than ${userCheckedOutQty} unit(s) that you have checked out`
+            });
+            return;
+        }
+        
+        if (this.checkinQuantity < 1) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Invalid Quantity',
+                detail: 'Quantity must be at least 1'
+            });
+            return;
+        }
         
         this.http.post(`${this.apiUrl}/${this.checkinItem.id}/checkin`, {
             quantity: this.checkinQuantity
