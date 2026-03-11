@@ -3,6 +3,40 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
 import { Observable } from 'rxjs';
 
+export interface TeamMember {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role?: string;
+    joinedAt: string;
+}
+
+export interface GitHubCommit {
+    sha: string;
+    commit: {
+        author: {
+            name: string;
+            email: string;
+            date: string;
+        };
+        message: string;
+    };
+    html_url: string;
+    author?: {
+        login: string;
+        avatar_url: string;
+    };
+}
+
+export interface GitHubRepo {
+    name: string;
+    full_name: string;
+    html_url: string;
+    updated_at: string;
+}
+
 export interface UserDto {
     id: string;
     email: string;
@@ -26,6 +60,69 @@ export interface UsersResponse {
     page: number;
     pageSize: number;
     totalPages: number;
+}
+
+export interface Member {
+    id?: string;
+    userId?: string;
+    name: string;
+    avatar: string;
+    role: string;
+}
+
+export interface ResourceFile {
+    id: string;
+    fileName: string;
+    originalFileName: string;
+    contentType: string;
+    fileSize: number;
+    uploadedAt: string;
+}
+
+export interface Resource {
+    id: number;
+    title: string;
+    url: string | null;
+    description: string;
+    type: 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
+    files?: ResourceFile[];
+    createdByUserId?: string;
+    createdByUserName?: string;
+}
+
+export interface Objective {
+    id: number;
+    title: string;
+    description: string;
+    status: 'todo' | 'in-progress' | 'completed';
+    points?: number;
+    assignedTo: Member;
+    members?: Member[];
+    resources?: Resource[];
+    createdByUserId?: string;
+    createdByFirstName?: string;
+    createdByLastName?: string;
+}
+
+export interface Project {
+    id: number;
+    title: string;
+    description: string;
+    status: 'upcoming' | 'in-progress' | 'completed';
+    startDate: string;
+    endDate: string;
+    progress: number;
+    types?: string[];
+    participants: Member[];
+    objectives: Objective[];
+    resources?: Resource[];
+    githubRepo?: string; // GitHub repository URL for tracking commits
+    createdByUserId?: string; // Project creator user ID
+    createdByFirstName?: string; // Project creator first name
+    createdByLastName?: string; // Project creator last name
+    moderatorUserId?: string; // Project moderator user ID
+    moderatorFirstName?: string; // Project moderator first name
+    moderatorLastName?: string; // Project moderator last name
 }
 
 @Injectable({

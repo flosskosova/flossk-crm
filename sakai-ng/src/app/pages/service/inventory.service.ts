@@ -11,12 +11,27 @@ export interface InventoryItemImage {
     addedAt: string;
 }
 
+export interface InventoryItemCheckout {
+    id: string;
+    userId: string;
+    userEmail: string;
+    userFirstName: string;
+    userLastName: string;
+    userFullName: string;
+    userProfilePictureUrl?: string;
+    quantity: number;
+    checkedOutAt: string;
+}
+
 export interface InventoryItem {
     id: string;
     name: string;
     description?: string;
     category: string;
-    quantity: number;
+    quantity?: number;
+    checkedOutQuantity?: number;
+    quantityInUse?: number;
+    quantityAvailable?: number;
     status: string;
     createdAt: string;
     updatedAt?: string;
@@ -27,15 +42,19 @@ export interface InventoryItem {
     currentUserFullName?: string;
     currentUserProfilePictureUrl?: string;
     checkedOutAt?: string;
+    condition?: 'Good' | 'Damaged' | 'Repaired';
+    conditionNotes?: string;
+    conditionReportedByUserFullName?: string;
+    conditionReportedByUserProfilePictureUrl?: string;
     createdByUserId?: string;
     createdByUserEmail?: string;
     createdByUserFirstName?: string;
     createdByUserLastName?: string;
     createdByUserFullName?: string;
     createdByUserProfilePictureUrl?: string;
-    checkedOutQuantity?: number;
     thumbnailPath?: string;
     images?: InventoryItemImage[];
+    checkouts?: InventoryItemCheckout[];
     properties?: { [key: string]: any };
 }
 

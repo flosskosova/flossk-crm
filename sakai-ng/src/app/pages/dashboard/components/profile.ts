@@ -24,26 +24,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { ProjectsService } from '@/pages/service/projects.service';
 import { InventoryService, InventoryItem } from '@/pages/service/inventory.service';
+import { ProfileService, User } from '@/pages/service/profile.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
-
-interface User {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    biography: string;
-    phoneNumber: string;
-    location: string;
-    websiteUrl: string;
-    socialLinks: string[];
-    skills: string[];
-    createdAt: string;
-    roles: string[];
-    profilePictureUrl: string;
-    cvUrl?: string;
-    bannerUrl?: string;
-}
 
 @Component({
     selector: 'app-profile',

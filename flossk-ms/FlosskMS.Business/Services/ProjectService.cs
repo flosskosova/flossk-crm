@@ -1502,6 +1502,16 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Resource not found." });
         }
 
+        // Block edits when the parent project is completed
+        if (resource.ProjectId != null)
+        {
+            var project = await _dbContext.Projects.FindAsync(resource.ProjectId);
+            if (project != null && project.Status == ProjectStatus.Completed)
+            {
+                return new BadRequestObjectResult(new { Error = "Cannot edit a resource that belongs to a completed project." });
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(request.Title))
         {
             return new BadRequestObjectResult(new { Error = "Title is required." });

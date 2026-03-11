@@ -21,97 +21,9 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
-import { ProjectsService } from '../../service/projects.service';
+import { GitHubCommit, Member, Objective, Project, ProjectsService, Resource, ResourceFile } from '../../service/projects.service';
 import { AuthService, getInitials, isDefaultAvatar } from '../../service/auth.service';
 import { environment } from '@environments/environment.prod';
-
-interface Member {
-    id?: string;
-    userId?: string;
-    name: string;
-    avatar: string;
-    role: string;
-}
-
-interface ResourceFile {
-    id: string;
-    fileName: string;
-    originalFileName: string;
-    contentType: string;
-    fileSize: number;
-    uploadedAt: string;
-}
-
-interface Resource {
-    id: number;
-    title: string;
-    url: string | null;
-    description: string;
-    type: 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
-    files?: ResourceFile[];
-    createdByUserId?: string;
-    createdByUserName?: string;
-}
-
-interface Objective {
-    id: number;
-    title: string;
-    description: string;
-    status: 'todo' | 'in-progress' | 'completed';
-    points?: number;
-    assignedTo: Member;
-    members?: Member[];
-    resources?: Resource[];
-    createdByUserId?: string;
-    createdByFirstName?: string;
-    createdByLastName?: string;
-}
-
-interface Project {
-    id: number;
-    title: string;
-    description: string;
-    status: 'upcoming' | 'in-progress' | 'completed';
-    startDate: string;
-    endDate: string;
-    progress: number;
-    types?: string[];
-    participants: Member[];
-    objectives: Objective[];
-    resources?: Resource[];
-    githubRepo?: string; // GitHub repository URL for tracking commits
-    createdByUserId?: string; // Project creator user ID
-    createdByFirstName?: string; // Project creator first name
-    createdByLastName?: string; // Project creator last name
-    moderatorUserId?: string; // Project moderator user ID
-    moderatorFirstName?: string; // Project moderator first name
-    moderatorLastName?: string; // Project moderator last name
-}
-
-interface GitHubCommit {
-    sha: string;
-    commit: {
-        author: {
-            name: string;
-            email: string;
-            date: string;
-        };
-        message: string;
-    };
-    html_url: string;
-    author?: {
-        login: string;
-        avatar_url: string;
-    };
-}
-
-interface GitHubRepo {
-    name: string;
-    full_name: string;
-    html_url: string;
-    updated_at: string;
-}
-
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 @Component({
@@ -906,7 +818,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
             <!-- Project Details Modal/Section -->
             <div *ngIf="selectedProject" class="mt-8 border-t border-surface pt-8">
-                <div class="flex justify-between items-start mb-4">
+                <div class="flex flex-col md:flex-row justify-between items-start mb-4">
                     <div class="flex-1">
                         <div class="flex flex-col md:flex-row items-start md:items-center gap-2 mb-2">
                             <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
@@ -917,7 +829,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <p-tag *ngFor="let type of selectedProject.types" [value]="type" severity="secondary"></p-tag>
                         </div>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
                         <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="openEditDialog(selectedProject)" />
                         <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
                         <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Moderator" icon="pi pi-shield" severity="warn" [outlined]="true" (onClick)="openAssignModeratorDialog()" />
@@ -1228,7 +1140,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                             <span *ngIf="!resource.url" class="font-semibold text-surface-900 dark:text-surface-0">{{ resource.title }}</span>
                                             <p class="text-xs text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                         </div>
-                                        <div class="flex gap-1" *ngIf="canEditResource(resource)">
+                                        <div class="flex gap-1" *ngIf="canEditResource(resource) && selectedProject?.status !== 'completed'">
                                             <p-button icon="pi pi-pencil" size="small" [text]="true" severity="secondary" (onClick)="openEditResourceDialog(resource)" />
                                             <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="confirmDeleteResource(resource)" />
                                         </div>

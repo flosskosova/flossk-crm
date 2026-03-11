@@ -24,6 +24,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { AvatarGroupModule } from 'primeng/avatargroup';
 import { TooltipModule } from 'primeng/tooltip';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
+import { InventoryItem, InventoryItemImage, InventoryItemCheckout, PaginatedInventoryResponse } from '@/pages/service/inventory.service';
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 interface User {
@@ -31,67 +32,6 @@ interface User {
     name: string;
     avatar: string;
     email: string;
-}
-
-interface InventoryItem {
-    id: string;
-    name: string;
-    description?: string;
-    category: string;
-    quantity?: number;
-    checkedOutQuantity?: number;
-    quantityInUse?: number;
-    quantityAvailable?: number;
-    status: string;
-    createdAt: string;
-    updatedAt?: string;
-    currentUserId?: string;
-    currentUserEmail?: string;
-    currentUserFirstName?: string;
-    currentUserLastName?: string;
-    currentUserFullName?: string;
-    currentUserProfilePictureUrl?: string;
-    checkedOutAt?: string;
-    condition: 'Good' | 'Damaged' | 'Repaired';
-    conditionNotes?: string;
-    conditionReportedByUserFullName?: string;
-    conditionReportedByUserProfilePictureUrl?: string;
-    createdByUserId?: string;
-    createdByUserFullName?: string;
-    createdByUserProfilePictureUrl?: string;
-    createdByUserEmail?: string;
-    createdByUserFirstName?: string;
-    createdByUserLastName?: string;
-    images?: InventoryItemImage[];
-    checkouts?: InventoryItemCheckout[];
-}
-
-interface InventoryItemImage {
-    id: string;
-    fileId: string;
-    fileName: string;
-    filePath: string;
-    addedAt: string;
-}
-
-interface InventoryItemCheckout {
-    id: string;
-    userId: string;
-    userEmail: string;
-    userFirstName: string;
-    userLastName: string;
-    userFullName: string;
-    userProfilePictureUrl?: string;
-    quantity: number;
-    checkedOutAt: string;
-}
-
-interface PaginatedInventoryResponse {
-    data: InventoryItem[];
-    totalCount: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
 }
 
 @Component({
