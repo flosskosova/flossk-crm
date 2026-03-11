@@ -60,6 +60,17 @@ public class InventoryProfile : Profile
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()
                     : null))
+            .ForMember(dest => dest.ConditionReportedByUserFullName, opt => opt.MapFrom(src =>
+                src.ConditionReportedByUser != null
+                    ? $"{src.ConditionReportedByUser.FirstName} {src.ConditionReportedByUser.LastName}".Trim()
+                    : null))
+            .ForMember(dest => dest.ConditionReportedByUserProfilePictureUrl, opt => opt.MapFrom(src =>
+                src.ConditionReportedByUser != null && src.ConditionReportedByUser.UploadedFiles != null
+                    ? src.ConditionReportedByUser.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault()
+                    : null))
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images));
 
         CreateMap<InventoryItem, InventoryItemListDto>()
@@ -102,6 +113,17 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.CreatedByUserProfilePictureUrl, opt => opt.MapFrom(src =>
                 src.CreatedByUser != null && src.CreatedByUser.UploadedFiles != null
                     ? src.CreatedByUser.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault()
+                    : null))
+            .ForMember(dest => dest.ConditionReportedByUserFullName, opt => opt.MapFrom(src =>
+                src.ConditionReportedByUser != null
+                    ? $"{src.ConditionReportedByUser.FirstName} {src.ConditionReportedByUser.LastName}".Trim()
+                    : null))
+            .ForMember(dest => dest.ConditionReportedByUserProfilePictureUrl, opt => opt.MapFrom(src =>
+                src.ConditionReportedByUser != null && src.ConditionReportedByUser.UploadedFiles != null
+                    ? src.ConditionReportedByUser.UploadedFiles
                         .Where(f => f.FileType == FileType.ProfilePicture)
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()

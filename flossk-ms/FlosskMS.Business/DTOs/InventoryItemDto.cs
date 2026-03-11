@@ -11,6 +11,9 @@ public class InventoryItemDto
     public int QuantityAvailable { get; set; } = 0;
     public string Status { get; set; } = string.Empty;
     public string Condition { get; set; } = "Good";
+    public string? ConditionNotes { get; set; }
+    public string? ConditionReportedByUserFullName { get; set; }
+    public string? ConditionReportedByUserProfilePictureUrl { get; set; }
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

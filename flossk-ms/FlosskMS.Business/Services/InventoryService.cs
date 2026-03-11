@@ -27,6 +27,8 @@ public class InventoryService : IInventoryService
         var query = _context.InventoryItems
             .Include(i => i.CreatedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
+            .Include(i => i.ConditionReportedByUser!)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)
             .Include(i => i.Checkouts)
@@ -508,7 +510,7 @@ public class InventoryService : IInventoryService
         return new OkObjectResult(new { Message = $"Successfully checked in {quantityToReturn} unit(s) of {item.Name}.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
-    public async Task<IActionResult> ReportDamageAsync(Guid id, string userId)
+    public async Task<IActionResult> ReportDamageAsync(Guid id, string userId, string? notes = null)
     {
         var item = await GetItemWithIncludesAsync(id);
 
@@ -523,6 +525,8 @@ public class InventoryService : IInventoryService
         }
 
         item.Condition = InventoryCondition.Damaged;
+        item.ConditionNotes = notes;
+        item.ConditionReportedByUserId = userId;
         item.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -540,7 +544,7 @@ public class InventoryService : IInventoryService
         return new OkObjectResult(new { Message = "Damage report submitted. Item marked as damaged.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
     }
 
-    public async Task<IActionResult> ReportRepairAsync(Guid id, string userId)
+    public async Task<IActionResult> ReportRepairAsync(Guid id, string userId, string? notes = null)
     {
         var item = await GetItemWithIncludesAsync(id);
 
@@ -549,12 +553,14 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
         }
 
-        if (item.Condition == InventoryCondition.Good)
+        if (item.Condition != InventoryCondition.Damaged)
         {
-            return new BadRequestObjectResult(new { Message = "This inventory item is already in good condition." });
+            return new BadRequestObjectResult(new { Message = "Only damaged inventory items can be reported as repaired." });
         }
 
-        item.Condition = InventoryCondition.Good;
+        item.Condition = InventoryCondition.Repaired;
+        item.ConditionNotes = notes;
+        item.ConditionReportedByUserId = userId;
         item.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -873,6 +879,8 @@ public class InventoryService : IInventoryService
     {
         return await _context.InventoryItems
             .Include(i => i.CreatedByUser!)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(i => i.ConditionReportedByUser!)
                 .ThenInclude(u => u.UploadedFiles)
             .Include(i => i.Images)
                 .ThenInclude(img => img.UploadedFile)

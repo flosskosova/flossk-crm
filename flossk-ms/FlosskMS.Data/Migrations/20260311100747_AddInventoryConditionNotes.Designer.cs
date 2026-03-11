@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using FlosskMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlosskMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311100747_AddInventoryConditionNotes")]
+    partial class AddInventoryConditionNotes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -468,9 +471,6 @@ namespace FlosskMS.Data.Migrations
                     b.Property<string>("ConditionNotes")
                         .HasColumnType("text");
 
-                    b.Property<string>("ConditionReportedByUserId")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -501,8 +501,6 @@ namespace FlosskMS.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
-
-                    b.HasIndex("ConditionReportedByUserId");
 
                     b.HasIndex("CreatedByUserId");
 
@@ -1385,17 +1383,11 @@ namespace FlosskMS.Data.Migrations
 
             modelBuilder.Entity("FlosskMS.Data.Entities.InventoryItem", b =>
                 {
-                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "ConditionReportedByUser")
-                        .WithMany()
-                        .HasForeignKey("ConditionReportedByUserId");
-
                     b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("ConditionReportedByUser");
 
                     b.Navigation("CreatedByUser");
                 });

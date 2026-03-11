@@ -10,6 +10,9 @@ public class InventoryItem
 
     public InventoryStatus Status { get; set; } = InventoryStatus.Free;
     public InventoryCondition Condition { get; set; } = InventoryCondition.Good;
+    public string? ConditionNotes { get; set; }
+    public string? ConditionReportedByUserId { get; set; }
+    public ApplicationUser? ConditionReportedByUser { get; set; }
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

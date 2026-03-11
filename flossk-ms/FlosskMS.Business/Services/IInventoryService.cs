@@ -13,8 +13,8 @@ public interface IInventoryService
     Task<IActionResult> DeleteInventoryItemAsync(Guid id, string userId);
     Task<IActionResult> CheckOutInventoryItemAsync(Guid id, string userId, CheckOutInventoryItemDto? dto = null);
     Task<IActionResult> CheckInInventoryItemAsync(Guid id, string userId, CheckInInventoryItemDto? dto = null);
-    Task<IActionResult> ReportDamageAsync(Guid id, string userId);
-    Task<IActionResult> ReportRepairAsync(Guid id, string userId);
+    Task<IActionResult> ReportDamageAsync(Guid id, string userId, string? notes = null);
+    Task<IActionResult> ReportRepairAsync(Guid id, string userId, string? notes = null);
     Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId, string userId);
     Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId, string userId);
     Task<IActionResult> SeedInventoryItemsAsync(string createdByUserId);

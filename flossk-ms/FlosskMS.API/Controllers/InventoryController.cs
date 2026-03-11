@@ -175,28 +175,28 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// Submit a damage report for an inventory item, marking it as damaged
     /// </summary>
     [HttpPost("{id:guid}/report-damage")]
-    public async Task<IActionResult> ReportDamage(Guid id)
+    public async Task<IActionResult> ReportDamage(Guid id, [FromBody] SubmitRepairReportDto? dto = null)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
-        return await _inventoryService.ReportDamageAsync(id, userId);
+        return await _inventoryService.ReportDamageAsync(id, userId, dto?.Notes);
     }
 
     /// <summary>
     /// Submit a repair report for an inventory item, marking it as repaired (Good condition)
     /// </summary>
     [HttpPost("{id:guid}/report-repair")]
-    public async Task<IActionResult> ReportRepair(Guid id)
+    public async Task<IActionResult> ReportRepair(Guid id, [FromBody] SubmitRepairReportDto? dto = null)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
-        return await _inventoryService.ReportRepairAsync(id, userId);
+        return await _inventoryService.ReportRepairAsync(id, userId, dto?.Notes);
     }
 
     #endregion

@@ -52,7 +52,10 @@ interface InventoryItem {
     currentUserFullName?: string;
     currentUserProfilePictureUrl?: string;
     checkedOutAt?: string;
-    condition: 'Good' | 'Damaged';
+    condition: 'Good' | 'Damaged' | 'Repaired';
+    conditionNotes?: string;
+    conditionReportedByUserFullName?: string;
+    conditionReportedByUserProfilePictureUrl?: string;
     createdByUserId?: string;
     createdByUserFullName?: string;
     createdByUserProfilePictureUrl?: string;
@@ -317,10 +320,17 @@ interface PaginatedInventoryResponse {
                             </div>
                         </td>
                         <td>
-                            <p-tag
-                                [value]="getConditionLabel(item.condition)"
-                                [severity]="getConditionSeverity(item.condition)"
-                            />
+                            <span
+                                [style]="(item.condition === 'Damaged' || item.condition === 'Repaired') ? {'cursor': 'pointer'} : {}"
+                                (click)="(item.condition === 'Damaged' || item.condition === 'Repaired') ? openConditionNotesModal(item) : null"
+                                [pTooltip]="(item.condition === 'Damaged' || item.condition === 'Repaired') ? 'View notes' : ''"
+                                tooltipPosition="top"
+                            >
+                                <p-tag
+                                    [value]="getConditionLabel(item.condition)"
+                                    [severity]="getConditionSeverity(item.condition)"
+                                />
+                            </span>
                         </td>
                         <td>
                             <div class="flex gap-1">
@@ -617,6 +627,57 @@ interface PaginatedInventoryResponse {
             </div>
         </p-dialog>
 
+        <!-- Condition Notes Modal -->
+        <p-dialog
+            [(visible)]="conditionNotesModalVisible"
+            [header]="conditionNotesModalItem?.condition === 'Damaged' ? 'Damage Notes' : 'Repair Notes'"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+        >
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-2">
+                    <p-tag
+                        [value]="getConditionLabel(conditionNotesModalItem?.condition || '')"
+                        [severity]="getConditionSeverity(conditionNotesModalItem?.condition || '')"
+                    />
+                    <span class="font-semibold">{{ conditionNotesModalItem?.name }}</span>
+                </div>
+                <div *ngIf="conditionNotesModalItem?.conditionReportedByUserFullName" class="flex items-center gap-2">
+                    <p-avatar
+                        *ngIf="conditionNotesModalItem?.conditionReportedByUserProfilePictureUrl"
+                        [image]="getProfilePictureUrl(conditionNotesModalItem?.conditionReportedByUserProfilePictureUrl)"
+                        shape="circle"
+                        size="normal"
+                    />
+                    <p-avatar
+                        *ngIf="!conditionNotesModalItem?.conditionReportedByUserProfilePictureUrl"
+                        [label]="getUserInitials(conditionNotesModalItem?.conditionReportedByUserFullName)"
+                        shape="circle"
+                        size="normal"
+                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                    />
+                    <div class="flex flex-col">
+                        <span class="text-xs text-muted-color">Reported by</span>
+                        <span class="text-sm font-medium">{{ conditionNotesModalItem?.conditionReportedByUserFullName }}</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-muted-color">Notes</span>
+                    <p class="text-sm text-surface-700 dark:text-surface-300 whitespace-pre-wrap mb-0">{{ conditionNotesModalItem?.conditionNotes || 'No notes provided.' }}</p>
+                </div>
+            </div>
+            <ng-template #footer>
+                <div class="flex justify-end">
+                    <p-button
+                        label="Close"
+                        severity="secondary"
+                        (onClick)="conditionNotesModalVisible = false"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
+
         <!-- Damage Report Dialog -->
         <p-dialog
             [(visible)]="damageReportVisible"
@@ -629,6 +690,16 @@ interface PaginatedInventoryResponse {
                 <p class="text-sm text-muted-color">
                     Are you sure you want to report <strong>{{ damageReportItem?.name }}</strong> as damaged?
                 </p>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">Damage Notes <span class="text-muted-color font-normal">(optional)</span></label>
+                    <textarea
+                        pTextarea
+                        [(ngModel)]="damageReportNotes"
+                        placeholder="Describe the damage..."
+                        rows="3"
+                        class="w-full"
+                    ></textarea>
+                </div>
             </div>
             <ng-template #footer>
                 <div class="flex justify-end gap-2 mt-4">
@@ -658,6 +729,16 @@ interface PaginatedInventoryResponse {
                 <p class="text-sm text-muted-color">
                     Are you sure you want to report <strong>{{ repairReportItem?.name }}</strong> as repaired?
                 </p>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">Repair Notes <span class="text-muted-color font-normal">(optional)</span></label>
+                    <textarea
+                        pTextarea
+                        [(ngModel)]="repairReportNotes"
+                        placeholder="Describe the repair..."
+                        rows="3"
+                        class="w-full"
+                    ></textarea>
+                </div>
             </div>
             <ng-template #footer>
                 <div class="flex justify-end gap-2 mt-4">
@@ -928,8 +1009,12 @@ export class Inventory implements OnInit {
     selectedItem: InventoryItem | null = null;
     damageReportVisible = false;
     damageReportItem: InventoryItem | null = null;
+    damageReportNotes = '';
     repairReportVisible = false;
     repairReportItem: InventoryItem | null = null;
+    repairReportNotes = '';
+    conditionNotesModalVisible = false;
+    conditionNotesModalItem: InventoryItem | null = null;
     checkoutDialogVisible = false;
     checkoutItem: InventoryItem | null = null;
     checkoutQuantity = 1;
@@ -965,7 +1050,8 @@ export class Inventory implements OnInit {
     ];
     filterConditionOptions = [
         { label: 'Good', value: 'Good' },
-        { label: 'Damaged', value: 'Damaged' }
+        { label: 'Damaged', value: 'Damaged' },
+        { label: 'Repaired', value: 'Repaired' }
     ];
     filterUsageOptions = [
         { label: 'Checked out by me', value: 'mine' }
@@ -1305,21 +1391,26 @@ export class Inventory implements OnInit {
     }
 
     getConditionLabel(condition: string): string {
-        return condition === 'Damaged' ? 'Damaged' : 'Good';
+        if (condition === 'Damaged') return 'Damaged';
+        if (condition === 'Repaired') return 'Repaired';
+        return 'Good';
     }
 
-    getConditionSeverity(condition: string): 'success' | 'danger' {
-        return condition === 'Damaged' ? 'danger' : 'success';
+    getConditionSeverity(condition: string): 'success' | 'danger' | 'info' {
+        if (condition === 'Damaged') return 'danger';
+        if (condition === 'Repaired') return 'info';
+        return 'success';
     }
 
     confirmReportDamage(item: InventoryItem) {
         this.damageReportItem = item;
+        this.damageReportNotes = '';
         this.damageReportVisible = true;
     }
 
     submitDamageReport() {
         if (!this.damageReportItem) return;
-        this.http.post(`${this.apiUrl}/${this.damageReportItem.id}/report-damage`, {}).subscribe({
+        this.http.post(`${this.apiUrl}/${this.damageReportItem.id}/report-damage`, { notes: this.damageReportNotes || null }).subscribe({
             next: () => {
                 this.messageService.add({
                     severity: 'warn',
@@ -1341,12 +1432,18 @@ export class Inventory implements OnInit {
 
     confirmReportRepair(item: InventoryItem) {
         this.repairReportItem = item;
+        this.repairReportNotes = '';
         this.repairReportVisible = true;
+    }
+
+    openConditionNotesModal(item: InventoryItem) {
+        this.conditionNotesModalItem = item;
+        this.conditionNotesModalVisible = true;
     }
 
     submitRepairReport() {
         if (!this.repairReportItem) return;
-        this.http.post(`${this.apiUrl}/${this.repairReportItem.id}/report-repair`, {}).subscribe({
+        this.http.post(`${this.apiUrl}/${this.repairReportItem.id}/report-repair`, { notes: this.repairReportNotes || null }).subscribe({
             next: () => {
                 this.messageService.add({
                     severity: 'success',
