@@ -520,6 +520,13 @@ interface ProjectDeadline {
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Close" severity="secondary" (onClick)="viewDialogVisible = false" />
                 <p-button 
+                    *ngIf="selectedRequest?.status?.toLowerCase() === 'approved'"
+                    label="View Contract" 
+                    severity="info" 
+                    icon="pi pi-file-pdf"
+                    (onClick)="selectedRequest && viewMembershipContract(selectedRequest)" 
+                />
+                <p-button 
                     *ngIf="selectedRequest?.status?.toLowerCase() === 'pending'"
                     label="Reject" 
                     severity="danger" 
@@ -815,6 +822,18 @@ export class Dashboard implements OnInit {
             },
             error: (err: any) => {
                 console.error('Failed to download request:', err);
+            }
+        });
+    }
+
+    viewMembershipContract(request: JoinRequest) {
+        this.membershipRequestsService.download(request.id).subscribe({
+            next: (blob: Blob) => {
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            },
+            error: (err: any) => {
+                console.error('Failed to view contract:', err);
             }
         });
     }

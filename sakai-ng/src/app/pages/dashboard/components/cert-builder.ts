@@ -17,7 +17,6 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { DatePickerModule } from 'primeng/datepicker';
 import { environment } from '@environments/environment.prod';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 
@@ -59,15 +58,14 @@ interface CertificateRecord {
         ToolbarModule,
         IconFieldModule,
         InputIconModule,
-        MultiSelectModule,
-        DatePickerModule
+        MultiSelectModule
     ],
     template: `
         <!-- Issue Certificate Dialog -->
         <p-dialog
             [(visible)]="dialogVisible"
             [modal]="true"
-            [style]="{ width: '720px' }"
+            [style]="{width: '32rem'}"
             header="Issue Certificate"
             [draggable]="false"
             [resizable]="false"
@@ -86,6 +84,7 @@ interface CertificateRecord {
                         [showToggleAll]="true"
                         display="chip"
                         [style]="{ width: '100%' }"
+                        appendTo="body"
                     >
                         <ng-template let-user #item>
                             <div class="flex items-center gap-2">
@@ -118,13 +117,40 @@ interface CertificateRecord {
                         optionValue="value"
                         placeholder="Select type"
                         [style]="{ width: '100%' }"
+                        appendTo="body"
                     ></p-select>
                 </div>
 
-                <!-- Event / Reason -->
+                <!-- Event -->
                 <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Event / Reason</label>
-                    <input pInputText [(ngModel)]="certForm.eventName" placeholder="e.g. FLOSSK Conference 2026" />
+                    <label class="font-semibold">Event / Project</label>
+                    <p-select
+                        [(ngModel)]="certForm.eventId"
+                        [options]="projectsWithCustom"
+                        optionLabel="title"
+                        optionValue="id"
+                        placeholder="Select a project / event"
+                        [filter]="true"
+                        filterPlaceholder="Search events..."
+                        [showClear]="true"
+                        [style]="{ width: '100%' }"
+                        [loading]="projectsLoading"
+                        appendTo="body"
+                    >
+                        <ng-template let-opt #item>
+                            <div class="flex items-center gap-2">
+                                @if (opt.id === CUSTOM_EVENT_ID) {
+                                    <i class="pi pi-pen-to-square"></i>
+                                } @else {
+                                    <i class="pi pi-folder"></i>
+                                }
+                                <span>{{ opt.id === CUSTOM_EVENT_ID ? 'Custom...' : opt.title }}</span>
+                            </div>
+                        </ng-template>
+                    </p-select>
+                    @if (certForm.eventId === CUSTOM_EVENT_ID) {
+                        <input pInputText [(ngModel)]="certForm.customEventTitle" placeholder="Enter custom event title..." class="mt-2" />
+                    }
                 </div>
 
                 <!-- Description -->
@@ -133,11 +159,6 @@ interface CertificateRecord {
                     <textarea pTextarea [(ngModel)]="certForm.description" rows="3" placeholder="Certificate description or achievement details..."></textarea>
                 </div>
 
-                <!-- Date -->
-                <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Issue Date</label>
-                    <p-datepicker [(ngModel)]="certForm.issueDate" dateFormat="yy-mm-dd" [showIcon]="true"></p-datepicker>
-                </div>
             </div>
 
             <ng-template #footer>
@@ -184,6 +205,7 @@ interface CertificateRecord {
                     [value]="issuedCertificates"
                     [paginator]="true"
                     [rows]="10"
+                    [rowsPerPageOptions]="[5, 10, 25]"
                     [showCurrentPageReport]="true"
                     [rowHover]="true"
                     [globalFilterFields]="['recipientName', 'recipientEmail', 'certificateType', 'eventName']"
@@ -229,6 +251,7 @@ interface CertificateRecord {
                             </td>
                             <td>
                                 <div class="flex gap-2">
+                                    <p-button icon="pi pi-eye" [rounded]="true" [text]="true" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
                                     <p-button icon="pi pi-download" [rounded]="true" [text]="true" severity="info" pTooltip="Download" (onClick)="downloadCertificate(cert)" />
                                     <p-button icon="pi pi-envelope" [rounded]="true" [text]="true" severity="secondary" pTooltip="Resend Email" />
                                 </div>
@@ -242,7 +265,6 @@ interface CertificateRecord {
                                 <div class="flex flex-col items-center gap-3 text-muted-color">
                                     <i class="pi pi-file text-4xl"></i>
                                     <span class="text-lg">No certificates issued yet</span>
-                                    <p-button label="Issue your first certificate" icon="pi pi-plus" [outlined]="true" (onClick)="openDialog()" />
                                 </div>
                             </td>
                         </tr>
@@ -276,16 +298,42 @@ export class CertBuilder implements OnInit {
         { label: 'Contribution', value: 'Contribution' }
     ];
 
+    readonly CUSTOM_EVENT_ID = '__custom__';
+
+    projects: any[] = [];
+    projectsWithCustom: any[] = [];
+    projectsLoading = false;
+
     certForm = {
         type: '',
-        eventName: '',
-        description: '',
-        issueDate: new Date()
+        eventId: null as string | null,
+        customEventTitle: '',
+        description: ''
     };
 
     ngOnInit() {
         this.loadUsers();
         this.loadCertificates();
+        this.loadProjects();
+    }
+
+    loadProjects() {
+        this.projectsLoading = true;
+        this.http.get<any>(`${environment.apiUrl}/Projects`).subscribe({
+            next: (data) => {
+                this.projects = Array.isArray(data) ? data : (data.projects || []);
+                this.projectsWithCustom = [
+                    ...this.projects,
+                    { id: this.CUSTOM_EVENT_ID, title: 'Custom...' }
+                ];
+                this.projectsLoading = false;
+            },
+            error: () => {
+                this.projects = [];
+                this.projectsWithCustom = [{ id: this.CUSTOM_EVENT_ID, title: 'Custom...' }];
+                this.projectsLoading = false;
+            }
+        });
     }
 
     loadUsers() {
@@ -321,26 +369,36 @@ export class CertBuilder implements OnInit {
         this.selectedRecipients = [];
         this.certForm = {
             type: '',
-            eventName: '',
-            description: '',
-            issueDate: new Date()
+            eventId: null,
+            customEventTitle: '',
+            description: ''
         };
         this.dialogVisible = true;
     }
 
     canIssue(): boolean {
-        return this.selectedRecipients.length > 0 && !!this.certForm.type && !!this.certForm.eventName;
+        const customValid = this.certForm.eventId !== this.CUSTOM_EVENT_ID || !!this.certForm.customEventTitle.trim();
+        return this.selectedRecipients.length > 0 && !!this.certForm.type && customValid;
     }
 
     issueCertificate() {
         if (!this.canIssue()) return;
 
+        let eventTitle: string | null = null;
+        if (this.certForm.eventId === this.CUSTOM_EVENT_ID) {
+            eventTitle = this.certForm.customEventTitle.trim() || null;
+        } else {
+            const selectedProject = this.projects.find((p) => p.id === this.certForm.eventId);
+            eventTitle = selectedProject?.title ?? null;
+        }
+        const eventName = eventTitle ?? '';
+
         const payload = {
             recipientUserIds: this.selectedRecipients.map((u) => u.id),
             type: this.certForm.type,
-            eventName: this.certForm.eventName,
+            eventName,
             description: this.certForm.description,
-            issuedDate: this.certForm.issueDate.toISOString()
+            issuedDate: new Date().toISOString()
         };
 
         this.http.post<CertificateRecord[]>(`${environment.apiUrl}/Certificates`, payload).subscribe({
@@ -350,6 +408,18 @@ export class CertBuilder implements OnInit {
             },
             error: (err) => {
                 console.error('Error issuing certificates:', err);
+            }
+        });
+    }
+
+    viewCertificate(cert: CertificateRecord) {
+        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/download`, { responseType: 'blob' }).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            },
+            error: (err) => {
+                console.error('Error viewing certificate:', err);
             }
         });
     }
