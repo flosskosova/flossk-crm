@@ -34,20 +34,13 @@ services:
       dockerfile: FlosskMS.API/Dockerfile
     container_name: flossk-api
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
+      # Docker-specific overrides (service hostnames differ from local)
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=FLOSSK;Username=postgres;Password=${POSTGRES_PASSWORD}"
-      JwtSettings__Secret: ${JWT_SECRET}
-      JwtSettings__Issuer: FlosskMS
-      JwtSettings__Audience: FlosskMS
-      JwtSettings__ExpirationInMinutes: 720
       ClamAvSettings__Host: clamav
-      ClamAvSettings__Port: 3310
-      ClamAvSettings__TimeoutMs: 30000
-      ResendSettings__ApiKey: ${RESEND_API_KEY}
-      ResendSettings__FromEmail: ${RESEND_FROM_EMAIL}
-      ResendSettings__FromName: FlosskMS
-      ResendSettings__FrontendBaseUrl: ${FRONTEND_BASE_URL}
     volumes:
       - uploads:/app/uploads
     depends_on:
@@ -56,14 +49,28 @@ services:
       clamav:
         condition: service_healthy
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: flossk-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+
   frontend:
     build:
       context: ./sakai-ng
       dockerfile: Dockerfile
     container_name: flossk-frontend
     restart: unless-stopped
-    ports:
-      - "80:80"
     depends_on:
       - api
 
@@ -71,3 +78,5 @@ volumes:
   postgres-data:
   clamav-db:
   uploads:
+  caddy-data:
+  caddy-config:

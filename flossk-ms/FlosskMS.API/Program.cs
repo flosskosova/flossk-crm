@@ -1,4 +1,5 @@
 using System.Text;
+using DotNetEnv;
 using FlosskMS.Business.Configuration;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
@@ -11,6 +12,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Resend;
 
+var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+if (File.Exists(envFile))
+    Env.Load(envFile);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -20,14 +25,12 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "FlosskMS API", Version = "v1" });
     
-    // Map IFormFile to binary format for proper Swagger handling
     options.MapType<IFormFile>(() => new OpenApiSchema
     {
         Type = "string",
         Format = "binary"
     });
     
-    // Add JWT Authentication to Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
@@ -136,14 +139,12 @@ builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("Cla
 builder.Services.Configure<ResendSettings>(builder.Configuration.GetSection("ResendSettings"));
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 
-// Email: Gmail SMTP in Development, Resend in everything else
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 }
 else
 {
-    // Resend (production)
     builder.Services.AddOptions();
     builder.Services.AddHttpClient<ResendClient>();
     builder.Services.Configure<ResendClientOptions>(options =>
@@ -163,7 +164,6 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var seederLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
 
-    // Apply pending migrations automatically
     await dbContext.Database.MigrateAsync();
 
     await DbSeeder.SeedAsync(roleManager, userManager, dbContext, seederLogger);
@@ -179,13 +179,11 @@ if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docke
     });
 }
 
-// Only use HTTPS redirection in non-Docker environments
 if (app.Environment.EnvironmentName != "Docker")
 {
     app.UseHttpsRedirection();
 }
 
-// Serve static files from uploads folder
 var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
 if (!Directory.Exists(uploadsPath))
 {
