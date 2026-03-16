@@ -38,7 +38,8 @@
                         ],
                         "styles": [
                             "src/assets/styles.scss",
-                            "node_modules/aos/dist/aos.css"
+                            "node_modules/aos/dist/aos.css",
+                            "node_modules/leaflet/dist/leaflet.css"
                         ],
                         "scripts": []
                     },
@@ -91,7 +92,8 @@
                             }
                         ],
                         "styles": [
-                            "src/assets/styles.scss"
+                            "src/assets/styles.scss",
+                            "node_modules/leaflet/dist/leaflet.css"
                         ],
                         "scripts": []
                     }

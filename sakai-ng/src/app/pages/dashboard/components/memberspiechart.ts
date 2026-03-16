@@ -12,7 +12,7 @@ import { MembershipRequestsService } from '../../service/membership-requests.ser
     imports: [CommonModule, ChartModule],
     template: `
         <div class="card mb-0">
-            <div class="font-semibold text-xl mb-4">Users</div>
+            <div class="font-semibold text-xl mb-4">User Count</div>
             <p-chart type="pie" [data]="chartData" [options]="chartOptions" class="w-full md:w-80 mx-auto" />
         </div>
     `
