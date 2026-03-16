@@ -110,6 +110,14 @@ public class AuthController(IAuthService authService) : ControllerBase
         => await _authService.DeleteAllUsersAsync();
 
     /// <summary>
+    /// Get member count grouped by location/city
+    /// </summary>
+    [Authorize]
+    [HttpGet("users/location-stats")]
+    public async Task<IActionResult> GetLocationStats()
+        => await _authService.GetLocationStatsAsync();
+
+    /// <summary>
     /// Get all users with pagination (Admin only)
     /// </summary>
     [Authorize]

@@ -30,4 +30,5 @@ public interface IAuthService
     Task<IActionResult> DemoteFromFullMemberAsync(string userId);
     Task<IActionResult> ForgotPasswordAsync(ForgotPasswordDto request);
     Task<IActionResult> ResetPasswordAsync(ResetPasswordDto request);
+    Task<IActionResult> GetLocationStatsAsync();
 }

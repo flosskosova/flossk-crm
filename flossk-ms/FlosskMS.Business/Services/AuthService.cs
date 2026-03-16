@@ -500,6 +500,23 @@ public class AuthService(
         });
     }
 
+    public async Task<IActionResult> GetLocationStatsAsync()
+    {
+        var stats = await _dbContext.Users
+            .Where(u => u.Location != null && u.Location != string.Empty)
+            .GroupBy(u => u.Location!)
+            .Select(g => new
+            {
+                Location = g.Key,
+                Count = g.Count(),
+                Members = g.Select(u => u.FirstName + " " + u.LastName).ToList()
+            })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+
+        return new OkObjectResult(stats);
+    }
+
     public async Task<IActionResult> GetUserByIdAsync(string userId)
     {
         if (string.IsNullOrEmpty(userId))

@@ -124,7 +124,14 @@ import { environment } from '@environments/environment.prod';
                     
                     <div>
                         <label for="location" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Location</label>
-                        <input pInputText id="location" [(ngModel)]="editProfile.location" class="w-full" />
+                        <p-select
+                            id="location"
+                            [(ngModel)]="editProfile.location"
+                            [options]="kosovoCities"
+                            placeholder="Select a city"
+                            [showClear]="true"
+                            styleClass="w-full"
+                        />
                     </div>
 
                     <div>
@@ -626,6 +633,14 @@ export class Profile implements OnInit {
             }
         });
     }
+
+    kosovoCities: string[] = [
+        'Prishtina', 'Prizren', 'Peja', 'Gjakova', 'Ferizaj', 'Mitrovica',
+        'Gjilan', 'Vushtrri', 'Podujeva', 'Suhareka', 'Lipjan', 'Drenas',
+        'Rahovec', 'Skenderaj', 'Klinë', 'Istog', 'Deçan', 'Malisheva',
+        'Kaçanik', 'Shtime', 'Vitia', 'Kamenicë', 'Zveçan', 'Zubin Potok',
+        'Leposaviq'
+    ];
 
     editDialogVisible = false;
     editProfile: any = {
