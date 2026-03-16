@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, computed, signal } from '@angular/core';
+import { Component, OnInit, inject, computed, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -37,6 +37,17 @@ interface CertificateRecord {
     eventName: string;
     issuedDate: string;
     status: string;
+}
+
+interface CertificateTemplate {
+    id: string;
+    name: string;
+    originalFileName: string;
+    contentType: string;
+    fileSize: number;
+    uploadedAt: string;
+    createdByName: string;
+    previewPath: string;
 }
 
 @Component({
@@ -159,6 +170,23 @@ interface CertificateRecord {
                     <textarea pTextarea [(ngModel)]="certForm.description" rows="3" placeholder="Certificate description or achievement details..."></textarea>
                 </div>
 
+                <!-- Template -->
+                @if (templates.length > 0) {
+                    <div class="flex flex-col gap-2">
+                        <label class="font-semibold">Certificate Template <span class="font-normal text-muted-color">(optional)</span></label>
+                        <p-select
+                            [(ngModel)]="certForm.templateId"
+                            [options]="templateOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Use default design"
+                            [showClear]="true"
+                            [style]="{ width: '100%' }"
+                            appendTo="body"
+                        ></p-select>
+                    </div>
+                }
+
             </div>
 
             <ng-template #footer>
@@ -272,11 +300,50 @@ interface CertificateRecord {
                 </p-table>
             }
         </div>
+
+        <!-- Templates Card -->
+        @if (isAdmin()) {
+            <div class="card mt-6">
+                <p-toolbar styleClass="mb-6">
+                    <ng-template #start>
+                        <span class="font-semibold text-xl">Certificate Templates</span>
+                    </ng-template>
+                    <ng-template #end>
+                        <p-button label="Upload Template" icon="pi pi-upload" (onClick)="triggerTemplateUpload()" [loading]="uploadingTemplate" />
+                        <input #templateFileInput type="file" accept="image/png,image/jpeg,image/webp" style="display:none" (change)="onTemplateFileSelected($event)" />
+                    </ng-template>
+                </p-toolbar>
+
+                @if (templates.length === 0) {
+                    <div class="flex flex-col items-center gap-3 text-muted-color py-8">
+                        <i class="pi pi-image text-4xl"></i>
+                        <span>No templates uploaded yet. Upload a PNG/JPG image to use as a certificate background.</span>
+                    </div>
+                } @else {
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        @for (tmpl of templates; track tmpl.id) {
+                            <div class="border rounded-lg p-3 flex flex-col gap-2 relative">
+                                <img [src]="getTemplatePreviewUrl(tmpl)" [alt]="tmpl.name" class="w-full rounded object-cover" style="aspect-ratio:1.414;object-fit:cover" />
+                                <div class="flex flex-col gap-1">
+                                    <span class="font-semibold text-sm truncate" [title]="tmpl.name">{{ tmpl.name }}</span>
+                                    <span class="text-xs text-muted-color">{{ tmpl.uploadedAt | date:'mediumDate' }}</span>
+                                </div>
+                                <div class="flex justify-end">
+                                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" pTooltip="Delete template" (onClick)="deleteTemplate(tmpl)" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
     `
 })
 export class CertBuilder implements OnInit {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
+
+    @ViewChild('templateFileInput') templateFileInput!: ElementRef<HTMLInputElement>;
 
     isAdmin = computed(() => {
         const user = this.authService.currentUser();
@@ -288,6 +355,9 @@ export class CertBuilder implements OnInit {
     users: any[] = [];
     selectedRecipients: any[] = [];
     issuedCertificates: CertificateRecord[] = [];
+    templates: CertificateTemplate[] = [];
+    templateOptions: { label: string; value: string }[] = [];
+    uploadingTemplate = false;
 
     certificateTypes = [
         { label: 'Participation', value: 'Participation' },
@@ -308,13 +378,15 @@ export class CertBuilder implements OnInit {
         type: '',
         eventId: null as string | null,
         customEventTitle: '',
-        description: ''
+        description: '',
+        templateId: null as string | null
     };
 
     ngOnInit() {
         this.loadUsers();
         this.loadCertificates();
         this.loadProjects();
+        this.loadTemplates();
     }
 
     loadProjects() {
@@ -371,7 +443,8 @@ export class CertBuilder implements OnInit {
             type: '',
             eventId: null,
             customEventTitle: '',
-            description: ''
+            description: '',
+            templateId: null
         };
         this.dialogVisible = true;
     }
@@ -398,7 +471,8 @@ export class CertBuilder implements OnInit {
             type: this.certForm.type,
             eventName,
             description: this.certForm.description,
-            issuedDate: new Date().toISOString()
+            issuedDate: new Date().toISOString(),
+            templateId: this.certForm.templateId || null
         };
 
         this.http.post<CertificateRecord[]>(`${environment.apiUrl}/Certificates`, payload).subscribe({
@@ -477,5 +551,64 @@ export class CertBuilder implements OnInit {
 
     onGlobalFilter(table: any, event: Event) {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+    }
+
+    // ── Template management ──────────────────────────────────────────────────
+
+    loadTemplates() {
+        this.http.get<CertificateTemplate[]>(`${environment.apiUrl}/Certificates/templates`).subscribe({
+            next: (data) => {
+                this.templates = data;
+                this.templateOptions = data.map((t) => ({ label: t.name, value: t.id }));
+            },
+            error: () => {
+                this.templates = [];
+                this.templateOptions = [];
+            }
+        });
+    }
+
+    triggerTemplateUpload() {
+        this.templateFileInput.nativeElement.value = '';
+        this.templateFileInput.nativeElement.click();
+    }
+
+    onTemplateFileSelected(event: Event) {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        const name = file.name.replace(/\.[^/.]+$/, '');
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', name);
+
+        this.uploadingTemplate = true;
+        this.http.post<CertificateTemplate>(`${environment.apiUrl}/Certificates/templates`, formData).subscribe({
+            next: (tmpl) => {
+                this.templates = [tmpl, ...this.templates];
+                this.templateOptions = [{ label: tmpl.name, value: tmpl.id }, ...this.templateOptions];
+                this.uploadingTemplate = false;
+            },
+            error: (err) => {
+                console.error('Error uploading template:', err);
+                this.uploadingTemplate = false;
+            }
+        });
+    }
+
+    deleteTemplate(tmpl: CertificateTemplate) {
+        if (!confirm(`Delete template "${tmpl.name}"?`)) return;
+        this.http.delete(`${environment.apiUrl}/Certificates/templates/${tmpl.id}`).subscribe({
+            next: () => {
+                this.templates = this.templates.filter((t) => t.id !== tmpl.id);
+                this.templateOptions = this.templateOptions.filter((o) => o.value !== tmpl.id);
+            },
+            error: (err) => console.error('Error deleting template:', err)
+        });
+    }
+
+    getTemplatePreviewUrl(tmpl: CertificateTemplate): string {
+        // previewPath is like /uploads/cert-templates/uuid.png, served as static files from API base
+        return `${environment.apiUrl.replace(/\/api$/, '')}${tmpl.previewPath}`;
     }
 }

@@ -18,4 +18,6 @@ public class IssueCertificateDto
     public string Description { get; set; } = string.Empty;
 
     public DateTime? IssuedDate { get; set; }
+
+    public Guid? TemplateId { get; set; }
 }

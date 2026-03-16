@@ -15,4 +15,7 @@ public class Certificate
 
     public string IssuedByUserId { get; set; } = string.Empty;
     public ApplicationUser IssuedByUser { get; set; } = null!;
+
+    public Guid? TemplateId { get; set; }
+    public CertificateTemplate? Template { get; set; }
 }

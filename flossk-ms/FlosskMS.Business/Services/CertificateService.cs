@@ -2,8 +2,10 @@ using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -16,15 +18,18 @@ public class CertificateService : ICertificateService
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<CertificateService> _logger;
+    private readonly IHostEnvironment _env;
 
     public CertificateService(
         ApplicationDbContext dbContext,
         IMapper mapper,
-        ILogger<CertificateService> logger)
+        ILogger<CertificateService> logger,
+        IHostEnvironment env)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+        _env = env;
     }
 
     public async Task<IActionResult> IssueCertificatesAsync(IssueCertificateDto request, string issuedByUserId)
@@ -58,7 +63,8 @@ public class CertificateService : ICertificateService
             IssuedDate = issuedDate,
             CreatedAt = DateTime.UtcNow,
             RecipientUserId = recipient.Id,
-            IssuedByUserId = issuedByUserId
+            IssuedByUserId = issuedByUserId,
+            TemplateId = request.TemplateId
         }).ToList();
 
         _dbContext.Certificates.AddRange(certificates);
@@ -121,6 +127,7 @@ public class CertificateService : ICertificateService
         var certificate = await _dbContext.Certificates
             .Include(c => c.RecipientUser)
             .Include(c => c.IssuedByUser)
+            .Include(c => c.Template)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (certificate == null)
@@ -128,13 +135,92 @@ public class CertificateService : ICertificateService
 
         QuestPDF.Settings.License = LicenseType.Community;
 
-        var pdfBytes = GenerateCertificatePdf(certificate);
+        byte[]? templateImageBytes = null;
+        if (certificate.Template != null)
+        {
+            var templatePath = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(certificate.Template.FilePath));
+            if (System.IO.File.Exists(templatePath))
+                templateImageBytes = await System.IO.File.ReadAllBytesAsync(templatePath);
+        }
+
+        var pdfBytes = GenerateCertificatePdf(certificate, templateImageBytes);
         var recipientName = $"{certificate.RecipientUser.FirstName}_{certificate.RecipientUser.LastName}";
 
         return new FileContentResult(pdfBytes, "application/pdf")
         {
             FileDownloadName = $"FLOSSK_Certificate_{recipientName}_{certificate.EventName.Replace(" ", "_")}.pdf"
         };
+    }
+
+    public async Task<IActionResult> UploadTemplateAsync(IFormFile file, string name, string userId)
+    {
+        var allowedTypes = new[] { "image/png", "image/jpeg", "image/jpg", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            return new BadRequestObjectResult(new { Error = "Only PNG, JPG, and WebP images are supported as certificate templates." });
+
+        const long maxSize = 10 * 1024 * 1024; // 10 MB
+        if (file.Length > maxSize)
+            return new BadRequestObjectResult(new { Error = "Template file must not exceed 10 MB." });
+
+        var user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return new UnauthorizedResult();
+
+        var templateDir = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates");
+        Directory.CreateDirectory(templateDir);
+
+        var ext = Path.GetExtension(file.FileName);
+        var storedFileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = $"/uploads/cert-templates/{storedFileName}";
+
+        var diskPath = Path.Combine(templateDir, storedFileName);
+
+        await using (var stream = new FileStream(diskPath, FileMode.Create))
+            await file.CopyToAsync(stream);
+
+        var template = new CertificateTemplate
+        {
+            Id = Guid.NewGuid(),
+            Name = string.IsNullOrWhiteSpace(name) ? Path.GetFileNameWithoutExtension(file.FileName) : name.Trim(),
+            OriginalFileName = file.FileName,
+            FilePath = filePath,
+            ContentType = file.ContentType,
+            FileSize = file.Length,
+            UploadedAt = DateTime.UtcNow,
+            CreatedByUserId = userId
+        };
+
+        _dbContext.CertificateTemplates.Add(template);
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(MapTemplateToDto(template, user));
+    }
+
+    public async Task<IActionResult> GetTemplatesAsync()
+    {
+        var templates = await _dbContext.CertificateTemplates
+            .Include(t => t.CreatedByUser)
+            .OrderByDescending(t => t.UploadedAt)
+            .ToListAsync();
+
+        var dtos = templates.Select(t => MapTemplateToDto(t, t.CreatedByUser)).ToList();
+        return new OkObjectResult(dtos);
+    }
+
+    public async Task<IActionResult> DeleteTemplateAsync(Guid id, string userId)
+    {
+        var template = await _dbContext.CertificateTemplates.FindAsync(id);
+        if (template == null)
+            return new NotFoundObjectResult(new { Error = "Template not found." });
+
+        // Remove the physical file
+        var diskPath = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(template.FilePath));
+        if (System.IO.File.Exists(diskPath))
+            System.IO.File.Delete(diskPath);
+
+        _dbContext.CertificateTemplates.Remove(template);
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(new { Message = "Template deleted successfully." });
     }
 
     public async Task<IActionResult> RevokeCertificateAsync(Guid id, string userId)
@@ -174,7 +260,19 @@ public class CertificateService : ICertificateService
         };
     }
 
-    private byte[] GenerateCertificatePdf(Certificate certificate)
+    private static CertificateTemplateDto MapTemplateToDto(CertificateTemplate t, ApplicationUser user) => new()
+    {
+        Id = t.Id,
+        Name = t.Name,
+        OriginalFileName = t.OriginalFileName,
+        ContentType = t.ContentType,
+        FileSize = t.FileSize,
+        UploadedAt = t.UploadedAt,
+        CreatedByName = $"{user.FirstName} {user.LastName}",
+        PreviewPath = t.FilePath
+    };
+
+    private byte[] GenerateCertificatePdf(Certificate certificate, byte[]? templateImageBytes = null)
     {
         var recipientName = $"{certificate.RecipientUser.FirstName} {certificate.RecipientUser.LastName}";
         var document = Document.Create(container =>
@@ -185,7 +283,16 @@ public class CertificateService : ICertificateService
                 page.Margin(40);
                 page.DefaultTextStyle(x => x.FontSize(12));
 
-                page.Content().Element(c => ComposeCertificateContent(c, certificate, recipientName));
+                if (templateImageBytes != null)
+                    page.Background().Image(templateImageBytes);
+
+                page.Content().Element(c =>
+                {
+                    if (templateImageBytes != null)
+                        ComposeTemplateOverlay(c, certificate, recipientName);
+                    else
+                        ComposeCertificateContent(c, certificate, recipientName);
+                });
             });
         });
 
@@ -238,6 +345,56 @@ public class CertificateService : ICertificateService
             // Date & Issuer
             column.Item().PaddingVertical(10).LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
 
+            column.Item().Row(row =>
+            {
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().Text("Date Issued").FontSize(10).FontColor(Colors.Grey.Darken1);
+                    c.Item().Text(certificate.IssuedDate.ToString("MMMM dd, yyyy")).FontSize(12).Bold();
+                });
+
+                row.RelativeItem().AlignRight().Column(c =>
+                {
+                    c.Item().AlignRight().Text("Issued By").FontSize(10).FontColor(Colors.Grey.Darken1);
+                    c.Item().AlignRight().Text($"{certificate.IssuedByUser.FirstName} {certificate.IssuedByUser.LastName}").FontSize(12).Bold();
+                });
+            });
+        });
+    }
+
+    private void ComposeTemplateOverlay(IContainer container, Certificate certificate, string recipientName)
+    {
+        // When using a custom template image as background, overlay only the dynamic text.
+        // The template design is expected to leave space in the center for the recipient name,
+        // below it for the event, and at the bottom for the date / issuer.
+        container.Padding(40).Column(column =>
+        {
+            column.Spacing(6);
+
+            // Push content toward vertical center
+            column.Item().Height(120);
+
+            // Recipient name
+            column.Item().AlignCenter().Text(recipientName)
+                .FontSize(26).Bold().FontColor(Colors.Black);
+
+            column.Item().Height(8);
+
+            // Event
+            column.Item().AlignCenter().Text($"for {certificate.EventName}")
+                .FontSize(15).FontColor(Colors.Grey.Darken2);
+
+            // Description
+            if (!string.IsNullOrWhiteSpace(certificate.Description))
+            {
+                column.Item().AlignCenter().PaddingTop(6).Text(certificate.Description)
+                    .FontSize(11).Italic().FontColor(Colors.Grey.Darken1);
+            }
+
+            // Spacer to push footer down
+            column.Item().Height(80);
+
+            // Date & Issuer footer row
             column.Item().Row(row =>
             {
                 row.RelativeItem().Column(c =>

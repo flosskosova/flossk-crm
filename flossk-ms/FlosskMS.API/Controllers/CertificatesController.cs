@@ -50,4 +50,32 @@ public class CertificatesController(ICertificateService certificateService) : Co
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
         return await _certificateService.RevokeCertificateAsync(id, userId);
     }
+
+    // ── Templates ────────────────────────────────────────────────────────────
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("templates")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadTemplate([FromForm] UploadCertificateTemplateDto request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _certificateService.UploadTemplateAsync(request.File, request.Name, userId);
+    }
+
+    [HttpGet("templates")]
+    public async Task<IActionResult> GetTemplates()
+    {
+        return await _certificateService.GetTemplatesAsync();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("templates/{id:guid}")]
+    public async Task<IActionResult> DeleteTemplate(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _certificateService.DeleteTemplateAsync(id, userId);
+    }
 }

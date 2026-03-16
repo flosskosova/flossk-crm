@@ -36,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ElectionCategory> ElectionCategories { get; set; }
     public DbSet<UserContribution> UserContributions { get; set; }
     public DbSet<Certificate> Certificates { get; set; }
+    public DbSet<CertificateTemplate> CertificateTemplates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -569,11 +570,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.RecipientUserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.IssuedByUser).WithMany()
                 .HasForeignKey(e => e.IssuedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Template).WithMany()
+                .HasForeignKey(e => e.TemplateId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => e.RecipientUserId);
             entity.HasIndex(e => e.IssuedByUserId);
             entity.HasIndex(e => e.Type);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // CertificateTemplate
+        builder.Entity<CertificateTemplate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.OriginalFileName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.FilePath).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(100).IsRequired();
+            entity.HasOne(e => e.CreatedByUser).WithMany()
+                .HasForeignKey(e => e.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.UploadedAt);
         });
     }
 }

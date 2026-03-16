@@ -60,7 +60,7 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
     template: `
         <div class="card">
             <div class="font-semibold text-xl mb-4">User Distribution</div>
-            <div #mapContainer class="w-full rounded-lg" style="height: clamp(600px, 70vw, 650px);"></div>
+            <div #mapContainer class="w-full rounded-lg" style="height: clamp(700px, 80vw, 750px);"></div>
         </div>
     `
 })
