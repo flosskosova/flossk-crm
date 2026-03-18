@@ -16,7 +16,7 @@ services:
       retries: 5
 
   clamav:
-    image: clamav/clamav:latest
+    image: clamav/clamav:stable
     container_name: flossk-clamav
     restart: unless-stopped
     volumes:
