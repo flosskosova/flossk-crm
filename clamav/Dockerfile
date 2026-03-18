@@ -4,7 +4,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         clamav \
         clamav-daemon \
-        netcat-openbsd && \
+        netcat-openbsd \
+        ca-certificates && \
+    update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Enable TCP socket so other containers can reach clamd on port 3310
