@@ -16,6 +16,9 @@ RUN sed -i 's|^#*\s*TCPSocket\b.*|TCPSocket 3310|' /etc/clamav/clamd.conf && \
         && sed -i 's|^Foreground.*|Foreground true|' /etc/clamav/clamd.conf \
         || echo "Foreground true" >> /etc/clamav/clamd.conf
 
+# Create socket directory with correct permissions
+RUN mkdir -p /var/run/clamav && chown clamav:clamav /var/run/clamav && chmod 755 /var/run/clamav
+
 EXPOSE 3310
 
 # freshclam downloads virus definitions on first start, then clamd runs
