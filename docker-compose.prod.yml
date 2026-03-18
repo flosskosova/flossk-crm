@@ -16,7 +16,8 @@ services:
       retries: 5
 
   clamav:
-    image: clamav/clamav:stable
+    image: clamav/clamav:1.4
+    platform: linux/arm64/v8
     container_name: flossk-clamav
     restart: unless-stopped
     volumes:
