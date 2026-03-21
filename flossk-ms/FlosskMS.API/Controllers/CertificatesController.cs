@@ -78,4 +78,13 @@ public class CertificatesController(ICertificateService certificateService) : Co
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
         return await _certificateService.DeleteTemplateAsync(id, userId);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("templates/{id:guid}/layout")]
+    public async Task<IActionResult> SaveLayout(Guid id, [FromBody] FlosskMS.Business.DTOs.SaveLayoutDto request)
+        => await _certificateService.SaveLayoutAsync(id, request);
+
+    [HttpGet("templates/{id:guid}/layout")]
+    public async Task<IActionResult> GetLayout(Guid id)
+        => await _certificateService.GetLayoutAsync(id);
 }

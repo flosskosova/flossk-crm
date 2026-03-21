@@ -14,4 +14,7 @@ public interface ICertificateService
     Task<IActionResult> UploadTemplateAsync(IFormFile file, string name, string userId);
     Task<IActionResult> GetTemplatesAsync();
     Task<IActionResult> DeleteTemplateAsync(Guid id, string userId);
+
+    Task<IActionResult> SaveLayoutAsync(Guid templateId, DTOs.SaveLayoutDto request);
+    Task<IActionResult> GetLayoutAsync(Guid templateId);
 }

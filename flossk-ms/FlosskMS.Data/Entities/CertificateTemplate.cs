@@ -12,4 +12,6 @@ public class CertificateTemplate
 
     public string CreatedByUserId { get; set; } = string.Empty;
     public ApplicationUser CreatedByUser { get; set; } = null!;
+
+    public ICollection<CertificateTemplateField> Fields { get; set; } = [];
 }

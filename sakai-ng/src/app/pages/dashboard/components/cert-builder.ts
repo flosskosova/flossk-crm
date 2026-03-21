@@ -822,6 +822,37 @@ export class CertBuilder implements OnInit, OnDestroy {
         this.dragging = null;
         this.resizing = null;
         this.layoutEditorVisible = true;
+
+        // Load any previously saved layout for this template
+        this.http.get<any>(`${environment.apiUrl}/Certificates/templates/${tmpl.id}/layout`).subscribe({
+            next: (layout) => {
+                if (!layout?.fields?.length || !this.editorCanvas) return;
+                // Fields are stored normalized (0-1); convert back to canvas pixels after image renders
+                // We defer one tick so the canvas element is visible and has its dimensions
+                setTimeout(() => {
+                    const canvas = this.editorCanvas?.nativeElement;
+                    if (!canvas) return;
+                    const cw = canvas.clientWidth;
+                    const ch = canvas.clientHeight;
+                    if (!cw || !ch) return;
+                    this.fields = layout.fields.map((f: any) => {
+                        const ft = this.FIELD_TYPES.find(t => t.key === f.key);
+                        return {
+                            id: crypto.randomUUID(),
+                            key: f.key,
+                            label: ft?.label ?? f.key,
+                            color: ft?.color ?? '#3B82F6',
+                            x: f.x * cw,
+                            y: f.y * ch,
+                            width: f.width * cw,
+                            height: f.height * ch,
+                        };
+                    });
+                    this.cdr.detectChanges();
+                }, 150);
+            },
+            error: () => {} // no layout yet — that's fine
+        });
     }
 
     onLayoutEditorHide() {
@@ -966,9 +997,30 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     saveLayout() {
-        // TODO: POST normalized field positions to backend
-        console.log('Layout fields:', this.fields);
-        this.layoutEditorVisible = false;
+        if (!this.editingTemplate || !this.editorCanvas) return;
+
+        const canvas = this.editorCanvas.nativeElement;
+        const cw = canvas.clientWidth;
+        const ch = canvas.clientHeight;
+
+        const payload = {
+            canvasWidth: cw,
+            canvasHeight: ch,
+            fields: this.fields.map(f => ({
+                key: f.key,
+                x: f.x,
+                y: f.y,
+                width: f.width,
+                height: f.height
+            }))
+        };
+
+        this.http
+            .put(`${environment.apiUrl}/Certificates/templates/${this.editingTemplate.id}/layout`, payload)
+            .subscribe({
+                next: () => { this.layoutEditorVisible = false; },
+                error: (err) => { console.error('Error saving layout:', err); }
+            });
     }
 
     ngOnDestroy() {

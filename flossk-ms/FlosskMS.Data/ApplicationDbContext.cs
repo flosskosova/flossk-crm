@@ -37,6 +37,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserContribution> UserContributions { get; set; }
     public DbSet<Certificate> Certificates { get; set; }
     public DbSet<CertificateTemplate> CertificateTemplates { get; set; }
+    public DbSet<CertificateTemplateField> CertificateTemplateFields { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -590,6 +591,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(e => e.CreatedByUser).WithMany()
                 .HasForeignKey(e => e.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => e.UploadedAt);
+        });
+
+        // CertificateTemplateField
+        builder.Entity<CertificateTemplateField>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Key).HasMaxLength(50).IsRequired();
+            entity.HasOne(e => e.Template)
+                .WithMany(t => t.Fields)
+                .HasForeignKey(e => e.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.TemplateId);
         });
     }
 }

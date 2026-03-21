@@ -1,4 +1,3 @@
-using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -6,10 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SkiaSharp;
 
 namespace FlosskMS.Business.Services;
 
@@ -122,6 +121,7 @@ public class CertificateService : ICertificateService
             .Include(c => c.RecipientUser)
             .Include(c => c.IssuedByUser)
             .Include(c => c.Template)
+                .ThenInclude(t => t!.Fields)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (certificate == null)
@@ -137,7 +137,18 @@ public class CertificateService : ICertificateService
                 templateImageBytes = await System.IO.File.ReadAllBytesAsync(templatePath);
         }
 
-        var pdfBytes = GenerateCertificatePdf(certificate, templateImageBytes);
+        byte[] pdfBytes;
+        if (templateImageBytes != null && certificate.Template?.Fields.Count > 0)
+        {
+            // SkiaSharp path: render text onto the template image, then wrap in a PDF
+            var compositeImageBytes = RenderCertificateWithSkia(certificate, templateImageBytes, certificate.Template.Fields.ToList());
+            pdfBytes = WrapImageInPdf(compositeImageBytes);
+        }
+        else
+        {
+            pdfBytes = GenerateCertificatePdf(certificate, templateImageBytes);
+        }
+
         var recipientName = $"{certificate.RecipientUser.FirstName}_{certificate.RecipientUser.LastName}";
 
         return new FileContentResult(pdfBytes, "application/pdf")
@@ -227,6 +238,75 @@ public class CertificateService : ICertificateService
         await _dbContext.SaveChangesAsync();
 
         return new OkObjectResult(new { Message = "Certificate revoked successfully." });
+    }
+
+    public async Task<IActionResult> SaveLayoutAsync(Guid templateId, SaveLayoutDto request)
+    {
+        var template = await _dbContext.CertificateTemplates.FindAsync(templateId);
+        if (template == null)
+            return new NotFoundObjectResult(new { Error = "Template not found." });
+
+        if (request.CanvasWidth <= 0 || request.CanvasHeight <= 0)
+            return new BadRequestObjectResult(new { Error = "Canvas dimensions must be positive." });
+
+        // Replace all existing fields for this template
+        var existing = _dbContext.CertificateTemplateFields.Where(f => f.TemplateId == templateId);
+        _dbContext.CertificateTemplateFields.RemoveRange(existing);
+
+        var newFields = request.Fields
+            .Where(f => !string.IsNullOrWhiteSpace(f.Key) && f.Width > 0 && f.Height > 0)
+            .Select(f => new CertificateTemplateField
+            {
+                Id = Guid.NewGuid(),
+                TemplateId = templateId,
+                Key = f.Key,
+                // Normalize pixel coords to 0-1 fractions of the canvas
+                X = f.X / request.CanvasWidth,
+                Y = f.Y / request.CanvasHeight,
+                Width = f.Width / request.CanvasWidth,
+                Height = f.Height / request.CanvasHeight,
+            })
+            .ToList();
+
+        _dbContext.CertificateTemplateFields.AddRange(newFields);
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(new TemplateLayoutDto
+        {
+            TemplateId = templateId,
+            Fields = newFields.Select(f => new TemplateFieldDto
+            {
+                Key = f.Key,
+                X = f.X,
+                Y = f.Y,
+                Width = f.Width,
+                Height = f.Height,
+            }).ToList()
+        });
+    }
+
+    public async Task<IActionResult> GetLayoutAsync(Guid templateId)
+    {
+        var template = await _dbContext.CertificateTemplates.FindAsync(templateId);
+        if (template == null)
+            return new NotFoundObjectResult(new { Error = "Template not found." });
+
+        var fields = await _dbContext.CertificateTemplateFields
+            .Where(f => f.TemplateId == templateId)
+            .ToListAsync();
+
+        return new OkObjectResult(new TemplateLayoutDto
+        {
+            TemplateId = templateId,
+            Fields = fields.Select(f => new TemplateFieldDto
+            {
+                Key = f.Key,
+                X = f.X,
+                Y = f.Y,
+                Width = f.Width,
+                Height = f.Height,
+            }).ToList()
+        });
     }
 
     private CertificateDto MapToDto(Certificate cert)
@@ -404,5 +484,126 @@ public class CertificateService : ICertificateService
                 });
             });
         });
+    }
+
+    // ── SkiaSharp renderer ────────────────────────────────────────────────────
+
+    private static byte[] WrapImageInPdf(byte[] imageBytes)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+        var doc = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(0);
+                page.Content().Image(imageBytes, ImageScaling.FitArea);
+            });
+        });
+        return doc.GeneratePdf();
+    }
+
+    private static byte[] RenderCertificateWithSkia(
+        Certificate cert,
+        byte[] templateImageBytes,
+        List<CertificateTemplateField> fields)
+    {
+        using var templateBitmap = SKBitmap.Decode(templateImageBytes)
+            ?? throw new InvalidOperationException("Failed to decode template image.");
+
+        int imgW = templateBitmap.Width;
+        int imgH = templateBitmap.Height;
+
+        using var outBitmap = new SKBitmap(imgW, imgH, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var canvas = new SKCanvas(outBitmap);
+
+        canvas.Clear(SKColors.White);
+        canvas.DrawBitmap(templateBitmap, 0, 0);
+
+        using var paint = new SKPaint { IsAntialias = true, Color = SKColors.Black };
+
+        foreach (var field in fields)
+        {
+            float fx = field.X * imgW;
+            float fy = field.Y * imgH;
+            float fw = field.Width * imgW;
+            float fh = field.Height * imgH;
+
+            if (field.Key == "signature")
+            {
+                DrawSignatureField(canvas, fx, fy, fw, fh);
+                continue;
+            }
+
+            string text = field.Key switch
+            {
+                "recipientName" => $"{cert.RecipientUser.FirstName} {cert.RecipientUser.LastName}",
+                "eventName"     => cert.EventName,
+                "description"   => cert.Description,
+                "issuedDate"    => cert.IssuedDate.ToString("MMMM dd, yyyy"),
+                "issuedBy"      => $"{cert.IssuedByUser.FirstName} {cert.IssuedByUser.LastName}",
+                _               => string.Empty
+            };
+
+            if (string.IsNullOrWhiteSpace(text)) continue;
+
+            bool isBold = field.Key == "recipientName";
+            DrawTextInBox(canvas, text, fx, fy, fw, fh, isBold, SKColors.Black);
+        }
+
+        using var encoded = outBitmap.Encode(SKEncodedImageFormat.Png, 100);
+        return encoded.ToArray();
+    }
+
+    private static void DrawTextInBox(
+        SKCanvas canvas, string text,
+        float bx, float by, float bw, float bh,
+        bool bold, SKColor color)
+    {
+        var fontStyle = bold ? SKFontStyle.Bold : SKFontStyle.Normal;
+        using var typeface = SKTypeface.FromFamilyName(null, fontStyle);
+        using var font = new SKFont(typeface);
+        using var paint = new SKPaint { IsAntialias = true, Color = color };
+
+        // Auto-size: start at 60% of box height, scale down to fit width
+        float maxW = bw * 0.9f;
+        font.Size = bh * 0.6f;
+        float textW = font.MeasureText(text);
+        if (textW > maxW)
+            font.Size *= maxW / textW;
+        if (font.Size < 6f) font.Size = 6f;
+
+        // Re-measure after resizing
+        textW = font.MeasureText(text);
+
+        var metrics = font.Metrics;
+        float textBlockH = -metrics.Ascent + metrics.Descent;
+
+        float x = bx + (bw - textW) / 2f;
+        float y = by + (bh - textBlockH) / 2f + (-metrics.Ascent);
+
+        canvas.DrawText(text, x, y, font, paint);
+    }
+
+    private static void DrawSignatureField(SKCanvas canvas, float bx, float by, float bw, float bh)
+    {
+        using var linePaint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = Math.Max(1f, bh * 0.025f),
+            IsAntialias = true,
+            IsStroke = true
+        };
+
+        // Horizontal signature line at 70% height of the box
+        float lineY = by + bh * 0.70f;
+        canvas.DrawLine(bx + bw * 0.05f, lineY, bx + bw * 0.95f, lineY, linePaint);
+
+        // "Signature" label below the line
+        using var typeface = SKTypeface.FromFamilyName(null, SKFontStyle.Italic);
+        using var font = new SKFont(typeface, bh * 0.22f);
+        using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.Gray };
+        float labelW = font.MeasureText("Signature");
+        canvas.DrawText("Signature", bx + (bw - labelW) / 2f, by + bh * 0.92f, font, textPaint);
     }
 }
