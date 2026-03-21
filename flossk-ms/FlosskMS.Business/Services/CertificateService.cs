@@ -45,6 +45,23 @@ public class CertificateService : ICertificateService
         if (recipientUser == null)
             return new BadRequestObjectResult(new { Error = "Recipient user not found." });
 
+        // Enforce project eligibility: recipient must have participated in at least one completed objective
+        if (request.ProjectId.HasValue)
+        {
+            var projectExists = await _dbContext.Projects.AnyAsync(p => p.Id == request.ProjectId.Value);
+            if (!projectExists)
+                return new BadRequestObjectResult(new { Error = "Project not found." });
+
+            var hasCompletedObjective = await _dbContext.ObjectiveTeamMembers
+                .AnyAsync(otm =>
+                    otm.UserId == request.RecipientUserId &&
+                    otm.Objective.ProjectId == request.ProjectId.Value &&
+                    otm.Objective.Status == ObjectiveStatus.Completed);
+
+            if (!hasCompletedObjective)
+                return new BadRequestObjectResult(new { Error = "User has not participated in any completed objective of this project and is not eligible for a certificate." });
+        }
+
         var issuedDate = request.IssuedDate ?? DateTime.UtcNow;
 
         var certificate = new Certificate
@@ -59,6 +76,7 @@ public class CertificateService : ICertificateService
             RecipientUserId = recipientUser.Id,
             IssuedByUserId = issuedByUserId,
             TemplateId = request.TemplateId,
+            ProjectId = request.ProjectId,
             IssuerSignatureDataUrl = request.IssuerSignatureDataUrl
         };
 
@@ -67,6 +85,7 @@ public class CertificateService : ICertificateService
 
         var saved = await _dbContext.Certificates
             .Include(c => c.RecipientUser)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(c => c.IssuedByUser)
             .Include(c => c.Template)
                 .ThenInclude(t => t!.Fields)
@@ -114,6 +133,7 @@ public class CertificateService : ICertificateService
     {
         var query = _dbContext.Certificates
             .Include(c => c.RecipientUser)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(c => c.IssuedByUser)
             .OrderByDescending(c => c.CreatedAt)
             .AsQueryable();
@@ -140,6 +160,7 @@ public class CertificateService : ICertificateService
     {
         var certificate = await _dbContext.Certificates
             .Include(c => c.RecipientUser)
+                .ThenInclude(u => u.UploadedFiles)
             .Include(c => c.IssuedByUser)
             .FirstOrDefaultAsync(c => c.Id == id);
 
@@ -300,6 +321,12 @@ public class CertificateService : ICertificateService
         return new OkResult();
     }
 
+    public async Task<IActionResult> DeleteAllCertificatesAsync()
+    {
+        await _dbContext.Certificates.ExecuteDeleteAsync();
+        return new OkResult();
+    }
+
     public async Task<IActionResult> SaveLayoutAsync(Guid templateId, SaveLayoutDto request)
     {
         var template = await _dbContext.CertificateTemplates.FindAsync(templateId);
@@ -371,12 +398,7 @@ public class CertificateService : ICertificateService
 
     private CertificateDto MapToDto(Certificate cert)
     {
-        var dto = _mapper.Map<CertificateDto>(cert);
-        dto.RecipientProfilePictureUrl = _dbContext.UploadedFiles
-            .Where(f => f.CreatedByUserId == cert.RecipientUserId && f.FileType == FileType.ProfilePicture)
-            .OrderByDescending(f => f.UploadedAt)
-            .FirstOrDefault()?.FilePath ?? string.Empty;
-        return dto;
+        return _mapper.Map<CertificateDto>(cert);
     }
 
     private byte[] GenerateCertificatePdf(Certificate certificate, byte[]? templateImageBytes = null)

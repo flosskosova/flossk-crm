@@ -60,6 +60,13 @@ public class CertificatesController(ICertificateService certificateService) : Co
         return await _certificateService.DeleteCertificateAsync(id, userId);
     }
 
+    [Authorize(Roles = "Admin")]
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAllCertificates()
+    {
+        return await _certificateService.DeleteAllCertificatesAsync();
+    }
+
     // ── Templates ────────────────────────────────────────────────────────────
 
     [Authorize(Roles = "Admin")]

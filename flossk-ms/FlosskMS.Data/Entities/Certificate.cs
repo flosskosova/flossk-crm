@@ -19,6 +19,10 @@ public class Certificate
     public Guid? TemplateId { get; set; }
     public CertificateTemplate? Template { get; set; }
 
+    /// <summary>Optional project this certificate is awarded for.</summary>
+    public Guid? ProjectId { get; set; }
+    public Project? Project { get; set; }
+
     /// <summary>Base64-encoded PNG data URL of the issuer's handwritten signature.</summary>
     public string? IssuerSignatureDataUrl { get; set; }
 

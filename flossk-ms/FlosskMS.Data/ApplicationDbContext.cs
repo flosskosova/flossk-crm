@@ -573,6 +573,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.IssuedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.Template).WithMany()
                 .HasForeignKey(e => e.TemplateId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Project).WithMany()
+                .HasForeignKey(e => e.ProjectId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => e.RecipientUserId);
             entity.HasIndex(e => e.IssuedByUserId);
             entity.HasIndex(e => e.Type);

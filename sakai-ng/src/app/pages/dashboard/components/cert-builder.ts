@@ -1,9 +1,8 @@
-import { Component, OnInit, OnDestroy, inject, computed, signal, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, computed, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import SignaturePad from 'signature_pad';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -25,6 +24,7 @@ import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.
 
 interface CertificateRecord {
     id: string;
+    recipientUserId: string;
     recipientName: string;
     recipientEmail: string;
     certificateType: string;
@@ -61,7 +61,6 @@ interface FieldBox {
     imports: [
         CommonModule,
         FormsModule,
-        TableModule,
         ButtonModule,
         DialogModule,
         InputTextModule,
@@ -232,242 +231,205 @@ interface FieldBox {
             </ng-template>
         </p-dialog>
 
-        <!-- Issue Certificate Dialog -->
-        <p-dialog
-            [(visible)]="dialogVisible"
-            [modal]="true"
-            [style]="{width: '32rem'}"
-            header="Issue Certificate"
-            [draggable]="false"
-            [resizable]="false"
-            (onShow)="initSignaturePad()"
-        >
-            <div class="flex flex-col gap-5 mt-2">
-                <!-- Recipient -->
-                <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Recipient</label>
-                    <p-select
-                        [(ngModel)]="selectedRecipient"
-                        [options]="users"
-                        optionLabel="fullName"
-                        placeholder="Select recipient"
-                        [filter]="true"
-                        filterPlaceholder="Search users..."
-                        [style]="{ width: '100%' }"
-                        appendTo="body"
-                    >
-                        <ng-template let-user #item>
-                            <div class="flex items-center gap-2">
+        <!-- Members Grid -->
+        <div class="card">
+            <div class="flex flex-col gap-4 mb-6">
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <h5 class="text-sm text-muted-color mt-1 mb-0">Select a project to view users eligible for a certificate</h5>
+                    <p-iconfield>
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input pInputText type="text" [(ngModel)]="userSearchQuery" placeholder="Search members..." />
+                    </p-iconfield>
+                </div>
+                <p-select
+                    [(ngModel)]="selectedFilterProjectId"
+                    (ngModelChange)="onProjectFilterChange($event)"
+                    [options]="projects"
+                    optionLabel="title"
+                    optionValue="id"
+                    placeholder="Filter by project..."
+                    [filter]="true"
+                    filterPlaceholder="Search projects..."
+                    [showClear]="true"
+                    [loading]="projectsLoading"
+                    [style]="{ width: '100%', 'max-width': '28rem' }"
+                />
+            </div>
+
+            @if (usersLoading) {
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    @for (i of [1,2,3,4,5,6]; track i) {
+                        <div class="border border-surface rounded-xl p-4 flex items-center gap-3">
+                            <p-skeleton shape="circle" size="3rem" />
+                            <div class="flex-1 flex flex-col gap-2">
+                                <p-skeleton width="60%" height="1rem" />
+                                <p-skeleton width="40%" height="0.75rem" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            } @else if (filteredUsers.length === 0) {
+                <div class="flex flex-col items-center gap-3 text-muted-color py-12">
+                    <i class="pi pi-users text-5xl"></i>
+                    <span class="text-lg">{{ selectedFilterProjectId ? 'No eligible users found for this project' : 'Select a project above to see eligible recipients' }}</span>
+                </div>
+            } @else {
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    @for (user of filteredUsers; track user.id) {
+                        <div
+                            class="border rounded-xl overflow-hidden transition-all duration-200"
+                            [class.border-primary]="activeIssuingUserId === user.id"
+                            [class.border-surface]="activeIssuingUserId !== user.id"
+                            [class.shadow-lg]="activeIssuingUserId === user.id"
+                        >
+                            <!-- User Info Row -->
+                            <div class="flex items-center gap-3 p-4">
                                 <p-avatar
                                     *ngIf="hasProfilePicture(user.profilePictureUrl)"
                                     [image]="getProfilePictureUrl(user.profilePictureUrl)"
                                     shape="circle"
-                                    size="normal"
+                                    size="large"
                                 ></p-avatar>
                                 <p-avatar
                                     *ngIf="!hasProfilePicture(user.profilePictureUrl)"
                                     [label]="getUserInitials(user)"
                                     shape="circle"
-                                    size="normal"
+                                    size="large"
                                     [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                 ></p-avatar>
-                                <span>{{ user.fullName }}</span>
-                            </div>
-                        </ng-template>
-                    </p-select>
-                </div>
-
-                <!-- Certificate Type -->
-                <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Certificate Type</label>
-                    <p-select
-                        [(ngModel)]="certForm.type"
-                        [options]="certificateTypes"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Select type"
-                        [style]="{ width: '100%' }"
-                        appendTo="body"
-                    ></p-select>
-                </div>
-
-                <!-- Event -->
-                <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Event / Project</label>
-                    <p-select
-                        [(ngModel)]="certForm.eventId"
-                        [options]="projectsWithCustom"
-                        optionLabel="title"
-                        optionValue="id"
-                        placeholder="Select a project / event"
-                        [filter]="true"
-                        filterPlaceholder="Search events..."
-                        [showClear]="true"
-                        [style]="{ width: '100%' }"
-                        [loading]="projectsLoading"
-                        appendTo="body"
-                    >
-                        <ng-template let-opt #item>
-                            <div class="flex items-center gap-2">
-                                @if (opt.id === CUSTOM_EVENT_ID) {
-                                    <i class="pi pi-pen-to-square"></i>
-                                } @else {
-                                    <i class="pi pi-folder"></i>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold truncate">{{ user.fullName }}</div>
+                                    <div class="text-sm text-muted-color truncate">{{ user.email }}</div>
+                                    @if (user.roles?.length) {
+                                        <p-tag [value]="user.roles[0]" severity="secondary" styleClass="mt-1 text-xs" />
+                                    }
+                                </div>
+                                @if (isAdmin()) {
+                                    <p-button
+                                        [icon]="activeIssuingUserId === user.id ? 'pi pi-times' : 'pi pi-plus-circle'"
+                                        [severity]="activeIssuingUserId === user.id ? 'danger' : 'primary'"
+                                        [rounded]="true"
+                                        [text]="true"
+                                        size="large"
+                                        [pTooltip]="activeIssuingUserId === user.id ? 'Cancel' : 'Issue Certificate'"
+                                        tooltipPosition="left"
+                                        (onClick)="toggleIssueForm(user)"
+                                    />
                                 }
-                                <span>{{ opt.id === CUSTOM_EVENT_ID ? 'Custom...' : opt.title }}</span>
                             </div>
-                        </ng-template>
-                    </p-select>
-                    @if (certForm.eventId === CUSTOM_EVENT_ID) {
-                        <input pInputText [(ngModel)]="certForm.customEventTitle" placeholder="Enter custom event title..." class="mt-2" />
-                    }
-                </div>
 
-                <!-- Description -->
-                <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Description</label>
-                    <textarea pTextarea [(ngModel)]="certForm.description" rows="3" placeholder="Certificate description or achievement details..."></textarea>
-                </div>
+                            <!-- Certificates for this user -->
+                            @if (getUserCerts(user.id).length > 0) {
+                                <div class="px-4 pb-3 border-t border-surface pt-3">
+                                    <span class="text-xs font-semibold text-muted-color uppercase tracking-wide">Certificates</span>
+                                    <div class="flex flex-col gap-1.5 mt-2">
+                                        @for (cert of getUserCerts(user.id); track cert.id) {
+                                            <div class="flex items-center gap-2 bg-surface-100 dark:bg-surface-700 rounded-lg px-3 py-1.5">
+                                                <p-tag [value]="cert.certificateType" [severity]="getTypeSeverity(cert.certificateType)" />
+                                                <span class="flex-1 truncate text-surface-700 dark:text-surface-300 text-xs">{{ cert.eventName }}</span>
+                                                <p-tag [value]="cert.status" [severity]="getStatusSeverity(cert.status)" />
+                                                <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
+                                                <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="Download" (onClick)="downloadCertificate(cert)" />
+                                                <p-button icon="pi pi-envelope" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Resend Email" />
+                                                <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" pTooltip="Delete" (onClick)="deleteCertificate(cert)" />
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
 
-                <!-- Template -->
-                @if (templates.length > 0) {
-                    <div class="flex flex-col gap-2">
-                        <label class="font-semibold">Certificate Template <span class="font-normal text-muted-color">(optional)</span></label>
-                        <p-select
-                            [(ngModel)]="certForm.templateId"
-                            [options]="templateOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Use default design"
-                            [showClear]="true"
-                            [style]="{ width: '100%' }"
-                            appendTo="body"
-                        ></p-select>
-                    </div>
-                }
+                            <!-- Inline Issue Certificate Form -->
+                            @if (activeIssuingUserId === user.id) {
+                                <div class="border-t border-primary p-4 bg-surface-50 dark:bg-surface-800 flex flex-col gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-certificate text-primary text-lg"></i>
+                                        <span class="font-semibold">Issuing to <span class="text-primary">{{ user.fullName }}</span></span>
+                                    </div>
 
-                <!-- Signature -->
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <label class="font-semibold">Issuer Signature</label>
-                        <p-button label="Clear" icon="pi pi-eraser" size="small" [text]="true" severity="secondary" (onClick)="clearSignature()" />
-                    </div>
-                    <div class="border rounded-lg overflow-hidden" style="background:#fff;">
-                        <canvas #sigCanvas style="width:100%;height:120px;display:block;touch-action:none;"></canvas>
-                    </div>
-                </div>
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-sm font-semibold">Certificate Type</label>
+                                        <p-select
+                                            [(ngModel)]="certForm.type"
+                                            [options]="certificateTypes"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            placeholder="Select type"
+                                            [style]="{ width: '100%' }"
+                                            appendTo="body"
+                                        />
+                                    </div>
 
-            </div>
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-sm font-semibold">Event / Project</label>
+                                        <p-select
+                                            [(ngModel)]="certForm.eventId"
+                                            [options]="projectsWithCustom"
+                                            optionLabel="title"
+                                            optionValue="id"
+                                            placeholder="Select an event..."
+                                            [filter]="true"
+                                            filterPlaceholder="Search events..."
+                                            [showClear]="true"
+                                            [style]="{ width: '100%' }"
+                                            [loading]="projectsLoading"
+                                            appendTo="body"
+                                        >
+                                            <ng-template let-opt #item>
+                                                <div class="flex items-center gap-2">
+                                                    @if (opt.id === CUSTOM_EVENT_ID) {
+                                                        <i class="pi pi-pen-to-square"></i>
+                                                    } @else {
+                                                        <i class="pi pi-folder"></i>
+                                                    }
+                                                    <span>{{ opt.id === CUSTOM_EVENT_ID ? 'Custom...' : opt.title }}</span>
+                                                </div>
+                                            </ng-template>
+                                        </p-select>
+                                        @if (certForm.eventId === CUSTOM_EVENT_ID) {
+                                            <input pInputText [(ngModel)]="certForm.customEventTitle" placeholder="Enter custom event title..." class="mt-1" />
+                                        }
+                                    </div>
 
-            <ng-template #footer>
-                <div class="flex justify-end">
-                    <p-button
-                        label="Issue Certificate"
-                        icon="pi pi-check"
-                        (onClick)="issueCertificate()"
-                        [disabled]="!canIssue()"
-                    />
-                </div>
-            </ng-template>
-        </p-dialog>
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-sm font-semibold">Description <span class="font-normal text-muted-color">(optional)</span></label>
+                                        <textarea pTextarea [(ngModel)]="certForm.description" rows="2" placeholder="Achievement or participation details..." class="w-full"></textarea>
+                                    </div>
 
-        <!-- Main Content -->
-        <div class="card">
-            <p-toolbar styleClass="mb-6">
-                <ng-template #start>
-                    <div class="flex items-center gap-2">
-                        <span class="font-semibold text-xl">Certificates</span>
-                    </div>
-                </ng-template>
-                <ng-template #end>
-                    <p-button label="Issue Certificate" icon="pi pi-plus" (onClick)="openDialog()" />
-                </ng-template>
-            </p-toolbar>
+                                    @if (templates.length > 0) {
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-sm font-semibold">Template <span class="font-normal text-muted-color">(optional)</span></label>
+                                            <p-select
+                                                [(ngModel)]="certForm.templateId"
+                                                [options]="templateOptions"
+                                                optionLabel="label"
+                                                optionValue="value"
+                                                placeholder="Default design"
+                                                [showClear]="true"
+                                                [style]="{ width: '100%' }"
+                                                appendTo="body"
+                                            />
+                                        </div>
+                                    }
 
-            @if (loading) {
-                <div class="flex flex-col gap-4">
-                    @for (i of [1, 2, 3, 4, 5]; track i) {
-                        <div class="flex items-center gap-4">
-                            <p-skeleton width="12rem" height="1rem"></p-skeleton>
-                            <p-skeleton width="15rem" height="1rem"></p-skeleton>
-                            <p-skeleton width="10rem" height="1rem"></p-skeleton>
-                            <p-skeleton width="8rem" height="1rem"></p-skeleton>
-                            <p-skeleton width="6rem" height="1rem"></p-skeleton>
+                                    <div class="flex flex-col gap-1.5">
+                                        <div class="flex items-center justify-between">
+                                            <label class="text-sm font-semibold">Issuer Signature</label>
+                                            <p-button label="Clear" icon="pi pi-eraser" size="small" [text]="true" severity="secondary" (onClick)="clearSignature()" />
+                                        </div>
+                                        <div class="border border-surface rounded-lg overflow-hidden" style="background:#fff;">
+                                            <canvas #sigCanvas style="width:100%;height:110px;display:block;touch-action:none;"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-2 justify-end pt-1">
+                                        <p-button label="Cancel" severity="secondary" size="small" (onClick)="cancelIssueForm()" />
+                                        <p-button label="Issue Certificate" icon="pi pi-check" size="small" (onClick)="issueCertificate()" [disabled]="!canIssue()" />
+                                    </div>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
-            } @else {
-                <p-table
-                    #dt
-                    [value]="issuedCertificates"
-                    [paginator]="true"
-                    [rows]="10"
-                    [rowsPerPageOptions]="[5, 10, 25]"
-                    [showCurrentPageReport]="true"
-                    [rowHover]="true"
-                    [globalFilterFields]="['recipientName', 'recipientEmail', 'certificateType', 'eventName']"
-                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} certificates"
-                    [tableStyle]="{ 'min-width': '60rem' }"
-                >
-                    <ng-template #caption>
-                        <div class="flex items-center justify-between">
-                            <span></span>
-                            <p-iconfield>
-                                <p-inputicon styleClass="pi pi-search" />
-                                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Search certificates..." />
-                            </p-iconfield>
-                        </div>
-                    </ng-template>
-
-                    <ng-template #header>
-                        <tr>
-                            <th pSortableColumn="recipientName">Recipient <p-sortIcon field="recipientName" /></th>
-                            <th pSortableColumn="certificateType">Type <p-sortIcon field="certificateType" /></th>
-                            <th pSortableColumn="eventName">Event <p-sortIcon field="eventName" /></th>
-                            <th pSortableColumn="issuedDate">Issued Date <p-sortIcon field="issuedDate" /></th>
-                            <th pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-                            <th>Actions</th>
-                        </tr>
-                    </ng-template>
-
-                    <ng-template #body let-cert>
-                        <tr>
-                            <td>
-                                <div class="flex flex-col">
-                                    <span class="font-medium">{{ cert.recipientName }}</span>
-                                    <span class="text-sm text-muted-color">{{ cert.recipientEmail }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <p-tag [value]="cert.certificateType" [severity]="getTypeSeverity(cert.certificateType)" />
-                            </td>
-                            <td>{{ cert.eventName }}</td>
-                            <td>{{ cert.issuedDate | date: 'mediumDate' }}</td>
-                            <td>
-                                <p-tag [value]="cert.status" [severity]="getStatusSeverity(cert.status)" />
-                            </td>
-                            <td>
-                                <div class="flex gap-2">
-                                    <p-button icon="pi pi-eye" [rounded]="true" [text]="true" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
-                                    <p-button icon="pi pi-download" [rounded]="true" [text]="true" severity="info" pTooltip="Download" (onClick)="downloadCertificate(cert)" />
-                                    <p-button icon="pi pi-envelope" [rounded]="true" [text]="true" severity="secondary" pTooltip="Resend Email" />
-                                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" pTooltip="Delete" (onClick)="deleteCertificate(cert)" />
-                                </div>
-                            </td>
-                        </tr>
-                    </ng-template>
-
-                    <ng-template #emptymessage>
-                        <tr>
-                            <td colspan="6" class="text-center py-8">
-                                <div class="flex flex-col items-center gap-3 text-muted-color">
-                                    <i class="pi pi-file text-4xl"></i>
-                                    <span class="text-lg">No certificates issued yet</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </ng-template>
-                </p-table>
             }
         </div>
 
@@ -536,9 +498,12 @@ export class CertBuilder implements OnInit, OnDestroy {
     });
 
     loading = true;
-    dialogVisible = false;
+    usersLoading = false;
     users: any[] = [];
-    selectedRecipient: any = null;
+    selectedFilterProjectId: string | null = null;
+    activeIssuingUserId: string | null = null;
+    activeIssuingUser: any = null;
+    userSearchQuery = '';
     issuedCertificates: CertificateRecord[] = [];
     templates: CertificateTemplate[] = [];
     templateOptions: { label: string; value: string }[] = [];
@@ -578,7 +543,6 @@ export class CertBuilder implements OnInit, OnDestroy {
     };
 
     ngOnInit() {
-        this.loadUsers();
         this.loadCertificates();
         this.loadProjects();
         this.loadTemplates();
@@ -603,19 +567,32 @@ export class CertBuilder implements OnInit, OnDestroy {
         });
     }
 
-    loadUsers() {
-        this.http.get<any>(`${environment.apiUrl}/Auth/users?page=1&pageSize=200`).subscribe({
-            next: (response) => {
-                console.log('Cert builder users:', response);
-                this.users = (response.users || []).map((u: any) => ({
+    loadEligibleUsers(projectId: string) {
+        this.usersLoading = true;
+        this.http.get<any[]>(`${environment.apiUrl}/Projects/${projectId}/eligible-certificate-recipients`).subscribe({
+            next: (data) => {
+                this.users = (data || []).map((u: any) => ({
                     ...u,
+                    id: u.userId,
                     fullName: `${u.firstName} ${u.lastName}`
                 }));
+                console.log('Eligible certificate recipients:', this.users);
+                this.usersLoading = false;
             },
             error: () => {
                 this.users = [];
+                this.usersLoading = false;
             }
         });
+    }
+
+    onProjectFilterChange(projectId: string | null) {
+        this.cancelIssueForm();
+        this.users = [];
+        this.userSearchQuery = '';
+        if (projectId) {
+            this.loadEligibleUsers(projectId);
+        }
     }
 
     loadCertificates() {
@@ -632,16 +609,23 @@ export class CertBuilder implements OnInit, OnDestroy {
         });
     }
 
-    openDialog() {
-        this.selectedRecipient = [];
-        this.certForm = {
-            type: '',
-            eventId: null,
-            customEventTitle: '',
-            description: '',
-            templateId: null
-        };
-        this.dialogVisible = true;
+    toggleIssueForm(user: any) {
+        if (this.activeIssuingUserId === user.id) {
+            this.cancelIssueForm();
+            return;
+        }
+        this.activeIssuingUserId = user.id;
+        this.activeIssuingUser = user;
+        this.certForm = { type: '', eventId: this.selectedFilterProjectId, customEventTitle: '', description: '', templateId: null };
+        this.cdr.detectChanges();
+        this.initSignaturePad();
+    }
+
+    cancelIssueForm() {
+        this.activeIssuingUserId = null;
+        this.activeIssuingUser = null;
+        this.signaturePad?.off();
+        this.signaturePad = undefined;
     }
 
     initSignaturePad() {
@@ -667,7 +651,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     canIssue(): boolean {
         const customValid = this.certForm.eventId !== this.CUSTOM_EVENT_ID || !!this.certForm.customEventTitle.trim();
         const signatureValid = !!this.signaturePad && !this.signaturePad.isEmpty();
-        return !!this.selectedRecipient && !!this.certForm.type && customValid && signatureValid;
+        return !!this.activeIssuingUser && !!this.certForm.type && customValid && signatureValid;
     }
 
     issueCertificate() {
@@ -685,19 +669,20 @@ export class CertBuilder implements OnInit, OnDestroy {
         const signatureDataUrl = this.signaturePad!.toDataURL('image/png');
 
         const payload = {
-            recipientUserId: this.selectedRecipient.id,
+            recipientUserId: this.activeIssuingUser.id,
             type: this.certForm.type,
             eventName,
             description: this.certForm.description,
             issuedDate: new Date().toISOString(),
             templateId: this.certForm.templateId || null,
+            projectId: this.certForm.eventId !== this.CUSTOM_EVENT_ID ? this.certForm.eventId : null,
             issuerSignatureDataUrl: signatureDataUrl
         };
 
         this.http.post<CertificateRecord>(`${environment.apiUrl}/Certificates`, payload).subscribe({
             next: (cert) => {
                 this.issuedCertificates = [cert, ...this.issuedCertificates];
-                this.dialogVisible = false;
+                this.cancelIssueForm();
             },
             error: (err) => {
                 console.error('Error issuing certificates:', err);
@@ -761,7 +746,8 @@ export class CertBuilder implements OnInit, OnDestroy {
     getProfilePictureUrl(url: string): string {
         if (!url) return '';
         if (url.startsWith('http')) return url;
-        return `${environment.apiUrl}${url}`;
+        const baseUrl = environment.apiUrl.replace(/\/api$/, '');
+        return `${baseUrl}${url}`;
     }
 
     getUserInitials(user: any): string {
@@ -789,8 +775,16 @@ export class CertBuilder implements OnInit, OnDestroy {
         return map[status] || 'info';
     }
 
-    onGlobalFilter(table: any, event: Event) {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+    get filteredUsers(): any[] {
+        if (!this.userSearchQuery.trim()) return this.users;
+        const q = this.userSearchQuery.toLowerCase();
+        return this.users.filter(u =>
+            u.fullName?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
+        );
+    }
+
+    getUserCerts(userId: string): CertificateRecord[] {
+        return this.issuedCertificates.filter(c => c.recipientUserId === userId);
     }
 
     // ── Template management ──────────────────────────────────────────────────

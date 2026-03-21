@@ -49,4 +49,7 @@ public interface IProjectService
     // Seed and cleanup operations
     Task<IActionResult> SeedProjectsAsync(string userId);
     Task<IActionResult> DeleteAllProjectsAsync();
+
+    // Certificate eligibility
+    Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId);
 }

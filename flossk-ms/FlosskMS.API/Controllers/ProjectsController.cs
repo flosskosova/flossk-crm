@@ -408,6 +408,21 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
 
     #endregion
 
+    #region Certificate Eligibility Endpoints
+
+    /// <summary>
+    /// Get all users who have participated in at least one completed objective of the project.
+    /// These are the users eligible to receive a certificate for this project.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpGet("{projectId:guid}/eligible-certificate-recipients")]
+    public async Task<IActionResult> GetEligibleCertificateRecipients(Guid projectId)
+    {
+        return await _projectService.GetUsersWithCompletedObjectivesAsync(projectId);
+    }
+
+    #endregion
+
     #region Seed and Cleanup Endpoints
 
     /// <summary>

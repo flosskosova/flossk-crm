@@ -19,6 +19,12 @@ public class IssueCertificateDto
 
     public DateTime? IssuedDate { get; set; }
 
+    /// <summary>
+    /// When provided, the certificate is tied to this project.
+    /// The recipient must have participated in at least one completed objective of the project.
+    /// </summary>
+    public Guid? ProjectId { get; set; }
+
     public Guid? TemplateId { get; set; }
     [Required]
     public string IssuerSignatureDataUrl { get; set; } = string.Empty;

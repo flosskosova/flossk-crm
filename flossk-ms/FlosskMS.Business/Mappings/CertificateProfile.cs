@@ -13,7 +13,14 @@ public class CertificateProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.RecipientName, opt => opt.MapFrom(src => src.RecipientUser.FirstName + " " + src.RecipientUser.LastName))
             .ForMember(dest => dest.RecipientEmail, opt => opt.MapFrom(src => src.RecipientUser.Email ?? string.Empty))
-            .ForMember(dest => dest.RecipientProfilePictureUrl, opt => opt.Ignore())
+            .ForMember(dest => dest.RecipientProfilePictureUrl, opt => opt.MapFrom(src =>
+                src.RecipientUser.UploadedFiles != null
+                    ? src.RecipientUser.UploadedFiles
+                        .Where(f => f.FileType == FileType.ProfilePicture)
+                        .OrderByDescending(f => f.UploadedAt)
+                        .Select(f => "/uploads/" + f.FileName)
+                        .FirstOrDefault() ?? string.Empty
+                    : string.Empty))
             .ForMember(dest => dest.IssuedByName, opt => opt.MapFrom(src => src.IssuedByUser.FirstName + " " + src.IssuedByUser.LastName));
 
         CreateMap<CertificateTemplate, CertificateTemplateDto>()

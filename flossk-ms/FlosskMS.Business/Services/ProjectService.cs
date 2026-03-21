@@ -1743,6 +1743,46 @@ public class ProjectService : IProjectService
 
     #endregion
 
+    #region Certificate Eligibility
+
+    public async Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId)
+    {
+        var project = await _dbContext.Projects.FindAsync(projectId);
+        if (project == null)
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+
+        // Fetch distinct users who are assigned to at least one completed objective in this project
+        var eligibleUsers = await _dbContext.ObjectiveTeamMembers
+            .Include(otm => otm.User)
+                .ThenInclude(u => u.UploadedFiles)
+            .Where(otm =>
+                otm.Objective.ProjectId == projectId &&
+                otm.Objective.Status == ObjectiveStatus.Completed)
+            .Select(otm => otm.User)
+            .Distinct()
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToListAsync();
+
+        var dtos = eligibleUsers.Select(u => new TeamMemberDto
+        {
+            Id = Guid.Empty,
+            UserId = u.Id,
+            FirstName = u.FirstName,
+            LastName = u.LastName,
+            Email = u.Email ?? string.Empty,
+            ProfilePictureUrl = u.UploadedFiles?
+                .Where(f => f.FileType == FileType.ProfilePicture)
+                .Select(f => "/uploads/" + f.FileName)
+                .FirstOrDefault(),
+            JoinedAt = DateTime.MinValue
+        }).ToList();
+
+        return new OkObjectResult(dtos);
+    }
+
+    #endregion
+
     #region Seed and Cleanup Operations
 
     public async Task<IActionResult> SeedProjectsAsync(string userId)
