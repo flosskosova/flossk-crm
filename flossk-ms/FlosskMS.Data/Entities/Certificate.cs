@@ -18,4 +18,7 @@ public class Certificate
 
     public Guid? TemplateId { get; set; }
     public CertificateTemplate? Template { get; set; }
+
+    /// <summary>Base64-encoded PNG data URL of the issuer's handwritten signature.</summary>
+    public string? IssuerSignatureDataUrl { get; set; }
 }

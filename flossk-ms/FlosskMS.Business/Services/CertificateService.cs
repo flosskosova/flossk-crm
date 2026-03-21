@@ -57,7 +57,8 @@ public class CertificateService : ICertificateService
             CreatedAt = DateTime.UtcNow,
             RecipientUserId = recipient.Id,
             IssuedByUserId = issuedByUserId,
-            TemplateId = request.TemplateId
+            TemplateId = request.TemplateId,
+            IssuerSignatureDataUrl = request.IssuerSignatureDataUrl
         }).ToList();
 
         _dbContext.Certificates.AddRange(certificates);
@@ -429,6 +430,13 @@ public class CertificateService : ICertificateService
 
                 row.RelativeItem().AlignRight().Column(c =>
                 {
+                    if (!string.IsNullOrEmpty(certificate.IssuerSignatureDataUrl))
+                    {
+                        var base64 = certificate.IssuerSignatureDataUrl.Contains(',')
+                            ? certificate.IssuerSignatureDataUrl.Split(',')[1]
+                            : certificate.IssuerSignatureDataUrl;
+                        c.Item().AlignRight().Height(40).Image(Convert.FromBase64String(base64));
+                    }
                     c.Item().AlignRight().Text("Issued By").FontSize(10).FontColor(Colors.Grey.Darken1);
                     c.Item().AlignRight().Text($"{certificate.IssuedByUser.FirstName} {certificate.IssuedByUser.LastName}").FontSize(12).Bold();
                 });
@@ -479,6 +487,13 @@ public class CertificateService : ICertificateService
 
                 row.RelativeItem().AlignRight().Column(c =>
                 {
+                    if (!string.IsNullOrEmpty(certificate.IssuerSignatureDataUrl))
+                    {
+                        var base64 = certificate.IssuerSignatureDataUrl.Contains(',')
+                            ? certificate.IssuerSignatureDataUrl.Split(',')[1]
+                            : certificate.IssuerSignatureDataUrl;
+                        c.Item().AlignRight().Height(40).Image(Convert.FromBase64String(base64));
+                    }
                     c.Item().AlignRight().Text("Issued By").FontSize(10).FontColor(Colors.Grey.Darken1);
                     c.Item().AlignRight().Text($"{certificate.IssuedByUser.FirstName} {certificate.IssuedByUser.LastName}").FontSize(12).Bold();
                 });
@@ -531,7 +546,23 @@ public class CertificateService : ICertificateService
 
             if (field.Key == "signature")
             {
-                DrawSignatureField(canvas, fx, fy, fw, fh);
+                // White fill to cover template placeholder
+                using (var wp = new SKPaint { Color = SKColors.White })
+                    canvas.DrawRect(new SKRect(fx, fy, fx + fw, fy + fh), wp);
+
+                if (!string.IsNullOrEmpty(cert.IssuerSignatureDataUrl))
+                {
+                    var base64 = cert.IssuerSignatureDataUrl.Contains(',')
+                        ? cert.IssuerSignatureDataUrl.Split(',')[1]
+                        : cert.IssuerSignatureDataUrl;
+                    using var sigBitmap = SKBitmap.Decode(Convert.FromBase64String(base64));
+                    if (sigBitmap != null)
+                        canvas.DrawBitmap(sigBitmap, new SKRect(fx, fy, fx + fw, fy + fh));
+                }
+                else
+                {
+                    DrawSignatureField(canvas, fx, fy, fw, fh);
+                }
                 continue;
             }
 
@@ -548,6 +579,11 @@ public class CertificateService : ICertificateService
             if (string.IsNullOrWhiteSpace(text)) continue;
 
             bool isBold = field.Key == "recipientName";
+
+            // Fill box with white to cover any existing placeholder text on the template
+            using (var whitePaint = new SKPaint { Color = SKColors.White, IsAntialias = false })
+                canvas.DrawRect(new SKRect(fx, fy, fx + fw, fy + fh), whitePaint);
+
             DrawTextInBox(canvas, text, fx, fy, fw, fh, isBold, SKColors.Black);
         }
 
@@ -587,6 +623,10 @@ public class CertificateService : ICertificateService
 
     private static void DrawSignatureField(SKCanvas canvas, float bx, float by, float bw, float bh)
     {
+        // White background to cover the template's existing placeholder
+        using (var whitePaint = new SKPaint { Color = SKColors.White, IsAntialias = false })
+            canvas.DrawRect(new SKRect(bx, by, bx + bw, by + bh), whitePaint);
+
         using var linePaint = new SKPaint
         {
             Color = SKColors.Black,

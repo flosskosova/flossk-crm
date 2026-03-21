@@ -20,4 +20,7 @@ public class IssueCertificateDto
     public DateTime? IssuedDate { get; set; }
 
     public Guid? TemplateId { get; set; }
+
+    /// <summary>Optional base64 PNG data URL of the issuer's signature drawn in the UI.</summary>
+    public string? IssuerSignatureDataUrl { get; set; }
 }

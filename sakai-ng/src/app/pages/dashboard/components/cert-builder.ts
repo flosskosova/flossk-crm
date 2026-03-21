@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, computed, signal, ElementRef, Vie
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import SignaturePad from 'signature_pad';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -177,7 +178,7 @@ interface FieldBox {
                                     [style.width.px]="field.width"
                                     [style.height.px]="field.height"
                                     [style.borderColor]="field.color"
-                                    [style.backgroundColor]="selectedFieldId === field.id ? field.color + '33' : field.color + '1A'"
+                                    [style.backgroundColor]="'white'"
                                     [style.outline]="selectedFieldId === field.id ? '2px solid ' + field.color : 'none'"
                                     [style.outlineOffset]="'2px'"
                                     style="cursor:move; box-sizing:border-box;"
@@ -243,6 +244,7 @@ interface FieldBox {
             header="Issue Certificate"
             [draggable]="false"
             [resizable]="false"
+            (onShow)="initSignaturePad()"
         >
             <div class="flex flex-col gap-5 mt-2">
                 <!-- Recipients -->
@@ -350,11 +352,21 @@ interface FieldBox {
                     </div>
                 }
 
+                <!-- Signature -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-semibold">Issuer Signature <span class="font-normal text-muted-color">(optional)</span></label>
+                        <p-button label="Clear" icon="pi pi-eraser" size="small" [text]="true" severity="secondary" (onClick)="clearSignature()" />
+                    </div>
+                    <div class="border rounded-lg overflow-hidden" style="background:#fff;">
+                        <canvas #sigCanvas style="width:100%;height:120px;display:block;touch-action:none;"></canvas>
+                    </div>
+                </div>
+
             </div>
 
             <ng-template #footer>
-                <div class="flex justify-end gap-2">
-                    <p-button label="Cancel" severity="secondary" (onClick)="dialogVisible = false" />
+                <div class="flex justify-end">
                     <p-button
                         label="Issue Certificate"
                         icon="pi pi-check"
@@ -445,6 +457,7 @@ interface FieldBox {
                                     <p-button icon="pi pi-eye" [rounded]="true" [text]="true" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
                                     <p-button icon="pi pi-download" [rounded]="true" [text]="true" severity="info" pTooltip="Download" (onClick)="downloadCertificate(cert)" />
                                     <p-button icon="pi pi-envelope" [rounded]="true" [text]="true" severity="secondary" pTooltip="Resend Email" />
+                                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" pTooltip="Delete" (onClick)="deleteCertificate(cert)" />
                                 </div>
                             </td>
                         </tr>
@@ -510,6 +523,8 @@ export class CertBuilder implements OnInit, OnDestroy {
 
     @ViewChild('templateFileInput') templateFileInput!: ElementRef<HTMLInputElement>;
     @ViewChild('editorCanvas') editorCanvas!: ElementRef<HTMLDivElement>;
+    @ViewChild('sigCanvas') sigCanvasRef?: ElementRef<HTMLCanvasElement>;
+    private signaturePad?: SignaturePad;
 
     readonly FIELD_TYPES = [
         { key: 'recipientName', label: 'Full Name',   icon: 'pi-user',          color: '#3B82F6' },
@@ -631,7 +646,28 @@ export class CertBuilder implements OnInit, OnDestroy {
             description: '',
             templateId: null
         };
+        // signaturePad is re-initialized via (onShow)
         this.dialogVisible = true;
+    }
+
+    initSignaturePad() {
+        setTimeout(() => {
+            if (!this.sigCanvasRef) return;
+            const canvas = this.sigCanvasRef.nativeElement;
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext('2d')!.scale(ratio, ratio);
+            if (this.signaturePad) this.signaturePad.off();
+            this.signaturePad = new SignaturePad(canvas, {
+                backgroundColor: 'rgb(255,255,255)',
+                penColor: 'rgb(0,0,0)',
+            });
+        }, 100);
+    }
+
+    clearSignature() {
+        this.signaturePad?.clear();
     }
 
     canIssue(): boolean {
@@ -651,13 +687,18 @@ export class CertBuilder implements OnInit, OnDestroy {
         }
         const eventName = eventTitle ?? '';
 
+        const signatureDataUrl = this.signaturePad && !this.signaturePad.isEmpty()
+            ? this.signaturePad.toDataURL('image/png')
+            : null;
+
         const payload = {
             recipientUserIds: this.selectedRecipients.map((u) => u.id),
             type: this.certForm.type,
             eventName,
             description: this.certForm.description,
             issuedDate: new Date().toISOString(),
-            templateId: this.certForm.templateId || null
+            templateId: this.certForm.templateId || null,
+            issuerSignatureDataUrl: signatureDataUrl
         };
 
         this.http.post<CertificateRecord[]>(`${environment.apiUrl}/Certificates`, payload).subscribe({
@@ -667,6 +708,18 @@ export class CertBuilder implements OnInit, OnDestroy {
             },
             error: (err) => {
                 console.error('Error issuing certificates:', err);
+            }
+        });
+    }
+
+    deleteCertificate(cert: CertificateRecord) {
+        if (!confirm(`Delete certificate for ${cert.recipientName}? This cannot be undone.`)) return;
+        this.http.delete(`${environment.apiUrl}/Certificates/${cert.id}`).subscribe({
+            next: () => {
+                this.issuedCertificates = this.issuedCertificates.filter((c) => c.id !== cert.id);
+            },
+            error: (err) => {
+                console.error('Error deleting certificate:', err);
             }
         });
     }
