@@ -16,19 +16,13 @@ namespace FlosskMS.Business.Services;
 public class CertificateService : ICertificateService
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IMapper _mapper;
-    private readonly ILogger<CertificateService> _logger;
     private readonly IHostEnvironment _env;
 
     public CertificateService(
         ApplicationDbContext dbContext,
-        IMapper mapper,
-        ILogger<CertificateService> logger,
         IHostEnvironment env)
     {
         _dbContext = dbContext;
-        _mapper = mapper;
-        _logger = logger;
         _env = env;
     }
 

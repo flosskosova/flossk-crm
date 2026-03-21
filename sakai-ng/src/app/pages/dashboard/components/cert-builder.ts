@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, computed, signal, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, computed, signal, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -50,6 +50,17 @@ interface CertificateTemplate {
     previewPath: string;
 }
 
+interface FieldBox {
+    id: string;
+    key: string;
+    label: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+}
+
 @Component({
     selector: 'app-cert-builder',
     standalone: true,
@@ -72,6 +83,158 @@ interface CertificateTemplate {
         MultiSelectModule
     ],
     template: `
+        <!-- Layout Editor Dialog -->
+        <p-dialog
+            [(visible)]="layoutEditorVisible"
+            [modal]="true"
+            [style]="{ width: '92vw' }"
+            [header]="'Edit Layout: ' + (editingTemplate?.name ?? '')"
+            [draggable]="false"
+            [resizable]="false"
+            (onHide)="onLayoutEditorHide()"
+        >
+            <div class="flex gap-4" style="height: 72vh; user-select: none;">
+
+                <!-- Field palette (left) -->
+                <div class="flex flex-col gap-2 overflow-y-auto" style="width: 190px; min-width: 190px;">
+                    <div class="text-xs font-semibold text-muted-color uppercase tracking-wide mb-1">Field Types</div>
+                    @for (ft of FIELD_TYPES; track ft.key) {
+                        <button
+                            class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-colors w-full text-left"
+                            [style.borderColor]="ft.color"
+                            [style.color]="ft.color"
+                            [style.backgroundColor]="activeFieldType === ft.key ? ft.color + '22' : 'transparent'"
+                            [disabled]="isFieldTypeUsed(ft.key)"
+                            [style.opacity]="isFieldTypeUsed(ft.key) ? '0.4' : '1'"
+                            [style.cursor]="isFieldTypeUsed(ft.key) ? 'not-allowed' : 'pointer'"
+                            (click)="selectFieldType(ft.key)"
+                        >
+                            <i class="pi {{ ft.icon }}"></i>
+                            <span class="flex-1">{{ ft.label }}</span>
+                            @if (isFieldTypeUsed(ft.key)) {
+                                <i class="pi pi-check text-xs"></i>
+                            }
+                            @if (activeFieldType === ft.key) {
+                                <i class="pi pi-pencil text-xs"></i>
+                            }
+                        </button>
+                    }
+
+                    @if (activeFieldType) {
+                        <div class="mt-1 p-2 rounded text-xs surface-100 text-muted-color leading-relaxed">
+                            <i class="pi pi-info-circle mr-1"></i>
+                            Click &amp; drag on the template to place
+                            <strong>{{ getFieldType(activeFieldType)?.label }}</strong>
+                        </div>
+                    }
+
+                    @if (selectedField) {
+                        <div class="mt-4 pt-4 border-t flex flex-col gap-2">
+                            <div class="text-xs font-semibold text-muted-color uppercase tracking-wide">Selected</div>
+                            <div class="text-sm font-semibold" [style.color]="selectedField.color">
+                                {{ selectedField.label }}
+                            </div>
+                            <div class="text-xs text-muted-color font-mono">
+                                x: {{ selectedField.x | number:'1.0-0' }},
+                                y: {{ selectedField.y | number:'1.0-0' }}<br>
+                                w: {{ selectedField.width | number:'1.0-0' }},
+                                h: {{ selectedField.height | number:'1.0-0' }}
+                            </div>
+                            <p-button
+                                label="Remove"
+                                icon="pi pi-trash"
+                                severity="danger"
+                                size="small"
+                                [text]="true"
+                                (onClick)="deleteSelectedField()"
+                            />
+                        </div>
+                    }
+                </div>
+
+                <!-- Canvas (right) -->
+                <div class="flex-1 overflow-auto flex items-center justify-center rounded-lg surface-50" style="min-height:0;">
+                    @if (editingTemplate) {
+                        <div
+                            #editorCanvas
+                            class="relative inline-block"
+                            [style.cursor]="activeFieldType ? 'crosshair' : 'default'"
+                            (mousedown)="onCanvasMouseDown($event)"
+                        >
+                            <img
+                                [src]="getTemplatePreviewUrl(editingTemplate)"
+                                [alt]="editingTemplate.name"
+                                draggable="false"
+                                style="display:block; max-height:68vh; max-width:100%; pointer-events:none; border-radius:4px;"
+                            />
+
+                            <!-- Placed field boxes -->
+                            @for (field of fields; track field.id) {
+                                <div
+                                    class="absolute border-2 flex items-center justify-center"
+                                    [style.left.px]="field.x"
+                                    [style.top.px]="field.y"
+                                    [style.width.px]="field.width"
+                                    [style.height.px]="field.height"
+                                    [style.borderColor]="field.color"
+                                    [style.backgroundColor]="selectedFieldId === field.id ? field.color + '33' : field.color + '1A'"
+                                    [style.outline]="selectedFieldId === field.id ? '2px solid ' + field.color : 'none'"
+                                    [style.outlineOffset]="'2px'"
+                                    style="cursor:move; box-sizing:border-box;"
+                                    (mousedown)="onFieldMouseDown($event, field)"
+                                >
+                                    <span
+                                        class="pointer-events-none select-none font-semibold truncate px-1"
+                                        [style.color]="field.color"
+                                        style="font-size:11px; text-shadow:0 0 4px white, 0 0 4px white;"
+                                    >{{ field.label }}</span>
+
+                                    <!-- Corner resize handles -->
+                                    @for (handle of ['tl','tr','bl','br']; track handle) {
+                                        <div
+                                            class="absolute w-3 h-3 bg-white border-2 rounded-sm"
+                                            [style.borderColor]="field.color"
+                                            [style.cursor]="handle === 'tl' ? 'nw-resize' : handle === 'tr' ? 'ne-resize' : handle === 'bl' ? 'sw-resize' : 'se-resize'"
+                                            [style.top]="handle[0] === 't' ? '-5px' : 'auto'"
+                                            [style.bottom]="handle[0] === 'b' ? '-5px' : 'auto'"
+                                            [style.left]="handle[1] === 'l' ? '-5px' : 'auto'"
+                                            [style.right]="handle[1] === 'r' ? '-5px' : 'auto'"
+                                            (mousedown)="onResizeHandleMouseDown($event, field, handle)"
+                                        ></div>
+                                    }
+                                </div>
+                            }
+
+                            <!-- Drawing preview -->
+                            @if (drawing) {
+                                <div
+                                    class="absolute pointer-events-none"
+                                    [style.left.px]="drawingRect.x"
+                                    [style.top.px]="drawingRect.y"
+                                    [style.width.px]="drawingRect.width"
+                                    [style.height.px]="drawingRect.height"
+                                    [style.border]="'2px dashed ' + (getFieldType(activeFieldType)?.color ?? '#3B82F6')"
+                                    [style.backgroundColor]="(getFieldType(activeFieldType)?.color ?? '#3B82F6') + '22'"
+                                ></div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <ng-template #footer>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-muted-color">
+                        {{ fields.length }} field{{ fields.length !== 1 ? 's' : '' }} placed
+                    </span>
+                    <div class="flex gap-2">
+                        <p-button label="Cancel" severity="secondary" (onClick)="layoutEditorVisible = false" />
+                        <p-button label="Save Layout" icon="pi pi-save" (onClick)="saveLayout()" />
+                    </div>
+                </div>
+            </ng-template>
+        </p-dialog>
+
         <!-- Issue Certificate Dialog -->
         <p-dialog
             [(visible)]="dialogVisible"
@@ -328,7 +491,8 @@ interface CertificateTemplate {
                                     <span class="font-semibold text-sm truncate" [title]="tmpl.name">{{ tmpl.name }}</span>
                                     <span class="text-xs text-muted-color">{{ tmpl.uploadedAt | date:'mediumDate' }}</span>
                                 </div>
-                                <div class="flex justify-end">
+                                <div class="flex justify-end gap-1">
+                                    <p-button icon="pi pi-sliders-h" [rounded]="true" [text]="true" severity="info" pTooltip="Edit Layout" (onClick)="openLayoutEditor(tmpl)" />
                                     <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" pTooltip="Delete template" (onClick)="deleteTemplate(tmpl)" />
                                 </div>
                             </div>
@@ -339,11 +503,22 @@ interface CertificateTemplate {
         }
     `
 })
-export class CertBuilder implements OnInit {
+export class CertBuilder implements OnInit, OnDestroy {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
+    private cdr = inject(ChangeDetectorRef);
 
     @ViewChild('templateFileInput') templateFileInput!: ElementRef<HTMLInputElement>;
+    @ViewChild('editorCanvas') editorCanvas!: ElementRef<HTMLDivElement>;
+
+    readonly FIELD_TYPES = [
+        { key: 'recipientName', label: 'Full Name',   icon: 'pi-user',          color: '#3B82F6' },
+        { key: 'eventName',     label: 'Event Name',  icon: 'pi-calendar',      color: '#10B981' },
+        { key: 'description',   label: 'Description', icon: 'pi-align-left',    color: '#8B5CF6' },
+        { key: 'issuedDate',    label: 'Issue Date',  icon: 'pi-clock',         color: '#F59E0B' },
+        { key: 'issuedBy',      label: 'Issued By',   icon: 'pi-id-card',       color: '#06B6D4' },
+        { key: 'signature',     label: 'Signature',   icon: 'pi-pen-to-square', color: '#EF4444' },
+    ];
 
     isAdmin = computed(() => {
         const user = this.authService.currentUser();
@@ -358,6 +533,16 @@ export class CertBuilder implements OnInit {
     templates: CertificateTemplate[] = [];
     templateOptions: { label: string; value: string }[] = [];
     uploadingTemplate = false;
+
+    // ── Layout editor state ──────────────────────────────────────────────────
+    layoutEditorVisible = false;
+    editingTemplate: CertificateTemplate | null = null;
+    fields: FieldBox[] = [];
+    selectedFieldId: string | null = null;
+    activeFieldType: string | null = null;
+    drawing: { startX: number; startY: number; currentX: number; currentY: number } | null = null;
+    dragging: { fieldId: string; startMX: number; startMY: number; origX: number; origY: number } | null = null;
+    resizing: { fieldId: string; handle: string; startMX: number; startMY: number; origBox: FieldBox } | null = null;
 
     certificateTypes = [
         { label: 'Participation', value: 'Participation' },
@@ -610,5 +795,183 @@ export class CertBuilder implements OnInit {
     getTemplatePreviewUrl(tmpl: CertificateTemplate): string {
         // previewPath is like /uploads/cert-templates/uuid.png, served as static files from API base
         return `${environment.apiUrl.replace(/\/api$/, '')}${tmpl.previewPath}`;
+    }
+
+    // ── Layout editor ────────────────────────────────────────────────────────
+
+    get selectedField(): FieldBox | null {
+        return this.fields.find(f => f.id === this.selectedFieldId) ?? null;
+    }
+
+    get drawingRect(): { x: number; y: number; width: number; height: number } {
+        if (!this.drawing) return { x: 0, y: 0, width: 0, height: 0 };
+        return {
+            x: Math.min(this.drawing.startX, this.drawing.currentX),
+            y: Math.min(this.drawing.startY, this.drawing.currentY),
+            width: Math.abs(this.drawing.currentX - this.drawing.startX),
+            height: Math.abs(this.drawing.currentY - this.drawing.startY),
+        };
+    }
+
+    openLayoutEditor(tmpl: CertificateTemplate) {
+        this.editingTemplate = tmpl;
+        this.fields = [];
+        this.selectedFieldId = null;
+        this.activeFieldType = null;
+        this.drawing = null;
+        this.dragging = null;
+        this.resizing = null;
+        this.layoutEditorVisible = true;
+    }
+
+    onLayoutEditorHide() {
+        this.stopGlobalListeners();
+    }
+
+    selectFieldType(key: string) {
+        if (this.isFieldTypeUsed(key)) return;
+        this.activeFieldType = this.activeFieldType === key ? null : key;
+        this.selectedFieldId = null;
+    }
+
+    isFieldTypeUsed(key: string): boolean {
+        return this.fields.some(f => f.key === key);
+    }
+
+    getFieldType(key: string | null) {
+        return this.FIELD_TYPES.find(ft => ft.key === key) ?? null;
+    }
+
+    deleteSelectedField() {
+        if (!this.selectedFieldId) return;
+        this.fields = this.fields.filter(f => f.id !== this.selectedFieldId);
+        this.selectedFieldId = null;
+    }
+
+    private getCanvasCoords(e: MouseEvent): { x: number; y: number } {
+        const rect = this.editorCanvas.nativeElement.getBoundingClientRect();
+        return {
+            x: Math.max(0, Math.min(e.clientX - rect.left, rect.width)),
+            y: Math.max(0, Math.min(e.clientY - rect.top, rect.height)),
+        };
+    }
+
+    onCanvasMouseDown(e: MouseEvent) {
+        if (!this.activeFieldType) return;
+        e.preventDefault();
+        const { x, y } = this.getCanvasCoords(e);
+        this.drawing = { startX: x, startY: y, currentX: x, currentY: y };
+        this.startGlobalListeners();
+    }
+
+    onFieldMouseDown(e: MouseEvent, field: FieldBox) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.selectedFieldId = field.id;
+        this.activeFieldType = null;
+        this.dragging = { fieldId: field.id, startMX: e.clientX, startMY: e.clientY, origX: field.x, origY: field.y };
+        this.startGlobalListeners();
+    }
+
+    onResizeHandleMouseDown(e: MouseEvent, field: FieldBox, handle: string) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.selectedFieldId = field.id;
+        this.resizing = { fieldId: field.id, handle, startMX: e.clientX, startMY: e.clientY, origBox: { ...field } };
+        this.startGlobalListeners();
+    }
+
+    private onDocMouseMove = (e: MouseEvent) => {
+        if (this.drawing) {
+            const { x, y } = this.getCanvasCoords(e);
+            this.drawing = { ...this.drawing, currentX: x, currentY: y };
+        } else if (this.dragging) {
+            const dx = e.clientX - this.dragging.startMX;
+            const dy = e.clientY - this.dragging.startMY;
+            const f = this.fields.find(f => f.id === this.dragging!.fieldId);
+            if (f) {
+                const bounds = this.editorCanvas.nativeElement.getBoundingClientRect();
+                f.x = Math.max(0, Math.min(this.dragging.origX + dx, bounds.width - f.width));
+                f.y = Math.max(0, Math.min(this.dragging.origY + dy, bounds.height - f.height));
+                this.fields = [...this.fields];
+            }
+        } else if (this.resizing) {
+            const dx = e.clientX - this.resizing.startMX;
+            const dy = e.clientY - this.resizing.startMY;
+            const ob = this.resizing.origBox;
+            const f = this.fields.find(f => f.id === this.resizing!.fieldId);
+            if (!f) return;
+            const MIN = 30;
+            switch (this.resizing.handle) {
+                case 'br':
+                    f.width  = Math.max(MIN, ob.width + dx);
+                    f.height = Math.max(MIN, ob.height + dy);
+                    break;
+                case 'bl':
+                    f.width  = Math.max(MIN, ob.width - dx);
+                    f.x      = ob.x + ob.width - f.width;
+                    f.height = Math.max(MIN, ob.height + dy);
+                    break;
+                case 'tr':
+                    f.width  = Math.max(MIN, ob.width + dx);
+                    f.height = Math.max(MIN, ob.height - dy);
+                    f.y      = ob.y + ob.height - f.height;
+                    break;
+                case 'tl':
+                    f.width  = Math.max(MIN, ob.width - dx);
+                    f.x      = ob.x + ob.width - f.width;
+                    f.height = Math.max(MIN, ob.height - dy);
+                    f.y      = ob.y + ob.height - f.height;
+                    break;
+            }
+            this.fields = [...this.fields];
+        }
+        this.cdr.detectChanges();
+    };
+
+    private onDocMouseUp = (_e: MouseEvent) => {
+        if (this.drawing) {
+            const rect = this.drawingRect;
+            if (rect.width > 10 && rect.height > 10 && this.activeFieldType) {
+                const ft = this.getFieldType(this.activeFieldType)!;
+                this.fields = [...this.fields, {
+                    id: crypto.randomUUID(),
+                    key: ft.key,
+                    label: ft.label,
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                    color: ft.color,
+                }];
+                this.activeFieldType = null;
+            }
+            this.drawing = null;
+        }
+        this.dragging = null;
+        this.resizing = null;
+        this.stopGlobalListeners();
+        this.cdr.detectChanges();
+    };
+
+    private startGlobalListeners() {
+        this.stopGlobalListeners();
+        document.addEventListener('mousemove', this.onDocMouseMove);
+        document.addEventListener('mouseup', this.onDocMouseUp);
+    }
+
+    private stopGlobalListeners() {
+        document.removeEventListener('mousemove', this.onDocMouseMove);
+        document.removeEventListener('mouseup', this.onDocMouseUp);
+    }
+
+    saveLayout() {
+        // TODO: POST normalized field positions to backend
+        console.log('Layout fields:', this.fields);
+        this.layoutEditorVisible = false;
+    }
+
+    ngOnDestroy() {
+        this.stopGlobalListeners();
     }
 }
