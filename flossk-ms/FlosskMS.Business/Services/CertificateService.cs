@@ -241,6 +241,18 @@ public class CertificateService : ICertificateService
         return new OkObjectResult(new { Message = "Certificate revoked successfully." });
     }
 
+    public async Task<IActionResult> DeleteCertificateAsync(Guid id, string userId)
+    {
+        var certificate = await _dbContext.Certificates.FindAsync(id);
+        if (certificate == null)
+            return new NotFoundObjectResult(new { Error = "Certificate not found." });
+
+        _dbContext.Certificates.Remove(certificate);
+        await _dbContext.SaveChangesAsync();
+
+        return new OkResult();
+    }
+
     public async Task<IActionResult> SaveLayoutAsync(Guid templateId, SaveLayoutDto request)
     {
         var template = await _dbContext.CertificateTemplates.FindAsync(templateId);

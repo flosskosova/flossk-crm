@@ -10,6 +10,7 @@ public interface ICertificateService
     Task<IActionResult> GetCertificateByIdAsync(Guid id);
     Task<IActionResult> DownloadCertificateAsync(Guid id);
     Task<IActionResult> RevokeCertificateAsync(Guid id, string userId);
+    Task<IActionResult> DeleteCertificateAsync(Guid id, string userId);
 
     Task<IActionResult> UploadTemplateAsync(IFormFile file, string name, string userId);
     Task<IActionResult> GetTemplatesAsync();

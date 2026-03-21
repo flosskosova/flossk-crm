@@ -21,6 +21,7 @@ public class IssueCertificateDto
 
     public Guid? TemplateId { get; set; }
 
-    /// <summary>Optional base64 PNG data URL of the issuer's signature drawn in the UI.</summary>
-    public string? IssuerSignatureDataUrl { get; set; }
+    /// <summary>Base64 PNG data URL of the issuer's signature drawn in the UI.</summary>
+    [Required]
+    public string IssuerSignatureDataUrl { get; set; } = string.Empty;
 }

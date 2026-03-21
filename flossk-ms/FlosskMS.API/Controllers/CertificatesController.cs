@@ -51,6 +51,15 @@ public class CertificatesController(ICertificateService certificateService) : Co
         return await _certificateService.RevokeCertificateAsync(id, userId);
     }
 
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteCertificate(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _certificateService.DeleteCertificateAsync(id, userId);
+    }
+
     // ── Templates ────────────────────────────────────────────────────────────
 
     [Authorize(Roles = "Admin")]

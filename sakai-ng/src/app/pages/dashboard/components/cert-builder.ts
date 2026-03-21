@@ -18,17 +18,10 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 import { environment } from '@environments/environment.prod';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
-
-interface CertUser {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    profilePictureUrl: string;
-    roles: string[];
-}
 
 interface CertificateRecord {
     id: string;
@@ -81,9 +74,13 @@ interface FieldBox {
         ToolbarModule,
         IconFieldModule,
         InputIconModule,
-        MultiSelectModule
+        MultiSelectModule,
+        ConfirmDialogModule
     ],
+    providers: [ConfirmationService],
     template: `
+        <p-confirmDialog />
+
         <!-- Layout Editor Dialog -->
         <p-dialog
             [(visible)]="layoutEditorVisible"
@@ -355,7 +352,7 @@ interface FieldBox {
                 <!-- Signature -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
-                        <label class="font-semibold">Issuer Signature <span class="font-normal text-muted-color">(optional)</span></label>
+                        <label class="font-semibold">Issuer Signature</label>
                         <p-button label="Clear" icon="pi pi-eraser" size="small" [text]="true" severity="secondary" (onClick)="clearSignature()" />
                     </div>
                     <div class="border rounded-lg overflow-hidden" style="background:#fff;">
@@ -520,6 +517,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
     private cdr = inject(ChangeDetectorRef);
+    private confirmationService = inject(ConfirmationService);
 
     @ViewChild('templateFileInput') templateFileInput!: ElementRef<HTMLInputElement>;
     @ViewChild('editorCanvas') editorCanvas!: ElementRef<HTMLDivElement>;
@@ -646,7 +644,6 @@ export class CertBuilder implements OnInit, OnDestroy {
             description: '',
             templateId: null
         };
-        // signaturePad is re-initialized via (onShow)
         this.dialogVisible = true;
     }
 
@@ -672,7 +669,8 @@ export class CertBuilder implements OnInit, OnDestroy {
 
     canIssue(): boolean {
         const customValid = this.certForm.eventId !== this.CUSTOM_EVENT_ID || !!this.certForm.customEventTitle.trim();
-        return this.selectedRecipients.length > 0 && !!this.certForm.type && customValid;
+        const signatureValid = !!this.signaturePad && !this.signaturePad.isEmpty();
+        return this.selectedRecipients.length > 0 && !!this.certForm.type && customValid && signatureValid;
     }
 
     issueCertificate() {
@@ -687,9 +685,7 @@ export class CertBuilder implements OnInit, OnDestroy {
         }
         const eventName = eventTitle ?? '';
 
-        const signatureDataUrl = this.signaturePad && !this.signaturePad.isEmpty()
-            ? this.signaturePad.toDataURL('image/png')
-            : null;
+        const signatureDataUrl = this.signaturePad!.toDataURL('image/png');
 
         const payload = {
             recipientUserIds: this.selectedRecipients.map((u) => u.id),
@@ -713,13 +709,22 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     deleteCertificate(cert: CertificateRecord) {
-        if (!confirm(`Delete certificate for ${cert.recipientName}? This cannot be undone.`)) return;
-        this.http.delete(`${environment.apiUrl}/Certificates/${cert.id}`).subscribe({
-            next: () => {
-                this.issuedCertificates = this.issuedCertificates.filter((c) => c.id !== cert.id);
-            },
-            error: (err) => {
-                console.error('Error deleting certificate:', err);
+        this.confirmationService.confirm({
+            message: `Delete certificate for <strong>${cert.recipientName}</strong>? This cannot be undone.`,
+            header: 'Delete Certificate',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            acceptLabel: 'Delete',
+            rejectLabel: 'Cancel',
+            accept: () => {
+                this.http.delete(`${environment.apiUrl}/Certificates/${cert.id}`).subscribe({
+                    next: () => {
+                        this.issuedCertificates = this.issuedCertificates.filter((c) => c.id !== cert.id);
+                    },
+                    error: (err) => {
+                        console.error('Error deleting certificate:', err);
+                    }
+                });
             }
         });
     }
@@ -835,22 +840,28 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     deleteTemplate(tmpl: CertificateTemplate) {
-        if (!confirm(`Delete template "${tmpl.name}"?`)) return;
-        this.http.delete(`${environment.apiUrl}/Certificates/templates/${tmpl.id}`).subscribe({
-            next: () => {
-                this.templates = this.templates.filter((t) => t.id !== tmpl.id);
-                this.templateOptions = this.templateOptions.filter((o) => o.value !== tmpl.id);
-            },
-            error: (err) => console.error('Error deleting template:', err)
+        this.confirmationService.confirm({
+            message: `Delete template <strong>${tmpl.name}</strong>? This cannot be undone.`,
+            header: 'Delete Template',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            acceptLabel: 'Delete',
+            rejectLabel: 'Cancel',
+            accept: () => {
+                this.http.delete(`${environment.apiUrl}/Certificates/templates/${tmpl.id}`).subscribe({
+                    next: () => {
+                        this.templates = this.templates.filter((t) => t.id !== tmpl.id);
+                        this.templateOptions = this.templateOptions.filter((o) => o.value !== tmpl.id);
+                    },
+                    error: (err) => console.error('Error deleting template:', err)
+                });
+            }
         });
     }
 
     getTemplatePreviewUrl(tmpl: CertificateTemplate): string {
-        // previewPath is like /uploads/cert-templates/uuid.png, served as static files from API base
         return `${environment.apiUrl.replace(/\/api$/, '')}${tmpl.previewPath}`;
     }
-
-    // ── Layout editor ────────────────────────────────────────────────────────
 
     get selectedField(): FieldBox | null {
         return this.fields.find(f => f.id === this.selectedFieldId) ?? null;
@@ -876,12 +887,9 @@ export class CertBuilder implements OnInit, OnDestroy {
         this.resizing = null;
         this.layoutEditorVisible = true;
 
-        // Load any previously saved layout for this template
         this.http.get<any>(`${environment.apiUrl}/Certificates/templates/${tmpl.id}/layout`).subscribe({
             next: (layout) => {
                 if (!layout?.fields?.length || !this.editorCanvas) return;
-                // Fields are stored normalized (0-1); convert back to canvas pixels after image renders
-                // We defer one tick so the canvas element is visible and has its dimensions
                 setTimeout(() => {
                     const canvas = this.editorCanvas?.nativeElement;
                     if (!canvas) return;
@@ -904,7 +912,7 @@ export class CertBuilder implements OnInit, OnDestroy {
                     this.cdr.detectChanges();
                 }, 150);
             },
-            error: () => {} // no layout yet — that's fine
+            error: () => {} 
         });
     }
 
