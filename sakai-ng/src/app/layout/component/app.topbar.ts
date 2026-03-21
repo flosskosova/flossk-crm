@@ -7,7 +7,6 @@ import { PopoverModule } from 'primeng/popover';
 import { ButtonModule } from 'primeng/button';
 import { AvatarModule } from 'primeng/avatar';
 import { DividerModule } from 'primeng/divider';
-import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { environment } from '@environments/environment.prod';
@@ -15,7 +14,7 @@ import { environment } from '@environments/environment.prod';
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, PopoverModule, ButtonModule, AvatarModule, DividerModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, PopoverModule, ButtonModule, AvatarModule, DividerModule],
     template: ` 
     <div class="layout-topbar">
         <div class="layout-topbar-logo-container">

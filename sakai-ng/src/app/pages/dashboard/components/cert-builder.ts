@@ -17,7 +17,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ToolbarModule } from 'primeng/toolbar';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
-import { MultiSelectModule } from 'primeng/multiselect';
+
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@environments/environment.prod';
@@ -74,7 +74,6 @@ interface FieldBox {
         ToolbarModule,
         IconFieldModule,
         InputIconModule,
-        MultiSelectModule,
         ConfirmDialogModule
     ],
     providers: [ConfirmationService],
@@ -244,18 +243,16 @@ interface FieldBox {
             (onShow)="initSignaturePad()"
         >
             <div class="flex flex-col gap-5 mt-2">
-                <!-- Recipients -->
+                <!-- Recipient -->
                 <div class="flex flex-col gap-2">
-                    <label class="font-semibold">Recipients</label>
-                    <p-multiselect
-                        [(ngModel)]="selectedRecipients"
+                    <label class="font-semibold">Recipient</label>
+                    <p-select
+                        [(ngModel)]="selectedRecipient"
                         [options]="users"
                         optionLabel="fullName"
-                        placeholder="Select recipients"
+                        placeholder="Select recipient"
                         [filter]="true"
                         filterPlaceholder="Search users..."
-                        [showToggleAll]="true"
-                        display="chip"
                         [style]="{ width: '100%' }"
                         appendTo="body"
                     >
@@ -277,7 +274,7 @@ interface FieldBox {
                                 <span>{{ user.fullName }}</span>
                             </div>
                         </ng-template>
-                    </p-multiselect>
+                    </p-select>
                 </div>
 
                 <!-- Certificate Type -->
@@ -541,7 +538,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     loading = true;
     dialogVisible = false;
     users: any[] = [];
-    selectedRecipients: any[] = [];
+    selectedRecipient: any = null;
     issuedCertificates: CertificateRecord[] = [];
     templates: CertificateTemplate[] = [];
     templateOptions: { label: string; value: string }[] = [];
@@ -636,7 +633,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     openDialog() {
-        this.selectedRecipients = [];
+        this.selectedRecipient = [];
         this.certForm = {
             type: '',
             eventId: null,
@@ -670,7 +667,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     canIssue(): boolean {
         const customValid = this.certForm.eventId !== this.CUSTOM_EVENT_ID || !!this.certForm.customEventTitle.trim();
         const signatureValid = !!this.signaturePad && !this.signaturePad.isEmpty();
-        return this.selectedRecipients.length > 0 && !!this.certForm.type && customValid && signatureValid;
+        return !!this.selectedRecipient && !!this.certForm.type && customValid && signatureValid;
     }
 
     issueCertificate() {
@@ -688,7 +685,7 @@ export class CertBuilder implements OnInit, OnDestroy {
         const signatureDataUrl = this.signaturePad!.toDataURL('image/png');
 
         const payload = {
-            recipientUserIds: this.selectedRecipients.map((u) => u.id),
+            recipientUserId: this.selectedRecipient.id,
             type: this.certForm.type,
             eventName,
             description: this.certForm.description,
@@ -697,9 +694,9 @@ export class CertBuilder implements OnInit, OnDestroy {
             issuerSignatureDataUrl: signatureDataUrl
         };
 
-        this.http.post<CertificateRecord[]>(`${environment.apiUrl}/Certificates`, payload).subscribe({
-            next: (certs) => {
-                this.issuedCertificates = [...certs, ...this.issuedCertificates];
+        this.http.post<CertificateRecord>(`${environment.apiUrl}/Certificates`, payload).subscribe({
+            next: (cert) => {
+                this.issuedCertificates = [cert, ...this.issuedCertificates];
                 this.dialogVisible = false;
             },
             error: (err) => {

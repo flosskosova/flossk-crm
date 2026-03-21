@@ -5,7 +5,7 @@ namespace FlosskMS.Business.DTOs;
 public class IssueCertificateDto
 {
     [Required]
-    public List<string> RecipientUserIds { get; set; } = [];
+    public string RecipientUserId { get; set; } = string.Empty;
 
     [Required]
     public string Type { get; set; } = string.Empty;
@@ -20,8 +20,6 @@ public class IssueCertificateDto
     public DateTime? IssuedDate { get; set; }
 
     public Guid? TemplateId { get; set; }
-
-    /// <summary>Base64 PNG data URL of the issuer's signature drawn in the UI.</summary>
     [Required]
     public string IssuerSignatureDataUrl { get; set; } = string.Empty;
 }

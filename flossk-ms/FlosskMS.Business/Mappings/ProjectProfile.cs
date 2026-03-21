@@ -8,7 +8,6 @@ public class ProjectProfile : Profile
 {
     public ProjectProfile()
     {
-        // Project mappings
         CreateMap<Project, ProjectDto>()
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Types, opt => opt.MapFrom(src =>
@@ -143,7 +142,6 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.Files, opt => opt.Ignore())
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => Enum.Parse<ResourceType>(src.Type, true)));
 
-        // Team member mappings (ProjectTeamMember)
         CreateMap<ProjectTeamMember, TeamMemberDto>()
             .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
             .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName))
@@ -157,7 +155,6 @@ public class ProjectProfile : Profile
                     : null))
             .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt));
 
-        // Team member mappings (ObjectiveTeamMember)
         CreateMap<ObjectiveTeamMember, TeamMemberDto>()
             .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
             .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName))

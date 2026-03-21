@@ -8,7 +8,6 @@ public class InventoryProfile : Profile
 {
     public InventoryProfile()
     {
-        // InventoryItem mappings
         CreateMap<InventoryItem, InventoryItemDto>()
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))

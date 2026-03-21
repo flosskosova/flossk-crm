@@ -179,7 +179,7 @@ interface AnnouncementDisplay {
                         </div>
                         <div class="flex flex-col md:flex-row items-center gap-2">
                             <p-tag 
-                                [value]="announcement.priority?.toUpperCase()" 
+                                [value]="announcement.priority.toUpperCase()" 
                                 [severity]="getPrioritySeverity(announcement.priority)"
                             ></p-tag>
                             <p-tag [value]="announcement.category"></p-tag>
@@ -187,10 +187,10 @@ interface AnnouncementDisplay {
                         </div>
 
                         <p class="text-surface-700 dark:text-surface-300 mb-4 leading-relaxed">
-                            {{ (announcement.content?.length || 0) > 200 ? announcement.content.substring(0, 200) + '...' : announcement.content }}
+                            {{ announcement.content.length > 200 ? announcement.content.substring(0, 200) + '...' : announcement.content }}
                         </p>
                         
-                        <span *ngIf="(announcement.content?.length || 0) > 200" class="text-primary text-sm font-semibold">
+                        <span *ngIf="announcement.content.length > 200" class="text-primary text-sm font-semibold">
                             Read more →
                         </span>
                     </div>

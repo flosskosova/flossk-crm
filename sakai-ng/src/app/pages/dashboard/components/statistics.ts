@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
-import { StatsWidget } from './statswidget';
 import { MembersPieChartWidget } from './memberspiechart';
 import { KosovoMapWidget } from "./kosovo-map-widget";
 
 @Component({
     selector: 'app-statistics',
-    imports: [StatsWidget, MembersPieChartWidget, KosovoMapWidget],
+    imports: [MembersPieChartWidget, KosovoMapWidget],
     standalone: true,
     template: ` 
     <div class="grid grid-cols-12 gap-8">    

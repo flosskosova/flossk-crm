@@ -1,3 +1,4 @@
+using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -16,19 +17,22 @@ public class CertificateService : ICertificateService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IHostEnvironment _env;
+    private readonly IMapper _mapper;
 
     public CertificateService(
         ApplicationDbContext dbContext,
-        IHostEnvironment env)
+        IHostEnvironment env,
+        IMapper mapper)
     {
         _dbContext = dbContext;
         _env = env;
+        _mapper = mapper;
     }
 
     public async Task<IActionResult> IssueCertificatesAsync(IssueCertificateDto request, string issuedByUserId)
     {
-        if (request.RecipientUserIds == null || request.RecipientUserIds.Count == 0)
-            return new BadRequestObjectResult(new { Error = "At least one recipient is required." });
+        if (string.IsNullOrWhiteSpace(request.RecipientUserId))
+            return new BadRequestObjectResult(new { Error = "A recipient is required." });
 
         if (!Enum.TryParse<CertificateType>(request.Type, true, out var certType))
             return new BadRequestObjectResult(new { Error = $"Invalid certificate type: {request.Type}" });
@@ -37,16 +41,13 @@ public class CertificateService : ICertificateService
         if (issuer == null)
             return new UnauthorizedResult();
 
-        var recipients = await _dbContext.Users
-            .Where(u => request.RecipientUserIds.Contains(u.Id))
-            .ToListAsync();
-
-        if (recipients.Count == 0)
-            return new BadRequestObjectResult(new { Error = "No valid recipients found." });
+        var recipientUser = await _dbContext.Users.FindAsync(request.RecipientUserId);
+        if (recipientUser == null)
+            return new BadRequestObjectResult(new { Error = "Recipient user not found." });
 
         var issuedDate = request.IssuedDate ?? DateTime.UtcNow;
 
-        var certificates = recipients.Select(recipient => new Certificate
+        var certificate = new Certificate
         {
             Id = Guid.NewGuid(),
             Type = certType,
@@ -55,26 +56,58 @@ public class CertificateService : ICertificateService
             Status = CertificateStatus.Issued,
             IssuedDate = issuedDate,
             CreatedAt = DateTime.UtcNow,
-            RecipientUserId = recipient.Id,
+            RecipientUserId = recipientUser.Id,
             IssuedByUserId = issuedByUserId,
             TemplateId = request.TemplateId,
             IssuerSignatureDataUrl = request.IssuerSignatureDataUrl
-        }).ToList();
+        };
 
-        _dbContext.Certificates.AddRange(certificates);
+        _dbContext.Certificates.Add(certificate);
         await _dbContext.SaveChangesAsync();
 
-        // Reload with navigation properties
-        var certIds = certificates.Select(c => c.Id).ToList();
         var saved = await _dbContext.Certificates
             .Include(c => c.RecipientUser)
             .Include(c => c.IssuedByUser)
-            .Where(c => certIds.Contains(c.Id))
+            .Include(c => c.Template)
+                .ThenInclude(t => t!.Fields)
+            .Where(c => c.Id == certificate.Id)
             .ToListAsync();
 
-        var dtos = saved.Select(MapToDto).ToList();
+        var pdfDir = Path.Combine(_env.ContentRootPath, "uploads", "certificates");
+        Directory.CreateDirectory(pdfDir);
 
-        return new OkObjectResult(dtos);
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        foreach (var cert in saved)
+        {
+            byte[]? templateImageBytes = null;
+            if (cert.Template != null)
+            {
+                var templatePath = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(cert.Template.FilePath));
+                if (System.IO.File.Exists(templatePath))
+                    templateImageBytes = await System.IO.File.ReadAllBytesAsync(templatePath);
+            }
+
+            byte[] pdfBytes;
+            if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
+            {
+                var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList());
+                pdfBytes = WrapImageInPdf(compositeImageBytes);
+            }
+            else
+            {
+                pdfBytes = GenerateCertificatePdf(cert, templateImageBytes);
+            }
+
+            var fileName = $"{cert.Id}.pdf";
+            var filePath = Path.Combine(pdfDir, fileName);
+            await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+            cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(MapToDto(saved[0]));
     }
 
     public async Task<IActionResult> GetCertificatesAsync(int page = 1, int pageSize = 10)
@@ -128,6 +161,21 @@ public class CertificateService : ICertificateService
         if (certificate == null)
             return new NotFoundObjectResult(new { Error = "Certificate not found." });
 
+        var recipientName = $"{certificate.RecipientUser.FirstName}_{certificate.RecipientUser.LastName}";
+
+        if (!string.IsNullOrEmpty(certificate.GeneratedPdfPath))
+        {
+            var storedPath = Path.Combine(_env.ContentRootPath, certificate.GeneratedPdfPath);
+            if (File.Exists(storedPath))
+            {
+                var storedBytes = await System.IO.File.ReadAllBytesAsync(storedPath);
+                return new FileContentResult(storedBytes, "application/pdf")
+                {
+                    FileDownloadName = $"FLOSSK_Certificate_{recipientName}_{certificate.EventName.Replace(" ", "_")}.pdf"
+                };
+            }
+        }
+
         QuestPDF.Settings.License = LicenseType.Community;
 
         byte[]? templateImageBytes = null;
@@ -149,8 +197,6 @@ public class CertificateService : ICertificateService
         {
             pdfBytes = GenerateCertificatePdf(certificate, templateImageBytes);
         }
-
-        var recipientName = $"{certificate.RecipientUser.FirstName}_{certificate.RecipientUser.LastName}";
 
         return new FileContentResult(pdfBytes, "application/pdf")
         {
@@ -198,7 +244,8 @@ public class CertificateService : ICertificateService
         _dbContext.CertificateTemplates.Add(template);
         await _dbContext.SaveChangesAsync();
 
-        return new OkObjectResult(MapTemplateToDto(template, user));
+        template.CreatedByUser = user;
+        return new OkObjectResult(_mapper.Map<CertificateTemplateDto>(template));
     }
 
     public async Task<IActionResult> GetTemplatesAsync()
@@ -208,7 +255,7 @@ public class CertificateService : ICertificateService
             .OrderByDescending(t => t.UploadedAt)
             .ToListAsync();
 
-        var dtos = templates.Select(t => MapTemplateToDto(t, t.CreatedByUser)).ToList();
+        var dtos = templates.Select(t => _mapper.Map<CertificateTemplateDto>(t)).ToList();
         return new OkObjectResult(dtos);
     }
 
@@ -324,40 +371,13 @@ public class CertificateService : ICertificateService
 
     private CertificateDto MapToDto(Certificate cert)
     {
-        var recipientFiles = _dbContext.UploadedFiles
+        var dto = _mapper.Map<CertificateDto>(cert);
+        dto.RecipientProfilePictureUrl = _dbContext.UploadedFiles
             .Where(f => f.CreatedByUserId == cert.RecipientUserId && f.FileType == FileType.ProfilePicture)
             .OrderByDescending(f => f.UploadedAt)
-            .FirstOrDefault();
-
-        return new CertificateDto
-        {
-            Id = cert.Id,
-            CertificateType = cert.Type.ToString(),
-            EventName = cert.EventName,
-            Description = cert.Description,
-            Status = cert.Status.ToString(),
-            IssuedDate = cert.IssuedDate,
-            CreatedAt = cert.CreatedAt,
-            RecipientUserId = cert.RecipientUserId,
-            RecipientName = $"{cert.RecipientUser.FirstName} {cert.RecipientUser.LastName}",
-            RecipientEmail = cert.RecipientUser.Email ?? string.Empty,
-            RecipientProfilePictureUrl = recipientFiles?.FilePath ?? string.Empty,
-            IssuedByUserId = cert.IssuedByUserId,
-            IssuedByName = $"{cert.IssuedByUser.FirstName} {cert.IssuedByUser.LastName}"
-        };
+            .FirstOrDefault()?.FilePath ?? string.Empty;
+        return dto;
     }
-
-    private static CertificateTemplateDto MapTemplateToDto(CertificateTemplate t, ApplicationUser user) => new()
-    {
-        Id = t.Id,
-        Name = t.Name,
-        OriginalFileName = t.OriginalFileName,
-        ContentType = t.ContentType,
-        FileSize = t.FileSize,
-        UploadedAt = t.UploadedAt,
-        CreatedByName = $"{user.FirstName} {user.LastName}",
-        PreviewPath = t.FilePath
-    };
 
     private byte[] GenerateCertificatePdf(Certificate certificate, byte[]? templateImageBytes = null)
     {
@@ -386,7 +406,7 @@ public class CertificateService : ICertificateService
         return document.GeneratePdf();
     }
 
-    private void ComposeCertificateContent(IContainer container, Certificate certificate, string recipientName)
+    private static void ComposeCertificateContent(IContainer container, Certificate certificate, string recipientName)
     {
         container.Border(2).BorderColor(Colors.Blue.Darken2).Padding(30).Column(column =>
         {
@@ -456,7 +476,7 @@ public class CertificateService : ICertificateService
         });
     }
 
-    private void ComposeTemplateOverlay(IContainer container, Certificate certificate, string recipientName)
+    private static void ComposeTemplateOverlay(IContainer container, Certificate certificate, string recipientName)
     {
         // When using a custom template image as background, overlay only the dynamic text.
         // The template design is expected to leave space in the center for the recipient name,

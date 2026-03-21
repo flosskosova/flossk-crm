@@ -21,4 +21,7 @@ public class Certificate
 
     /// <summary>Base64-encoded PNG data URL of the issuer's handwritten signature.</summary>
     public string? IssuerSignatureDataUrl { get; set; }
+
+    /// <summary>Path to the PDF file generated at issuance time. Serving this ensures template changes do not affect issued certificates.</summary>
+    public string? GeneratedPdfPath { get; set; }
 }
