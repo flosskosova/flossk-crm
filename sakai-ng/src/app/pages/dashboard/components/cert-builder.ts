@@ -360,7 +360,7 @@ interface FieldBox {
 
                                     <div class="flex flex-col gap-1.5">
                                         <label class="text-sm font-semibold">Event / Title</label>
-                                        <input pInputText [(ngModel)]="uploadExternalForm.eventName" placeholder="Certificate title or event name..." class="w-full" />
+                                        <input pInputText [(ngModel)]="uploadExternalForm.eventName" placeholder="Certificate title or event name..." class="w-full" [disabled]="!!selectedFilterProjectId" />
                                     </div>
 
                                     <div class="flex flex-col gap-1.5">
@@ -757,7 +757,10 @@ export class CertBuilder implements OnInit, OnDestroy {
         }
         this.cancelIssueForm();
         this.activeUploadUserId = user.id;
-        this.uploadExternalForm = { eventName: '', description: '' };
+        const projectTitle = this.selectedFilterProjectId
+            ? (this.projects.find(p => p.id === this.selectedFilterProjectId)?.title ?? '')
+            : '';
+        this.uploadExternalForm = { eventName: projectTitle, description: '' };
         this.selectedExternalFile = null;
     }
 
@@ -782,6 +785,9 @@ export class CertBuilder implements OnInit, OnDestroy {
         formData.append('file', this.selectedExternalFile!);
         formData.append('recipientUserId', user.id);
         formData.append('eventName', this.uploadExternalForm.eventName.trim());
+        if (this.selectedFilterProjectId) {
+            formData.append('projectId', this.selectedFilterProjectId);
+        }
         if (this.uploadExternalForm.description.trim()) {
             formData.append('description', this.uploadExternalForm.description.trim());
         }

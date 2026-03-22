@@ -254,6 +254,27 @@ public class CertificateService : ICertificateService
         if (recipient == null)
             return new BadRequestObjectResult(new { Error = "Recipient user not found." });
 
+        if (request.ProjectId.HasValue)
+        {
+            var project = await _dbContext.Projects
+                .Include(p => p.Objectives)
+                    .ThenInclude(o => o.TeamMembers)
+                .FirstOrDefaultAsync(p => p.Id == request.ProjectId.Value);
+
+            if (project == null)
+                return new BadRequestObjectResult(new { Error = "The specified project was not found." });
+
+            if (project.Status != ProjectStatus.Completed)
+                return new BadRequestObjectResult(new { Error = "Certificates can only be issued for completed projects." });
+
+            var isInCompletedObjective = project.Objectives
+                .Where(o => o.Status == ObjectiveStatus.Completed)
+                .Any(o => o.TeamMembers.Any(tm => tm.UserId == request.RecipientUserId));
+
+            if (!isInCompletedObjective)
+                return new BadRequestObjectResult(new { Error = "The recipient is not a member of any completed objective in this project." });
+        }
+
         var allowedExts = new[] { ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".pptx" };
         var ext = Path.GetExtension(request.File.FileName).ToLowerInvariant();
         if (!allowedExts.Contains(ext))

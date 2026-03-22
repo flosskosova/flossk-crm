@@ -17,4 +17,6 @@ public class UploadExternalCertificateDto
 
     [MaxLength(2000)]
     public string? Description { get; set; }
+
+    public Guid? ProjectId { get; set; }
 }
