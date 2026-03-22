@@ -27,4 +27,7 @@ public class Certificate
 
     /// <summary>Path to the PDF file generated at issuance time. Serving this ensures template changes do not affect issued certificates.</summary>
     public string? GeneratedPdfPath { get; set; }
+
+    /// <summary>True when the stored certificate file is a .pptx (externally uploaded or PPTX-template generated).</summary>
+    public bool IsPptx { get; set; }
 }

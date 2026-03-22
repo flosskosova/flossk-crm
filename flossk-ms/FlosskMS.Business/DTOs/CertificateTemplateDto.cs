@@ -11,4 +11,8 @@ public class CertificateTemplateDto
     public string CreatedByName { get; set; } = string.Empty;
     /// <summary>Relative path served as a static file, e.g. /uploads/cert-templates/uuid.png</summary>
     public string PreviewPath { get; set; } = string.Empty;
+
+    /// <summary>True when this template is a PowerPoint file (.pptx) — layout is embedded via {{placeholder}} text.</summary>
+    public bool IsPptx => ContentType == "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                          || OriginalFileName.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase);
 }

@@ -30,6 +30,7 @@ interface CertificateRecord {
     eventName: string;
     issuedDate: string;
     status: string;
+    isPptx: boolean;
 }
 
 interface CertificateTemplate {
@@ -41,6 +42,7 @@ interface CertificateTemplate {
     uploadedAt: string;
     createdByName: string;
     previewPath: string;
+    isPptx: boolean;
 }
 
 interface FieldBox {
@@ -314,6 +316,16 @@ interface FieldBox {
                                         tooltipPosition="left"
                                         (onClick)="toggleIssueForm(user)"
                                     />
+                                    <p-button
+                                        [icon]="activeUploadUserId === user.id ? 'pi pi-times' : 'pi pi-cloud-upload'"
+                                        [severity]="activeUploadUserId === user.id ? 'danger' : 'secondary'"
+                                        [rounded]="true"
+                                        [text]="true"
+                                        size="large"
+                                        [pTooltip]="activeUploadUserId === user.id ? 'Cancel' : 'Upload External Certificate'"
+                                        tooltipPosition="left"
+                                        (onClick)="toggleUploadForm(user)"
+                                    />
                                 }
                             </div>
 
@@ -326,12 +338,53 @@ interface FieldBox {
                                             <div class="flex items-center gap-2 bg-surface-100 dark:bg-surface-700 rounded-lg px-3 py-1.5">
                                                 <span class="flex-1 truncate text-surface-700 dark:text-surface-300 text-xs">{{ cert.eventName }}</span>
                                                 <p-tag [value]="cert.status" [severity]="getStatusSeverity(cert.status)" />
-                                                <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
+                                                @if (!cert.isPptx) {
+                                                    <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
+                                                }
                                                 <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="info" pTooltip="Download" (onClick)="downloadCertificate(cert)" />
                                                 <p-button icon="pi pi-envelope" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Resend Email" />
                                                 <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" pTooltip="Delete" (onClick)="deleteCertificate(cert)" />
                                             </div>
                                         }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Inline Upload External Certificate Form -->
+                            @if (activeUploadUserId === user.id) {
+                                <div class="border-t border-surface p-4 bg-surface-50 dark:bg-surface-800 flex flex-col gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-cloud-upload text-surface-600 text-lg"></i>
+                                        <span class="font-semibold">Upload external certificate for <span class="text-primary">{{ user.fullName }}</span></span>
+                                    </div>
+
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-sm font-semibold">Event / Title</label>
+                                        <input pInputText [(ngModel)]="uploadExternalForm.eventName" placeholder="Certificate title or event name..." class="w-full" />
+                                    </div>
+
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-sm font-semibold">Description <span class="font-normal text-muted-color">(optional)</span></label>
+                                        <textarea pTextarea [(ngModel)]="uploadExternalForm.description" rows="2" placeholder="Details about this certificate..." class="w-full"></textarea>
+                                    </div>
+
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-sm font-semibold">Certificate File <span class="font-normal text-muted-color">(PDF, PNG, JPG, WebP, PPTX)</span></label>
+                                        <div class="flex items-center gap-2">
+                                            <p-button label="Choose File" icon="pi pi-folder-open" severity="secondary" size="small" (onClick)="externalCertFileInput.click()" />
+                                            @if (selectedExternalFile) {
+                                                <span class="text-sm text-muted-color truncate flex-1">{{ selectedExternalFile.name }}</span>
+                                                <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="danger" size="small" (onClick)="selectedExternalFile = null" />
+                                            } @else {
+                                                <span class="text-sm text-muted-color">No file chosen</span>
+                                            }
+                                        </div>
+                                        <input #externalCertFileInput type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none" (change)="onExternalCertFileSelected($event)" />
+                                    </div>
+
+                                    <div class="flex gap-2 justify-end pt-1">
+                                        <p-button label="Cancel" severity="secondary" size="small" (onClick)="cancelUploadForm()" />
+                                        <p-button label="Upload Certificate" icon="pi pi-upload" size="small" [loading]="uploadingExternal" (onClick)="uploadExternalCertificate(user)" [disabled]="!canUploadExternal()" />
                                     </div>
                                 </div>
                             }
@@ -386,6 +439,7 @@ interface FieldBox {
                                             <label class="text-sm font-semibold">Template <span class="font-normal text-muted-color">(optional)</span></label>
                                             <p-select
                                                 [(ngModel)]="certForm.templateId"
+                                                (ngModelChange)="onTemplateChange($event)"
                                                 [options]="templateOptions"
                                                 optionLabel="label"
                                                 optionValue="value"
@@ -395,6 +449,22 @@ interface FieldBox {
                                                 appendTo="body"
                                             />
                                         </div>
+                                        @if (selectedTemplate?.isPptx) {
+                                            <div class="rounded-lg p-3 text-xs leading-relaxed" style="background:var(--p-blue-50);color:var(--p-blue-700);border:1px solid var(--p-blue-200)">
+                                                <i class="pi pi-info-circle mr-1"></i>
+                                                <strong>PPTX template</strong> — placeholders in your file will be replaced automatically.<br>
+                                                Supported tokens: <code>{{'{{'}}recipientName{{'}}'}}</code>, <code>{{'{{'}}eventName{{'}}'}}</code>,
+                                                <code>{{'{{'}}description{{'}}'}}</code>, <code>{{'{{'}}issuedDate{{'}}'}}</code>, <code>{{'{{'}}issuedBy{{'}}'}}</code>.<br>
+                                                The certificate will download as a <strong>.pptx</strong> file.
+                                            </div>
+                                            <div class="flex flex-col gap-1.5">
+                                                <label class="text-sm font-semibold">Recipient Name</label>
+                                                <div class="flex gap-2">
+                                                    <input pInputText [(ngModel)]="certForm.recipientFirstName" placeholder="First name..." class="flex-1" />
+                                                    <input pInputText [(ngModel)]="certForm.recipientLastName" placeholder="Last name..." class="flex-1" />
+                                                </div>
+                                            </div>
+                                        }
                                     }
 
                                     <div class="flex flex-col gap-1.5">
@@ -473,26 +543,46 @@ interface FieldBox {
                     </ng-template>
                     <ng-template #end>
                         <p-button label="Upload Template" icon="pi pi-upload" (onClick)="triggerTemplateUpload()" [loading]="uploadingTemplate" />
-                        <input #templateFileInput type="file" accept="image/png,image/jpeg,image/webp" style="display:none" (change)="onTemplateFileSelected($event)" />
+                        <input #templateFileInput type="file" accept="image/png,image/jpeg,image/webp,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none" (change)="onTemplateFileSelected($event)" />
                     </ng-template>
                 </p-toolbar>
 
                 @if (templates.length === 0) {
                     <div class="flex flex-col items-center gap-3 text-muted-color py-8">
                         <i class="pi pi-image text-4xl"></i>
-                        <span>No templates uploaded yet. Upload a PNG/JPG image to use as a certificate background.</span>
+                        <span>No templates uploaded yet. Upload a PNG/JPG image or a .pptx file to use as a certificate template.</span>
                     </div>
                 } @else {
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         @for (tmpl of templates; track tmpl.id) {
                             <div class="border rounded-lg p-3 flex flex-col gap-2 relative">
-                                <img [src]="getTemplatePreviewUrl(tmpl)" [alt]="tmpl.name" class="w-full rounded object-cover" style="aspect-ratio:1.414;object-fit:cover" />
+                                @if (tmpl.isPptx) {
+                                    <div class="w-full rounded flex flex-col items-center justify-center bg-surface-100 dark:bg-surface-700" style="aspect-ratio:1.414;">
+                                        <div class="flex flex-col items-center gap-2 text-muted-color">
+                                            <i class="pi pi-file text-4xl"></i>
+                                            <span class="text-xs font-semibold uppercase">PPTX</span>
+                                            <p-button
+                                                label="Open file"
+                                                icon="pi pi-external-link"
+                                                size="small"
+                                                [text]="true"
+                                                severity="info"
+                                                pTooltip="Download / open this PPTX template"
+                                                (onClick)="downloadTemplate(tmpl)"
+                                            />
+                                        </div>
+                                    </div>
+                                } @else {
+                                    <img [src]="getTemplatePreviewUrl(tmpl)" [alt]="tmpl.name" class="w-full rounded object-cover" style="aspect-ratio:1.414;object-fit:cover" />
+                                }
                                 <div class="flex flex-col gap-1">
                                     <span class="font-semibold text-sm truncate" [title]="tmpl.name">{{ tmpl.name }}</span>
                                     <span class="text-xs text-muted-color">{{ tmpl.uploadedAt | date:'mediumDate' }}</span>
                                 </div>
                                 <div class="flex justify-end gap-1">
-                                    <p-button icon="pi pi-sliders-h" [rounded]="true" [text]="true" severity="info" pTooltip="Edit Layout" (onClick)="openLayoutEditor(tmpl)" />
+                                    @if (!tmpl.isPptx) {
+                                        <p-button icon="pi pi-sliders-h" [rounded]="true" [text]="true" severity="info" pTooltip="Edit Layout" (onClick)="openLayoutEditor(tmpl)" />
+                                    }
                                     <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" pTooltip="Delete template" (onClick)="deleteTemplate(tmpl)" />
                                 </div>
                             </div>
@@ -538,10 +628,15 @@ export class CertBuilder implements OnInit, OnDestroy {
     eligibleTotalPages = 0;
     activeIssuingUserId: string | null = null;
     activeIssuingUser: any = null;
+    activeUploadUserId: string | null = null;
+    uploadExternalForm = { eventName: '', description: '' };
+    selectedExternalFile: File | null = null;
+    uploadingExternal = false;
     userSearchQuery = '';
     issuedCertificates: CertificateRecord[] = [];
     templates: CertificateTemplate[] = [];
     templateOptions: { label: string; value: string }[] = [];
+    selectedTemplate: CertificateTemplate | null = null;
     uploadingTemplate = false;
 
     // ── Layout editor state ──────────────────────────────────────────────────
@@ -564,7 +659,9 @@ export class CertBuilder implements OnInit, OnDestroy {
         eventId: null as string | null,
         customEventTitle: '',
         description: '',
-        templateId: null as string | null
+        templateId: null as string | null,
+        recipientFirstName: '',
+        recipientLastName: '',
     };
 
     ngOnInit() {
@@ -643,11 +740,62 @@ export class CertBuilder implements OnInit, OnDestroy {
         this.http.get<any>(`${environment.apiUrl}/Certificates?page=1&pageSize=100`).subscribe({
             next: (response) => {
                 this.issuedCertificates = response.certificates || [];
+                console.log('Certificates:', this.issuedCertificates);
                 this.loading = false;
             },
             error: () => {
                 this.issuedCertificates = [];
                 this.loading = false;
+            }
+        });
+    }
+
+    toggleUploadForm(user: any) {
+        if (this.activeUploadUserId === user.id) {
+            this.cancelUploadForm();
+            return;
+        }
+        this.cancelIssueForm();
+        this.activeUploadUserId = user.id;
+        this.uploadExternalForm = { eventName: '', description: '' };
+        this.selectedExternalFile = null;
+    }
+
+    cancelUploadForm() {
+        this.activeUploadUserId = null;
+        this.uploadExternalForm = { eventName: '', description: '' };
+        this.selectedExternalFile = null;
+    }
+
+    canUploadExternal(): boolean {
+        return !!this.uploadExternalForm.eventName.trim() && !!this.selectedExternalFile;
+    }
+
+    onExternalCertFileSelected(event: Event) {
+        const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+        this.selectedExternalFile = file;
+    }
+
+    uploadExternalCertificate(user: any) {
+        if (!this.canUploadExternal()) return;
+        const formData = new FormData();
+        formData.append('file', this.selectedExternalFile!);
+        formData.append('recipientUserId', user.id);
+        formData.append('eventName', this.uploadExternalForm.eventName.trim());
+        if (this.uploadExternalForm.description.trim()) {
+            formData.append('description', this.uploadExternalForm.description.trim());
+        }
+        this.uploadingExternal = true;
+        this.http.post<CertificateRecord>(`${environment.apiUrl}/Certificates/upload-external`, formData).subscribe({
+            next: (cert) => {
+                console.log('Uploaded external cert:', cert);
+                this.issuedCertificates = [cert, ...this.issuedCertificates];
+                this.cancelUploadForm();
+                this.uploadingExternal = false;
+            },
+            error: (err) => {
+                console.error('Error uploading external certificate:', err);
+                this.uploadingExternal = false;
             }
         });
     }
@@ -659,7 +807,14 @@ export class CertBuilder implements OnInit, OnDestroy {
         }
         this.activeIssuingUserId = user.id;
         this.activeIssuingUser = user;
-        this.certForm = { eventId: this.selectedFilterProjectId, customEventTitle: '', description: '', templateId: null };
+        this.certForm = {
+            eventId: this.selectedFilterProjectId,
+            customEventTitle: '',
+            description: '',
+            templateId: null,
+            recipientFirstName: user.firstName || '',
+            recipientLastName: user.lastName || '',
+        };
         this.cdr.detectChanges();
         this.initSignaturePad();
     }
@@ -667,8 +822,16 @@ export class CertBuilder implements OnInit, OnDestroy {
     cancelIssueForm() {
         this.activeIssuingUserId = null;
         this.activeIssuingUser = null;
+        this.selectedTemplate = null;
         this.signaturePad?.off();
         this.signaturePad = undefined;
+        this.cancelUploadForm();
+    }
+
+    onTemplateChange(templateId: string | null) {
+        this.selectedTemplate = templateId
+            ? (this.templates.find(t => t.id === templateId) ?? null)
+            : null;
     }
 
     initSignaturePad() {
@@ -711,6 +874,10 @@ export class CertBuilder implements OnInit, OnDestroy {
 
         const signatureDataUrl = this.signaturePad!.toDataURL('image/png');
 
+        const recipientNameOverride = this.selectedTemplate?.isPptx
+            ? `${this.certForm.recipientFirstName} ${this.certForm.recipientLastName}`.trim() || undefined
+            : undefined;
+
         const payload = {
             recipientUserId: this.activeIssuingUser.id,
             eventName,
@@ -718,7 +885,8 @@ export class CertBuilder implements OnInit, OnDestroy {
             issuedDate: new Date().toISOString(),
             templateId: this.certForm.templateId || null,
             projectId: this.certForm.eventId !== this.CUSTOM_EVENT_ID ? this.certForm.eventId : null,
-            issuerSignatureDataUrl: signatureDataUrl
+            issuerSignatureDataUrl: signatureDataUrl,
+            recipientNameOverride
         };
 
         this.http.post<CertificateRecord>(`${environment.apiUrl}/Certificates`, payload).subscribe({
@@ -766,12 +934,16 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     downloadCertificate(cert: CertificateRecord) {
-        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/download`, { responseType: 'blob' }).subscribe({
-            next: (blob) => {
+        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/download`, { responseType: 'blob', observe: 'response' }).subscribe({
+            next: (response) => {
+                const blob = response.body!;
+                const contentType = response.headers.get('content-type') ?? '';
+                const isPptx = contentType.includes('presentationml') || contentType.includes('pptx');
+                const ext = isPptx ? '.pptx' : '.pdf';
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Certificate_${cert.recipientName.replace(/ /g, '_')}.pdf`;
+                a.download = `Certificate_${cert.recipientName.replace(/ /g, '_')}${ext}`;
                 a.click();
                 window.URL.revokeObjectURL(url);
             },
@@ -882,6 +1054,11 @@ export class CertBuilder implements OnInit, OnDestroy {
 
     getTemplatePreviewUrl(tmpl: CertificateTemplate): string {
         return `${environment.apiUrl.replace(/\/api$/, '')}${tmpl.previewPath}`;
+    }
+
+    downloadTemplate(tmpl: CertificateTemplate) {
+        const url = this.getTemplatePreviewUrl(tmpl);
+        window.open(url, '_blank');
     }
 
     get selectedField(): FieldBox | null {

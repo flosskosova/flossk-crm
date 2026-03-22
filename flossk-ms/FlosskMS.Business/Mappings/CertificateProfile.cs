@@ -20,7 +20,8 @@ public class CertificateProfile : Profile
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault() ?? string.Empty
                     : string.Empty))
-            .ForMember(dest => dest.IssuedByName, opt => opt.MapFrom(src => src.IssuedByUser.FirstName + " " + src.IssuedByUser.LastName));
+            .ForMember(dest => dest.IssuedByName, opt => opt.MapFrom(src => src.IssuedByUser.FirstName + " " + src.IssuedByUser.LastName))
+            .ForMember(dest => dest.IsPptx, opt => opt.MapFrom(src => src.IsPptx));
 
         CreateMap<CertificateTemplate, CertificateTemplateDto>()
             .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName + " " + src.CreatedByUser.LastName))

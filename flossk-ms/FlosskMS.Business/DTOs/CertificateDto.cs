@@ -14,4 +14,5 @@ public class CertificateDto
     public string RecipientProfilePictureUrl { get; set; } = string.Empty;
     public string IssuedByUserId { get; set; } = string.Empty;
     public string IssuedByName { get; set; } = string.Empty;
+    public bool IsPptx { get; set; }
 }

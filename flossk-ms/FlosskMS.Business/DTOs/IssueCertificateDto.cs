@@ -25,4 +25,11 @@ public class IssueCertificateDto
     public Guid? TemplateId { get; set; }
     [Required]
     public string IssuerSignatureDataUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// When using a PPTX template, overrides the recipient name printed on the certificate.
+    /// Falls back to the recipient user's first + last name when not provided.
+    /// </summary>
+    [MaxLength(200)]
+    public string? RecipientNameOverride { get; set; }
 }

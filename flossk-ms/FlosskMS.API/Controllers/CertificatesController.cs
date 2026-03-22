@@ -67,11 +67,22 @@ public class CertificatesController(ICertificateService certificateService) : Co
         return await _certificateService.DeleteAllCertificatesAsync();
     }
 
+    [Authorize(Roles = "Admin")]
+    [HttpPost("upload-external")]
+    [RequestSizeLimit(50 * 1024 * 1024)]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadExternalCertificate([FromForm] UploadExternalCertificateDto request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _certificateService.UploadExternalCertificateAsync(request, userId);
+    }
+
     // ── Templates ────────────────────────────────────────────────────────────
 
     [Authorize(Roles = "Admin")]
     [HttpPost("templates")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(50 * 1024 * 1024)]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadTemplate([FromForm] UploadCertificateTemplateDto request)
     {

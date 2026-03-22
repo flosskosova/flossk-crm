@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using AutoMapper;
 using FlosskMS.Business.DTOs;
@@ -96,29 +97,45 @@ public class CertificateService : ICertificateService
 
         foreach (var cert in saved)
         {
-            byte[]? templateImageBytes = null;
-            if (cert.Template != null)
-            {
-                var templatePath = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(cert.Template.FilePath));
-                if (System.IO.File.Exists(templatePath))
-                    templateImageBytes = await System.IO.File.ReadAllBytesAsync(templatePath);
-            }
+            var templateFilePath = cert.Template != null
+                ? Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(cert.Template.FilePath))
+                : null;
 
-            byte[] pdfBytes;
-            if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
+            bool isPptx = templateFilePath != null
+                && templateFilePath.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase)
+                && System.IO.File.Exists(templateFilePath);
+
+            if (isPptx)
             {
-                var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList());
-                pdfBytes = WrapImageInPdf(compositeImageBytes);
+                var pptxBytes = GeneratePptxCertificate(cert, templateFilePath!, request.RecipientNameOverride);
+                var fileName = $"{cert.Id}.pptx";
+                var filePath = Path.Combine(pdfDir, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, pptxBytes);
+                cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
+                cert.IsPptx = true;
             }
             else
             {
-                pdfBytes = GenerateCertificatePdf(cert, templateImageBytes);
-            }
+                byte[]? templateImageBytes = null;
+                if (templateFilePath != null && System.IO.File.Exists(templateFilePath))
+                    templateImageBytes = await System.IO.File.ReadAllBytesAsync(templateFilePath);
 
-            var fileName = $"{cert.Id}.pdf";
-            var filePath = Path.Combine(pdfDir, fileName);
-            await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
-            cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
+                byte[] pdfBytes;
+                if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
+                {
+                    var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList());
+                    pdfBytes = WrapImageInPdf(compositeImageBytes);
+                }
+                else
+                {
+                    pdfBytes = GenerateCertificatePdf(cert, templateImageBytes);
+                }
+
+                var fileName = $"{cert.Id}.pdf";
+                var filePath = Path.Combine(pdfDir, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+                cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
+            }
         }
 
         await _dbContext.SaveChangesAsync();
@@ -187,20 +204,24 @@ public class CertificateService : ICertificateService
             if (File.Exists(storedPath))
             {
                 var storedBytes = await System.IO.File.ReadAllBytesAsync(storedPath);
-                return new FileContentResult(storedBytes, "application/pdf")
+                bool storedIsPptx = storedPath.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase);
+                var mimeType  = storedIsPptx ? "application/vnd.openxmlformats-officedocument.presentationml.presentation" : "application/pdf";
+                var extension = storedIsPptx ? ".pptx" : ".pdf";
+                return new FileContentResult(storedBytes, mimeType)
                 {
-                    FileDownloadName = $"FLOSSK_Certificate_{recipientName}_{certificate.EventName.Replace(" ", "_")}.pdf"
+                    FileDownloadName = $"FLOSSK_Certificate_{recipientName}_{certificate.EventName.Replace(" ", "_")}{extension}"
                 };
             }
         }
 
+        // Fall back to on-the-fly generation (non-PPTX only)
         QuestPDF.Settings.License = LicenseType.Community;
 
         byte[]? templateImageBytes = null;
         if (certificate.Template != null)
         {
             var templatePath = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(certificate.Template.FilePath));
-            if (System.IO.File.Exists(templatePath))
+            if (System.IO.File.Exists(templatePath) && !templatePath.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
                 templateImageBytes = await System.IO.File.ReadAllBytesAsync(templatePath);
         }
 
@@ -222,15 +243,76 @@ public class CertificateService : ICertificateService
         };
     }
 
+    public async Task<IActionResult> UploadExternalCertificateAsync(UploadExternalCertificateDto request, string uploadedByUserId)
+    {
+        var uploader = await _dbContext.Users.FindAsync(uploadedByUserId);
+        if (uploader == null) return new UnauthorizedResult();
+
+        var recipient = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == request.RecipientUserId);
+        if (recipient == null)
+            return new BadRequestObjectResult(new { Error = "Recipient user not found." });
+
+        var allowedExts = new[] { ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".pptx" };
+        var ext = Path.GetExtension(request.File.FileName).ToLowerInvariant();
+        if (!allowedExts.Contains(ext))
+            return new BadRequestObjectResult(new { Error = "Only PDF, PNG, JPG, WebP, or PPTX files are accepted." });
+
+        const long maxSize = 50 * 1024 * 1024;
+        if (request.File.Length > maxSize)
+            return new BadRequestObjectResult(new { Error = "File must not exceed 50 MB." });
+
+        var certDir = Path.Combine(_env.ContentRootPath, "uploads", "certificates");
+        Directory.CreateDirectory(certDir);
+
+        var storedFileName = $"{Guid.NewGuid()}{ext}";
+        var diskPath = Path.Combine(certDir, storedFileName);
+        await using (var stream = new FileStream(diskPath, FileMode.Create))
+            await request.File.CopyToAsync(stream);
+
+        var certificate = new Certificate
+        {
+            Id = Guid.NewGuid(),
+            EventName = request.EventName,
+            Description = request.Description ?? string.Empty,
+            Status = CertificateStatus.Issued,
+            IssuedDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            RecipientUserId = recipient.Id,
+            IssuedByUserId = uploadedByUserId,
+            GeneratedPdfPath = Path.Combine("uploads", "certificates", storedFileName),
+            IsPptx = ext == ".pptx"
+        };
+
+        _dbContext.Certificates.Add(certificate);
+        await _dbContext.SaveChangesAsync();
+
+        // Re-load with full navigation for the DTO
+        var saved = await _dbContext.Certificates
+            .Include(c => c.RecipientUser)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(c => c.IssuedByUser)
+            .FirstAsync(c => c.Id == certificate.Id);
+
+        return new OkObjectResult(MapToDto(saved));
+    }
+
     public async Task<IActionResult> UploadTemplateAsync(IFormFile file, string name, string userId)
     {
-        var allowedTypes = new[] { "image/png", "image/jpeg", "image/jpg", "image/webp" };
-        if (!allowedTypes.Contains(file.ContentType.ToLower()))
-            return new BadRequestObjectResult(new { Error = "Only PNG, JPG, and WebP images are supported as certificate templates." });
+        var allowedImageTypes = new[] { "image/png", "image/jpeg", "image/jpg", "image/webp" };
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        bool isImageUpload = allowedImageTypes.Contains(file.ContentType.ToLower());
+        bool isPptxUpload  = ext == ".pptx" || file.ContentType.Equals(
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            StringComparison.OrdinalIgnoreCase);
 
-        const long maxSize = 10 * 1024 * 1024; // 10 MB
+        if (!isImageUpload && !isPptxUpload)
+            return new BadRequestObjectResult(new { Error = "Only PNG, JPG, WebP images or .pptx files are supported as certificate templates." });
+
+        const long maxSize = 50 * 1024 * 1024; // 50 MB
         if (file.Length > maxSize)
-            return new BadRequestObjectResult(new { Error = "Template file must not exceed 10 MB." });
+            return new BadRequestObjectResult(new { Error = "Template file must not exceed 50 MB." });
 
         var user = await _dbContext.Users.FindAsync(userId);
         if (user == null) return new UnauthorizedResult();
@@ -238,7 +320,6 @@ public class CertificateService : ICertificateService
         var templateDir = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates");
         Directory.CreateDirectory(templateDir);
 
-        var ext = Path.GetExtension(file.FileName);
         var storedFileName = $"{Guid.NewGuid()}{ext}";
         var filePath = $"/uploads/cert-templates/{storedFileName}";
 
@@ -730,4 +811,73 @@ public class CertificateService : ICertificateService
         float labelW = font.MeasureText("Signature");
         canvas.DrawText("Signature", bx + (bw - labelW) / 2f, by + bh * 0.92f, font, textPaint);
     }
+
+    // ── PPTX generation ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fills a .pptx template by replacing {{placeholder}} tokens and returns the filled bytes.
+    /// A PPTX is a ZIP archive of XML files, so we replace tokens directly at the XML level
+    /// to avoid OpenXML SDK content-type compatibility issues.
+    /// Supported tokens: {{recipientName}}, {{eventName}}, {{description}},
+    ///                    {{issuedDate}}, {{issuedBy}}, {{signature}}.
+    /// </summary>
+    private static byte[] GeneratePptxCertificate(Certificate cert, string templatePath, string? recipientNameOverride = null)
+    {
+        var resolvedRecipientName = string.IsNullOrWhiteSpace(recipientNameOverride)
+            ? $"{cert.RecipientUser.FirstName} {cert.RecipientUser.LastName}"
+            : recipientNameOverride.Trim();
+
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "recipientName", resolvedRecipientName },
+            { "eventName",     cert.EventName },
+            { "description",   cert.Description ?? string.Empty },
+            { "issuedDate",    cert.IssuedDate.ToString("MMMM dd, yyyy") },
+            { "issuedBy",      $"{cert.IssuedByUser.FirstName} {cert.IssuedByUser.LastName}" },
+            { "signature",     string.Empty }
+        };
+
+        var templateBytes = System.IO.File.ReadAllBytes(templatePath);
+        using var inputMs  = new MemoryStream(templateBytes);
+        var       outputMs = new MemoryStream();
+
+        using (var inputZip  = new ZipArchive(inputMs,  ZipArchiveMode.Read))
+        using (var outputZip = new ZipArchive(outputMs, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var entry in inputZip.Entries)
+            {
+                var newEntry = outputZip.CreateEntry(entry.FullName, CompressionLevel.Optimal);
+                newEntry.LastWriteTime = entry.LastWriteTime;
+
+                using var inputStream  = entry.Open();
+                using var outputStream = newEntry.Open();
+
+                // Replace tokens only inside XML parts (slides, notes, layout, master, …)
+                if (entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var reader = new StreamReader(inputStream, Encoding.UTF8);
+                    var xml = reader.ReadToEnd();
+
+                    foreach (var (key, val) in values)
+                        xml = xml.Replace($"{{{{{key}}}}}", XmlEscape(val), StringComparison.OrdinalIgnoreCase);
+
+                    var xmlBytes = Encoding.UTF8.GetBytes(xml);
+                    outputStream.Write(xmlBytes);
+                }
+                else
+                {
+                    inputStream.CopyTo(outputStream);
+                }
+            }
+        }
+
+        return outputMs.ToArray();
+    }
+
+    private static string XmlEscape(string value) =>
+        value.Replace("&", "&amp;")
+             .Replace("<", "&lt;")
+             .Replace(">", "&gt;")
+             .Replace("\"", "&quot;")
+             .Replace("'", "&apos;");
 }

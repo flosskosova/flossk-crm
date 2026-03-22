@@ -13,6 +13,8 @@ public interface ICertificateService
     Task<IActionResult> DeleteCertificateAsync(Guid id, string userId);
     Task<IActionResult> DeleteAllCertificatesAsync();
 
+    Task<IActionResult> UploadExternalCertificateAsync(DTOs.UploadExternalCertificateDto request, string uploadedByUserId);
+
     Task<IActionResult> UploadTemplateAsync(IFormFile file, string name, string userId);
     Task<IActionResult> GetTemplatesAsync();
     Task<IActionResult> DeleteTemplateAsync(Guid id, string userId);
