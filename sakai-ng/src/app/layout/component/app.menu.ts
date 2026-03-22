@@ -38,7 +38,7 @@ export class AppMenu {
                 { label: 'Inventory', icon: 'pi pi-fw pi-box', routerLink: ['/dashboard/inventory'] },
                 { label: 'Events', icon: 'pi pi-fw pi-calendar', routerLink: ['/dashboard/events'] },
                 ...(this.canSeeVoting() ? [{ label: 'Elections', icon: 'pi pi-fw pi-vote', routerLink: ['/dashboard/elections'] }] : []),
-                    { label: 'Payments', icon: 'pi pi-fw pi-wallet', routerLink: ['/dashboard/payments'] },
+                    { label: 'Expenses', icon: 'pi pi-fw pi-wallet', routerLink: ['/dashboard/expenses'] },
                     // { label: 'RFID Configurer', icon: 'pi pi-fw pi-id-card', routerLink: ['/dashboard/rfid-configurer'] },
                     { label: 'Hackerspace Presence', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/dashboard/hackerspace-presence'] },
                     { label: 'Statistics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/statistics'] },

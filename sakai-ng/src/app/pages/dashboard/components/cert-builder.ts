@@ -273,7 +273,7 @@ interface FieldBox {
                     <span class="text-lg">{{ selectedFilterProjectId ? 'No eligible users found for this project' : 'Select a project above to see eligible recipients' }}</span>
                 </div>
             } @else {
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
                     @for (user of filteredUsers; track user.id) {
                         <div
                             class="border rounded-xl overflow-hidden transition-all duration-200"
@@ -533,7 +533,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     users: any[] = [];
     selectedFilterProjectId: string | null = null;
     eligiblePage = 1;
-    eligiblePageSize = 20;
+    eligiblePageSize = 9;
     eligibleTotalCount = 0;
     eligibleTotalPages = 0;
     activeIssuingUserId: string | null = null;
