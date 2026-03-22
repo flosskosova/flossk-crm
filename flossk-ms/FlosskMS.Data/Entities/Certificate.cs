@@ -3,7 +3,6 @@ namespace FlosskMS.Data.Entities;
 public class Certificate
 {
     public Guid Id { get; set; }
-    public CertificateType Type { get; set; } = CertificateType.Participation;
     public string EventName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public CertificateStatus Status { get; set; } = CertificateStatus.Issued;

@@ -3,7 +3,6 @@ namespace FlosskMS.Business.DTOs;
 public class CertificateDto
 {
     public Guid Id { get; set; }
-    public string CertificateType { get; set; } = string.Empty;
     public string EventName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

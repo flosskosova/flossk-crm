@@ -565,7 +565,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(e => e.Id);
             entity.Property(e => e.EventName).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(2000);
-            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(20);
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasOne(e => e.RecipientUser).WithMany()
                 .HasForeignKey(e => e.RecipientUserId).OnDelete(DeleteBehavior.Cascade);
@@ -577,7 +576,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.ProjectId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => e.RecipientUserId);
             entity.HasIndex(e => e.IssuedByUserId);
-            entity.HasIndex(e => e.Type);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
         });

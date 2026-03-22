@@ -1,3 +1,4 @@
+using System.Text;
 using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
@@ -34,9 +35,6 @@ public class CertificateService : ICertificateService
         if (string.IsNullOrWhiteSpace(request.RecipientUserId))
             return new BadRequestObjectResult(new { Error = "A recipient is required." });
 
-        if (!Enum.TryParse<CertificateType>(request.Type, true, out var certType))
-            return new BadRequestObjectResult(new { Error = $"Invalid certificate type: {request.Type}" });
-
         var issuer = await _dbContext.Users.FindAsync(issuedByUserId);
         if (issuer == null)
             return new UnauthorizedResult();
@@ -67,7 +65,6 @@ public class CertificateService : ICertificateService
         var certificate = new Certificate
         {
             Id = Guid.NewGuid(),
-            Type = certType,
             EventName = request.EventName,
             Description = request.Description,
             Status = CertificateStatus.Issued,
@@ -445,8 +442,6 @@ public class CertificateService : ICertificateService
             // Certificate Title
             column.Item().AlignCenter().Text("CERTIFICATE")
                 .FontSize(32).Bold().FontColor(Colors.Blue.Darken2);
-            column.Item().AlignCenter().Text($"of {certificate.Type}")
-                .FontSize(16).FontColor(Colors.Grey.Darken2);
 
             column.Item().Height(20);
 
@@ -655,24 +650,59 @@ public class CertificateService : ICertificateService
         using var font = new SKFont(typeface);
         using var paint = new SKPaint { IsAntialias = true, Color = color };
 
-        // Auto-size: start at 60% of box height, scale down to fit width
         float maxW = bw * 0.9f;
-        font.Size = bh * 0.6f;
-        float textW = font.MeasureText(text);
-        if (textW > maxW)
-            font.Size *= maxW / textW;
-        if (font.Size < 6f) font.Size = 6f;
+        float startFontSize = bh * 0.6f;
 
-        // Re-measure after resizing
-        textW = font.MeasureText(text);
+        // Try decreasing font sizes until wrapped lines fit vertically in the box
+        for (float fontSize = startFontSize; fontSize >= 6f; fontSize -= 0.5f)
+        {
+            font.Size = fontSize;
+            var lines = WrapText(font, text, maxW);
+            var metrics = font.Metrics;
+            float lineHeight = -metrics.Ascent + metrics.Descent + Math.Max(metrics.Leading, fontSize * 0.15f);
+            float totalH = lines.Count * lineHeight;
 
-        var metrics = font.Metrics;
-        float textBlockH = -metrics.Ascent + metrics.Descent;
+            if (totalH <= bh * 0.95f || fontSize <= 6f)
+            {
+                float startY = by + (bh - totalH) / 2f + (-metrics.Ascent);
+                foreach (var line in lines)
+                {
+                    float lineW = font.MeasureText(line);
+                    float x = bx + (bw - lineW) / 2f;
+                    canvas.DrawText(line, x, startY, font, paint);
+                    startY += lineHeight;
+                }
+                return;
+            }
+        }
+    }
 
-        float x = bx + (bw - textW) / 2f;
-        float y = by + (bh - textBlockH) / 2f + (-metrics.Ascent);
+    private static List<string> WrapText(SKFont font, string text, float maxWidth)
+    {
+        var lines = new List<string>();
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var currentLine = new StringBuilder();
 
-        canvas.DrawText(text, x, y, font, paint);
+        foreach (var word in words)
+        {
+            string testLine = currentLine.Length == 0 ? word : currentLine + " " + word;
+            if (font.MeasureText(testLine) > maxWidth && currentLine.Length > 0)
+            {
+                lines.Add(currentLine.ToString());
+                currentLine.Clear();
+                currentLine.Append(word);
+            }
+            else
+            {
+                currentLine.Clear();
+                currentLine.Append(testLine);
+            }
+        }
+
+        if (currentLine.Length > 0)
+            lines.Add(currentLine.ToString());
+
+        return lines.Count == 0 ? new List<string> { text } : lines;
     }
 
     private static void DrawSignatureField(SKCanvas canvas, float bx, float by, float bw, float bh)

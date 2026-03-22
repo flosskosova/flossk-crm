@@ -27,7 +27,6 @@ interface CertificateRecord {
     recipientUserId: string;
     recipientName: string;
     recipientEmail: string;
-    certificateType: string;
     eventName: string;
     issuedDate: string;
     status: string;
@@ -325,7 +324,6 @@ interface FieldBox {
                                     <div class="flex flex-col gap-1.5 mt-2">
                                         @for (cert of getUserCerts(user.id); track cert.id) {
                                             <div class="flex items-center gap-2 bg-surface-100 dark:bg-surface-700 rounded-lg px-3 py-1.5">
-                                                <p-tag [value]="cert.certificateType" [severity]="getTypeSeverity(cert.certificateType)" />
                                                 <span class="flex-1 truncate text-surface-700 dark:text-surface-300 text-xs">{{ cert.eventName }}</span>
                                                 <p-tag [value]="cert.status" [severity]="getStatusSeverity(cert.status)" />
                                                 <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="success" pTooltip="View" (onClick)="viewCertificate(cert)" />
@@ -344,19 +342,6 @@ interface FieldBox {
                                     <div class="flex items-center gap-2">
                                         <i class="pi pi-certificate text-primary text-lg"></i>
                                         <span class="font-semibold">Issuing to <span class="text-primary">{{ user.fullName }}</span></span>
-                                    </div>
-
-                                    <div class="flex flex-col gap-1.5">
-                                        <label class="text-sm font-semibold">Certificate Type</label>
-                                        <p-select
-                                            [(ngModel)]="certForm.type"
-                                            [options]="certificateTypes"
-                                            optionLabel="label"
-                                            optionValue="value"
-                                            placeholder="Select type"
-                                            [style]="{ width: '100%' }"
-                                            appendTo="body"
-                                        />
                                     </div>
 
                                     <div class="flex flex-col gap-1.5">
@@ -569,15 +554,6 @@ export class CertBuilder implements OnInit, OnDestroy {
     dragging: { fieldId: string; startMX: number; startMY: number; origX: number; origY: number } | null = null;
     resizing: { fieldId: string; handle: string; startMX: number; startMY: number; origBox: FieldBox } | null = null;
 
-    certificateTypes = [
-        { label: 'Participation', value: 'Participation' },
-        { label: 'Volunteering', value: 'Volunteering' },
-        { label: 'Speaker', value: 'Speaker' },
-        { label: 'Achievement', value: 'Achievement' },
-        { label: 'Membership', value: 'Membership' },
-        { label: 'Contribution', value: 'Contribution' }
-    ];
-
     readonly CUSTOM_EVENT_ID = '__custom__';
 
     projects: any[] = [];
@@ -585,7 +561,6 @@ export class CertBuilder implements OnInit, OnDestroy {
     projectsLoading = false;
 
     certForm = {
-        type: '',
         eventId: null as string | null,
         customEventTitle: '',
         description: '',
@@ -684,7 +659,7 @@ export class CertBuilder implements OnInit, OnDestroy {
         }
         this.activeIssuingUserId = user.id;
         this.activeIssuingUser = user;
-        this.certForm = { type: '', eventId: this.selectedFilterProjectId, customEventTitle: '', description: '', templateId: null };
+        this.certForm = { eventId: this.selectedFilterProjectId, customEventTitle: '', description: '', templateId: null };
         this.cdr.detectChanges();
         this.initSignaturePad();
     }
@@ -719,7 +694,7 @@ export class CertBuilder implements OnInit, OnDestroy {
     canIssue(): boolean {
         const customValid = this.certForm.eventId !== this.CUSTOM_EVENT_ID || !!this.certForm.customEventTitle.trim();
         const signatureValid = !!this.signaturePad && !this.signaturePad.isEmpty();
-        return !!this.activeIssuingUser && !!this.certForm.type && customValid && signatureValid;
+        return !!this.activeIssuingUser && customValid && signatureValid;
     }
 
     issueCertificate() {
@@ -738,7 +713,6 @@ export class CertBuilder implements OnInit, OnDestroy {
 
         const payload = {
             recipientUserId: this.activeIssuingUser.id,
-            type: this.certForm.type,
             eventName,
             description: this.certForm.description,
             issuedDate: new Date().toISOString(),
@@ -820,18 +794,6 @@ export class CertBuilder implements OnInit, OnDestroy {
 
     getUserInitials(user: any): string {
         return getInitials(`${user.firstName} ${user.lastName}`);
-    }
-
-    getTypeSeverity(type: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, any> = {
-            Participation: 'info',
-            Volunteering: 'success',
-            Speaker: 'warn',
-            Achievement: 'contrast',
-            Membership: 'secondary',
-            Contribution: 'success'
-        };
-        return map[type] || 'info';
     }
 
     getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
