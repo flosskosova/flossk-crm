@@ -17,7 +17,7 @@ import { Leaderboard } from '@/pages/dashboard/components/leaderboard';
 import { MembershipApplicationForm } from '@/pages/dashboard/components/membership-application-form';
 import { authGuard, roleGuard } from '@/pages/service/auth.guard';
 import { ExternalMessages } from '@/pages/dashboard/components/external-messages';
-import { Expenses } from '@/pages/dashboard/components/payments';
+import { Expenses } from '@/pages/dashboard/components/expenses';
 import { Rent } from '@/pages/dashboard/components/rent';
 import { Onboarding } from '@/pages/dashboard/components/onboarding';
 import { Donate } from '@/pages/dashboard/components/donate';
