@@ -51,5 +51,5 @@ public interface IProjectService
     Task<IActionResult> DeleteAllProjectsAsync();
 
     // Certificate eligibility
-    Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId);
+    Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId, string? excludeUserId = null, int page = 1, int pageSize = 20);
 }

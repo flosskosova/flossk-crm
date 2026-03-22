@@ -17,11 +17,10 @@ import { Leaderboard } from '@/pages/dashboard/components/leaderboard';
 import { MembershipApplicationForm } from '@/pages/dashboard/components/membership-application-form';
 import { authGuard, roleGuard } from '@/pages/service/auth.guard';
 import { ExternalMessages } from '@/pages/dashboard/components/external-messages';
-import { Payments } from '@/pages/dashboard/components/payments';
+import { Expenses } from '@/pages/dashboard/components/payments';
 import { Rent } from '@/pages/dashboard/components/rent';
 import { Onboarding } from '@/pages/dashboard/components/onboarding';
 import { Donate } from '@/pages/dashboard/components/donate';
-import { RfidConfigurer } from '@/pages/dashboard/components/rfid-configurer';
 import { Projects } from '@/pages/dashboard/components/projects';
 import { Elections } from '@/pages/dashboard/components/elections';
 import { Integrations } from '@/pages/dashboard/components/integrations';
@@ -51,7 +50,7 @@ export const appRoutes: Routes = [
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
             { path: 'external-messages', component: ExternalMessages },
-            { path: 'payments', component: Payments },
+            { path: 'expenses', component: Expenses },
             { path: 'settings', component: Settings },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },

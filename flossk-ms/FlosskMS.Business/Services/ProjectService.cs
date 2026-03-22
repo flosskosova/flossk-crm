@@ -1745,23 +1745,28 @@ public class ProjectService : IProjectService
 
     #region Certificate Eligibility
 
-    public async Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId)
+    public async Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId, string? excludeUserId = null, int page = 1, int pageSize = 20)
     {
         var project = await _dbContext.Projects.FindAsync(projectId);
         if (project == null)
             return new NotFoundObjectResult(new { Error = "Project not found." });
 
-        // Fetch distinct users who are assigned to at least one completed objective in this project
-        var eligibleUsers = await _dbContext.ObjectiveTeamMembers
-            .Include(otm => otm.User)
-                .ThenInclude(u => u.UploadedFiles)
+        var query = _dbContext.ObjectiveTeamMembers
             .Where(otm =>
                 otm.Objective.ProjectId == projectId &&
-                otm.Objective.Status == ObjectiveStatus.Completed)
+                otm.Objective.Status == ObjectiveStatus.Completed &&
+                (excludeUserId == null || otm.User.Id != excludeUserId))
             .Select(otm => otm.User)
             .Distinct()
             .OrderBy(u => u.LastName)
-            .ThenBy(u => u.FirstName)
+            .ThenBy(u => u.FirstName);
+
+        var totalCount = await query.CountAsync();
+
+        var eligibleUsers = await query
+            .Include(u => u.UploadedFiles)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         var dtos = eligibleUsers.Select(u => new TeamMemberDto
@@ -1778,7 +1783,14 @@ public class ProjectService : IProjectService
             JoinedAt = DateTime.MinValue
         }).ToList();
 
-        return new OkObjectResult(dtos);
+        return new OkObjectResult(new
+        {
+            Users = dtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        });
     }
 
     #endregion

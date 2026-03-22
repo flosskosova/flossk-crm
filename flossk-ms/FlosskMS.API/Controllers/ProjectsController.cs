@@ -416,9 +416,13 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpGet("{projectId:guid}/eligible-certificate-recipients")]
-    public async Task<IActionResult> GetEligibleCertificateRecipients(Guid projectId)
+    public async Task<IActionResult> GetEligibleCertificateRecipients(
+        Guid projectId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        return await _projectService.GetUsersWithCompletedObjectivesAsync(projectId);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _projectService.GetUsersWithCompletedObjectivesAsync(projectId, currentUserId, page, pageSize);
     }
 
     #endregion

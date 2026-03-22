@@ -372,6 +372,7 @@ interface FieldBox {
                                             [showClear]="true"
                                             [style]="{ width: '100%' }"
                                             [loading]="projectsLoading"
+                                            [disabled]="true"
                                             appendTo="body"
                                         >
                                             <ng-template let-opt #item>
@@ -430,6 +431,51 @@ interface FieldBox {
                         </div>
                     }
                 </div>
+
+                @if (eligibleTotalPages > 1) {
+                    <div class="flex items-center justify-center gap-2 mt-6">
+                        <p-button
+                            icon="pi pi-angle-double-left"
+                            [text]="true"
+                            [rounded]="true"
+                            severity="secondary"
+                            [disabled]="eligiblePage === 1"
+                            pTooltip="First page"
+                            (onClick)="onEligiblePageChange(1)"
+                        />
+                        <p-button
+                            icon="pi pi-angle-left"
+                            [text]="true"
+                            [rounded]="true"
+                            severity="secondary"
+                            [disabled]="eligiblePage === 1"
+                            pTooltip="Previous page"
+                            (onClick)="onEligiblePageChange(eligiblePage - 1)"
+                        />
+                        <span class="text-sm text-muted-color px-2">
+                            Page {{ eligiblePage }} of {{ eligibleTotalPages }}
+                            <span class="text-xs">({{ eligibleTotalCount }} total)</span>
+                        </span>
+                        <p-button
+                            icon="pi pi-angle-right"
+                            [text]="true"
+                            [rounded]="true"
+                            severity="secondary"
+                            [disabled]="eligiblePage === eligibleTotalPages"
+                            pTooltip="Next page"
+                            (onClick)="onEligiblePageChange(eligiblePage + 1)"
+                        />
+                        <p-button
+                            icon="pi pi-angle-double-right"
+                            [text]="true"
+                            [rounded]="true"
+                            severity="secondary"
+                            [disabled]="eligiblePage === eligibleTotalPages"
+                            pTooltip="Last page"
+                            (onClick)="onEligiblePageChange(eligibleTotalPages)"
+                        />
+                    </div>
+                }
             }
         </div>
 
@@ -501,6 +547,10 @@ export class CertBuilder implements OnInit, OnDestroy {
     usersLoading = false;
     users: any[] = [];
     selectedFilterProjectId: string | null = null;
+    eligiblePage = 1;
+    eligiblePageSize = 20;
+    eligibleTotalCount = 0;
+    eligibleTotalPages = 0;
     activeIssuingUserId: string | null = null;
     activeIssuingUser: any = null;
     userSearchQuery = '';
@@ -567,31 +617,49 @@ export class CertBuilder implements OnInit, OnDestroy {
         });
     }
 
-    loadEligibleUsers(projectId: string) {
+    loadEligibleUsers(projectId: string, page = 1, pageSize = 20) {
         this.usersLoading = true;
-        this.http.get<any[]>(`${environment.apiUrl}/Projects/${projectId}/eligible-certificate-recipients`).subscribe({
+        this.http.get<any>(`${environment.apiUrl}/Projects/${projectId}/eligible-certificate-recipients`, {
+            params: { page, pageSize }
+        }).subscribe({
             next: (data) => {
-                this.users = (data || []).map((u: any) => ({
+                this.users = (data?.users || []).map((u: any) => ({
                     ...u,
                     id: u.userId,
                     fullName: `${u.firstName} ${u.lastName}`
                 }));
+                this.eligiblePage = data?.page ?? page;
+                this.eligiblePageSize = data?.pageSize ?? pageSize;
+                this.eligibleTotalCount = data?.totalCount ?? 0;
+                this.eligibleTotalPages = data?.totalPages ?? 0;
                 console.log('Eligible certificate recipients:', this.users);
                 this.usersLoading = false;
             },
             error: () => {
                 this.users = [];
+                this.eligibleTotalCount = 0;
+                this.eligibleTotalPages = 0;
                 this.usersLoading = false;
             }
         });
+    }
+
+    onEligiblePageChange(page: number) {
+        if (!this.selectedFilterProjectId) return;
+        this.eligiblePage = page;
+        this.cancelIssueForm();
+        this.loadEligibleUsers(this.selectedFilterProjectId, page, this.eligiblePageSize);
     }
 
     onProjectFilterChange(projectId: string | null) {
         this.cancelIssueForm();
         this.users = [];
         this.userSearchQuery = '';
+        this.eligiblePage = 1;
+        this.eligibleTotalCount = 0;
+        this.eligibleTotalPages = 0;
         if (projectId) {
-            this.loadEligibleUsers(projectId);
+            this.loadEligibleUsers(projectId, 1, this.eligiblePageSize);
         }
     }
 
