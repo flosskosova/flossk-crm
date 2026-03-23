@@ -11,6 +11,7 @@ RUN apt-get update && \
 
 # Enable TCP socket so other containers can reach clamd on port 3310
 RUN sed -i 's|^#*\s*TCPSocket\b.*|TCPSocket 3310|' /etc/clamav/clamd.conf && \
+    grep -q '^TCPSocket' /etc/clamav/clamd.conf || echo "TCPSocket 3310" >> /etc/clamav/clamd.conf && \
     grep -q '^TCPAddr' /etc/clamav/clamd.conf || echo "TCPAddr 0.0.0.0" >> /etc/clamav/clamd.conf && \
     grep -q '^Foreground' /etc/clamav/clamd.conf \
         && sed -i 's|^Foreground.*|Foreground true|' /etc/clamav/clamd.conf \
