@@ -1077,7 +1077,17 @@ public class AuthService(
         var displayName = $"{user.FirstName} {user.LastName}".Trim();
         if (string.IsNullOrWhiteSpace(displayName)) displayName = request.Email;
 
-        await _emailService.SendPasswordResetEmailAsync(request.Email, displayName, resetLink);
+        try
+        {
+            await _emailService.SendPasswordResetEmailAsync(request.Email, displayName, resetLink);
+        }
+        catch (InvalidOperationException)
+        {
+            return new ObjectResult(new { Message = "Email service is temporarily unavailable. Please try again later." })
+            {
+                StatusCode = 503
+            };
+        }
 
         return generic;
     }

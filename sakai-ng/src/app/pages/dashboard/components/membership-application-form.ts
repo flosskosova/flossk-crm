@@ -10,6 +10,9 @@ import { CardModule } from 'primeng/card';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
+import { SelectModule } from 'primeng/select';
+import { InputGroup } from 'primeng/inputgroup';
+import { InputGroupAddon } from 'primeng/inputgroupaddon';
 import { MembershipRequestsService } from '@/pages/service/membership-requests.service';
 
 @Component({
@@ -25,6 +28,9 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
         DatePickerModule,
         TooltipModule,
         MessageModule,
+        SelectModule,
+        InputGroup,
+        InputGroupAddon,
         RouterLink
     ],
     template: ` 
@@ -119,21 +125,48 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                 <!-- Row 3: Phone and Email -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="field">
-                        <label for="phone" class="block font-bold mb-2">Phone:</label>
-                        <input 
-                            pInputText 
-                            id="phone" 
-                            [(ngModel)]="formData.phone" 
-                            name="phone" 
-                            #phone="ngModel"
-                            type="tel"
-                            pattern="^[0-9+]+$"
-                            class="w-full"
-                            [class.ng-invalid]="phone.invalid && phone.touched"
-                            required />
-                        <small *ngIf="phone.invalid && phone.touched" class="text-red-500">
-                            <span *ngIf="phone.errors?.['required']">Phone is required.</span>
-                            <span *ngIf="phone.errors?.['pattern']">Phone can only contain numbers and +.</span>
+                        <label for="phoneNumber" class="block font-bold mb-2">Phone:</label>
+                        <p-inputgroup class="w-full" style="height: 2.5rem;">
+                            <p-inputgroup-addon [style]="{'padding': '0', 'min-width': '0'}">
+                                <p-select
+                                    [(ngModel)]="selectedCountry"
+                                    name="countryCode"
+                                    [options]="countries"
+                                    optionLabel="label"
+                                    [filter]="true"
+                                    filterBy="label,dial_code,code"
+                                    [showClear]="false"
+                                    [style]="{'min-width': '70px', 'width': '55px', 'height': '100%', 'border': 'none', 'box-shadow': 'none'}"
+                                    [panelStyle]="{'z-index': '9999'}"
+                                    [appendTo]="'body'"
+                                    (onChange)="onCountryChange()">
+                                    <ng-template pTemplate="selectedItem">
+                                        <span *ngIf="selectedCountry">{{ selectedCountry.flag }}</span>
+                                    </ng-template>
+                                    <ng-template pTemplate="item" let-country>
+                                        <div class="flex items-center gap-2">
+                                            <span>{{ country.flag }}</span>
+                                            <span>{{ country.name }}</span>
+                                            <span class="text-gray-400 ml-auto">{{ country.dial_code }}</span>
+                                        </div>
+                                    </ng-template>
+                                </p-select>
+                            </p-inputgroup-addon>
+                            <input
+                                pInputText
+                                id="phoneNumber"
+                                [(ngModel)]="formData.phoneNumber"
+                                name="phoneNumber"
+                                #phoneNumber="ngModel"
+                                type="tel"
+                                pattern="^[0-9 ]+$"
+                                placeholder="44 123 456"
+                                [class.ng-invalid]="phoneNumber.invalid && phoneNumber.touched"
+                                required />
+                        </p-inputgroup>
+                        <small *ngIf="phoneNumber.invalid && phoneNumber.touched" class="text-red-500">
+                            <span *ngIf="phoneNumber.errors?.['required']">Phone is required.</span>
+                            <span *ngIf="phoneNumber.errors?.['pattern']">Phone can only contain numbers and spaces.</span>
                         </small>
                     </div>
                     <div class="field">
@@ -324,7 +357,7 @@ export class MembershipApplicationForm implements AfterViewInit {
         address: '',
         city: '',
         idNumber: '',
-        phone: '',
+        phoneNumber: '',
         email: '',
         schoolCompany: '',
         statement: '',
@@ -333,6 +366,76 @@ export class MembershipApplicationForm implements AfterViewInit {
         applicantDateofBirth: '',
         boardMember: '',
     };
+
+    countries = [
+        { name: 'Afghanistan', code: 'AF', dial_code: '+93', flag: '🇦🇫', label: 'Afghanistan +93' },
+        { name: 'Albania', code: 'AL', dial_code: '+355', flag: '🇦🇱', label: 'Albania +355' },
+        { name: 'Algeria', code: 'DZ', dial_code: '+213', flag: '🇩🇿', label: 'Algeria +213' },
+        { name: 'Argentina', code: 'AR', dial_code: '+54', flag: '🇦🇷', label: 'Argentina +54' },
+        { name: 'Australia', code: 'AU', dial_code: '+61', flag: '🇦🇺', label: 'Australia +61' },
+        { name: 'Austria', code: 'AT', dial_code: '+43', flag: '🇦🇹', label: 'Austria +43' },
+        { name: 'Belgium', code: 'BE', dial_code: '+32', flag: '🇧🇪', label: 'Belgium +32' },
+        { name: 'Bosnia and Herzegovina', code: 'BA', dial_code: '+387', flag: '🇧🇦', label: 'Bosnia and Herzegovina +387' },
+        { name: 'Brazil', code: 'BR', dial_code: '+55', flag: '🇧🇷', label: 'Brazil +55' },
+        { name: 'Canada', code: 'CA', dial_code: '+1', flag: '🇨🇦', label: 'Canada +1' },
+        { name: 'China', code: 'CN', dial_code: '+86', flag: '🇨🇳', label: 'China +86' },
+        { name: 'Croatia', code: 'HR', dial_code: '+385', flag: '🇭🇷', label: 'Croatia +385' },
+        { name: 'Czech Republic', code: 'CZ', dial_code: '+420', flag: '🇨🇿', label: 'Czech Republic +420' },
+        { name: 'Denmark', code: 'DK', dial_code: '+45', flag: '🇩🇰', label: 'Denmark +45' },
+        { name: 'Egypt', code: 'EG', dial_code: '+20', flag: '🇪🇬', label: 'Egypt +20' },
+        { name: 'Finland', code: 'FI', dial_code: '+358', flag: '🇫🇮', label: 'Finland +358' },
+        { name: 'France', code: 'FR', dial_code: '+33', flag: '🇫🇷', label: 'France +33' },
+        { name: 'Germany', code: 'DE', dial_code: '+49', flag: '🇩🇪', label: 'Germany +49' },
+        { name: 'Greece', code: 'GR', dial_code: '+30', flag: '🇬🇷', label: 'Greece +30' },
+        { name: 'Hungary', code: 'HU', dial_code: '+36', flag: '🇭🇺', label: 'Hungary +36' },
+        { name: 'India', code: 'IN', dial_code: '+91', flag: '🇮🇳', label: 'India +91' },
+        { name: 'Indonesia', code: 'ID', dial_code: '+62', flag: '🇮🇩', label: 'Indonesia +62' },
+        { name: 'Iran', code: 'IR', dial_code: '+98', flag: '🇮🇷', label: 'Iran +98' },
+        { name: 'Iraq', code: 'IQ', dial_code: '+964', flag: '🇮🇶', label: 'Iraq +964' },
+        { name: 'Ireland', code: 'IE', dial_code: '+353', flag: '🇮🇪', label: 'Ireland +353' },
+        { name: 'Israel', code: 'IL', dial_code: '+972', flag: '🇮🇱', label: 'Israel +972' },
+        { name: 'Italy', code: 'IT', dial_code: '+39', flag: '🇮🇹', label: 'Italy +39' },
+        { name: 'Japan', code: 'JP', dial_code: '+81', flag: '🇯🇵', label: 'Japan +81' },
+        { name: 'Jordan', code: 'JO', dial_code: '+962', flag: '🇯🇴', label: 'Jordan +962' },
+        { name: 'Kosovo', code: 'XK', dial_code: '+383', flag: '🇽🇰', label: 'Kosovo +383' },
+        { name: 'Kuwait', code: 'KW', dial_code: '+965', flag: '🇰🇼', label: 'Kuwait +965' },
+        { name: 'Lebanon', code: 'LB', dial_code: '+961', flag: '🇱🇧', label: 'Lebanon +961' },
+        { name: 'Libya', code: 'LY', dial_code: '+218', flag: '🇱🇾', label: 'Libya +218' },
+        { name: 'Luxembourg', code: 'LU', dial_code: '+352', flag: '🇱🇺', label: 'Luxembourg +352' },
+        { name: 'Malaysia', code: 'MY', dial_code: '+60', flag: '🇲🇾', label: 'Malaysia +60' },
+        { name: 'Mexico', code: 'MX', dial_code: '+52', flag: '🇲🇽', label: 'Mexico +52' },
+        { name: 'Montenegro', code: 'ME', dial_code: '+382', flag: '🇲🇪', label: 'Montenegro +382' },
+        { name: 'Morocco', code: 'MA', dial_code: '+212', flag: '🇲🇦', label: 'Morocco +212' },
+        { name: 'Netherlands', code: 'NL', dial_code: '+31', flag: '🇳🇱', label: 'Netherlands +31' },
+        { name: 'New Zealand', code: 'NZ', dial_code: '+64', flag: '🇳🇿', label: 'New Zealand +64' },
+        { name: 'Nigeria', code: 'NG', dial_code: '+234', flag: '🇳🇬', label: 'Nigeria +234' },
+        { name: 'North Macedonia', code: 'MK', dial_code: '+389', flag: '🇲🇰', label: 'North Macedonia +389' },
+        { name: 'Norway', code: 'NO', dial_code: '+47', flag: '🇳🇴', label: 'Norway +47' },
+        { name: 'Pakistan', code: 'PK', dial_code: '+92', flag: '🇵🇰', label: 'Pakistan +92' },
+        { name: 'Philippines', code: 'PH', dial_code: '+63', flag: '🇵🇭', label: 'Philippines +63' },
+        { name: 'Poland', code: 'PL', dial_code: '+48', flag: '🇵🇱', label: 'Poland +48' },
+        { name: 'Portugal', code: 'PT', dial_code: '+351', flag: '🇵🇹', label: 'Portugal +351' },
+        { name: 'Romania', code: 'RO', dial_code: '+40', flag: '🇷🇴', label: 'Romania +40' },
+        { name: 'Russia', code: 'RU', dial_code: '+7', flag: '🇷🇺', label: 'Russia +7' },
+        { name: 'Saudi Arabia', code: 'SA', dial_code: '+966', flag: '🇸🇦', label: 'Saudi Arabia +966' },
+        { name: 'Serbia', code: 'RS', dial_code: '+381', flag: '🇷🇸', label: 'Serbia +381' },
+        { name: 'Singapore', code: 'SG', dial_code: '+65', flag: '🇸🇬', label: 'Singapore +65' },
+        { name: 'Slovenia', code: 'SI', dial_code: '+386', flag: '🇸🇮', label: 'Slovenia +386' },
+        { name: 'South Africa', code: 'ZA', dial_code: '+27', flag: '🇿🇦', label: 'South Africa +27' },
+        { name: 'South Korea', code: 'KR', dial_code: '+82', flag: '🇰🇷', label: 'South Korea +82' },
+        { name: 'Spain', code: 'ES', dial_code: '+34', flag: '🇪🇸', label: 'Spain +34' },
+        { name: 'Sweden', code: 'SE', dial_code: '+46', flag: '🇸🇪', label: 'Sweden +46' },
+        { name: 'Switzerland', code: 'CH', dial_code: '+41', flag: '🇨🇭', label: 'Switzerland +41' },
+        { name: 'Syria', code: 'SY', dial_code: '+963', flag: '🇸🇾', label: 'Syria +963' },
+        { name: 'Tunisia', code: 'TN', dial_code: '+216', flag: '🇹🇳', label: 'Tunisia +216' },
+        { name: 'Turkey', code: 'TR', dial_code: '+90', flag: '🇹🇷', label: 'Turkey +90' },
+        { name: 'Ukraine', code: 'UA', dial_code: '+380', flag: '🇺🇦', label: 'Ukraine +380' },
+        { name: 'United Arab Emirates', code: 'AE', dial_code: '+971', flag: '🇦🇪', label: 'United Arab Emirates +971' },
+        { name: 'United Kingdom', code: 'GB', dial_code: '+44', flag: '🇬🇧', label: 'United Kingdom +44' },
+        { name: 'United States', code: 'US', dial_code: '+1', flag: '🇺🇸', label: 'United States +1' },
+    ];
+
+    selectedCountry = this.countries.find(c => c.code === 'XK')!;
 
     constructor(
         private membershipRequestsService: MembershipRequestsService,
@@ -366,6 +469,10 @@ export class MembershipApplicationForm implements AfterViewInit {
 
     clearGuardianSignature() {
         this.guardianSignaturePad.clear();
+    }
+
+    onCountryChange() {
+        // no-op, selectedCountry is used directly on submit
     }
 
     onDateOfBirthChange() {
@@ -441,7 +548,7 @@ export class MembershipApplicationForm implements AfterViewInit {
                 formData.append('FullName', this.formData.fullName);
                 formData.append('Address', this.formData.address);
                 formData.append('City', this.formData.city);
-                formData.append('PhoneNumber', this.formData.phone);
+                formData.append('PhoneNumber', `${this.selectedCountry.dial_code}${this.formData.phoneNumber.replace(/\s/g, '')}`);
                 formData.append('Email', this.formData.email);
                 formData.append('SchoolOrCompany', this.formData.schoolCompany);
                 formData.append('DateOfBirth', new Date(this.formData.applicantDateofBirth).toISOString());

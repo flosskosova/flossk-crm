@@ -18,6 +18,18 @@ public class ResendEmailService(IResend resend, IOptions<ResendSettings> setting
             HtmlBody = EmailTemplates.PasswordReset(_settings.FromName, toName, resetLink)
         };
         message.To.Add(toEmail);
-        await _resend.EmailSendAsync(message);
+
+        try
+        {
+            await _resend.EmailSendAsync(message);
+        }
+        catch (Exception ex) when (ex.Message.Contains("429") || ex.Message.Contains("rate") || ex.Message.Contains("limit", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Email service rate limit reached. Please try again later.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Failed to send email. Please try again later.", ex);
+        }
     }
 }
