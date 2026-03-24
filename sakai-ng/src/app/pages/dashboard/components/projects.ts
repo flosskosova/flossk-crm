@@ -90,6 +90,30 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     />
                 </div>
 
+                <!-- Banner image -->
+                <div>
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Banner Image <span class="text-muted-color text-sm font-normal">(optional)</span></label>
+                    <div *ngIf="dialogBannerPreviewUrl || (dialogMode === 'edit' && currentProject.bannerUrl && !removeBannerInEdit)" class="relative mb-2 h-32 rounded-lg overflow-hidden">
+                        <img [src]="dialogBannerPreviewUrl || currentProject.bannerUrl" alt="Banner preview" class="w-full h-full object-cover" />
+                        <button
+                            (click)="removeDialogBanner()"
+                            class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/60 text-white border-0 hover:bg-red-600/80 backdrop-blur-sm transition-all cursor-pointer"
+                        >
+                            <i class="pi pi-times text-xs"></i>
+                        </button>
+                    </div>
+                    <p-fileupload
+                        *ngIf="!dialogBannerPreviewUrl && !(dialogMode === 'edit' && currentProject.bannerUrl && !removeBannerInEdit)"
+                        mode="basic"
+                        chooseLabel="Choose Banner"
+                        chooseIcon="pi pi-image"
+                        accept="image/*"
+                        [maxFileSize]="5000000"
+                        (onSelect)="onDialogBannerSelect($event)"
+                        [auto]="false"
+                    />
+                </div>
+
                 <!-- Error message -->
                 <div *ngIf="projectDialogError" class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-3 flex items-center gap-2">
                     <i class="pi pi-exclamation-circle text-red-500"></i>
@@ -566,7 +590,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <p-tag [value]="getProjectsByStatus('upcoming').length.toString()" severity="warn"></p-tag>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
-                            <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
+                            <div *ngFor="let project of getProjectsByStatus('upcoming')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
+                                <div *ngIf="project.bannerUrl" class="h-20 overflow-hidden">
+                                    <img [src]="project.bannerUrl" alt="Project banner" class="w-full h-full object-cover" />
+                                </div>
+                                <div class="p-4">
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-center gap-2 flex-wrap flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
@@ -639,6 +667,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         ></p-avatar>
                                     </p-avatargroup>
                                 </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -657,7 +686,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <span class="text-sm text-orange-700 dark:text-orange-300">At least one objective must be in progress first</span>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
-                            <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
+                            <div *ngFor="let project of getProjectsByStatus('in-progress')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
+                                <div *ngIf="project.bannerUrl" class="h-20 overflow-hidden">
+                                    <img [src]="project.bannerUrl" alt="Project banner" class="w-full h-full object-cover" />
+                                </div>
+                                <div class="p-4">
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-center gap-2 flex-wrap flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
@@ -733,6 +766,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         ></p-avatar>
                                     </p-avatargroup>
                                 </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -751,7 +785,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <span class="text-sm text-orange-700 dark:text-orange-300">All project objectives must be completed first</span>
                         </div>
                         <div class="flex flex-col gap-3 min-h-32">
-                            <div *ngFor="let project of getProjectsByStatus('completed')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
+                            <div *ngFor="let project of getProjectsByStatus('completed')" pDraggable="projects" (onDragStart)="dragStart(project)" (onDragEnd)="dragEnd()" class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" [ngClass]="{'ring-2 ring-primary !border-primary': selectedProject?.id === project.id}" (click)="selectProject(project)">
+                                <div *ngIf="project.bannerUrl" class="h-20 overflow-hidden">
+                                    <img [src]="project.bannerUrl" alt="Project banner" class="w-full h-full object-cover" />
+                                </div>
+                                <div class="p-4">
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-center gap-2 flex-wrap flex-1">
                                         <h4 class="text-base font-semibold text-surface-900 dark:text-surface-0 m-0">
@@ -810,6 +848,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         ></p-avatar>
                                     </p-avatargroup>
                                 </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -818,6 +857,37 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
             <!-- Project Details Modal/Section -->
             <div *ngIf="selectedProject" class="mt-8 border-t border-surface pt-8">
+                <!-- Project Banner -->
+                <div class="relative h-48 bg-gradient-to-r from-primary-300 via-primary-500 to-primary-700 overflow-hidden rounded-xl mb-6 group">
+                    <img
+                        *ngIf="selectedProject.bannerUrl"
+                        [src]="selectedProject.bannerUrl"
+                        alt="Project banner"
+                        class="w-full h-full object-cover"
+                    />
+                    <!-- Banner controls (admin/moderator/creator only) -->
+                    <div *ngIf="(isAdminOrModerator(selectedProject) || isProjectCreator(selectedProject)) && selectedProject.status !== 'completed'" class="absolute bottom-3 right-3 flex gap-2 items-end">
+                        <p-fileupload
+                            mode="basic"
+                            chooseIcon="pi pi-camera"
+                            chooseLabel="Change Banner"
+                            accept="image/*"
+                            [maxFileSize]="5000000"
+                            (onSelect)="onProjectBannerSelect($event)"
+                            [auto]="true"
+                            styleClass="!text-white !border-0"
+                        />
+                        <button
+                            *ngIf="selectedProject.bannerUrl"
+                            (click)="deleteProjectBanner()"
+                            class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/50 text-white border-0 hover:bg-red-600/80 backdrop-blur-sm transition-all cursor-pointer"
+                        >
+                            <i class="pi pi-trash text-xs"></i>
+                            Remove
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex flex-col md:flex-row justify-between items-start mb-4">
                     <div class="flex-1">
                         <div class="flex flex-col md:flex-row items-start md:items-center gap-2 mb-2">
@@ -1449,7 +1519,10 @@ export class Projects {
                 createdByLastName: p.createdByLastName,
                 moderatorUserId: p.moderatorUserId,
                 moderatorFirstName: p.moderatorFirstName,
-                moderatorLastName: p.moderatorLastName
+                moderatorLastName: p.moderatorLastName,
+                bannerUrl: p.bannerUrl
+                    ? (p.bannerUrl.startsWith('http') ? p.bannerUrl : `${environment.baseUrl}${p.bannerUrl}`)
+                    : undefined
             };
             console.log('Mapped project:', project.title, 'createdBy:', p.createdByFirstName, p.createdByLastName);
             return project;
@@ -1544,6 +1617,9 @@ export class Projects {
     currentProject: Project = this.getEmptyProject();
     startDate: Date | null = null;
     endDate: Date | null = null;
+    pendingBannerFile: File | null = null;
+    dialogBannerPreviewUrl: string | null = null;
+    removeBannerInEdit = false;
     
     objectiveDialogVisible = false;
     objectiveDialogMode: 'add' | 'edit' = 'add';
@@ -1957,6 +2033,9 @@ export class Projects {
         this.endDate = null;
         this.selectedMemberNames = [];
         this.projectDialogError = null;
+        this.pendingBannerFile = null;
+        this.dialogBannerPreviewUrl = null;
+        this.removeBannerInEdit = false;
         this.dialogVisible = true;
     }
     
@@ -1969,6 +2048,9 @@ export class Projects {
         // Load current team member names
         this.selectedMemberNames = project.participants.map(p => p.name);
         this.projectDialogError = null;
+        this.pendingBannerFile = null;
+        this.dialogBannerPreviewUrl = null;
+        this.removeBannerInEdit = false;
         this.dialogVisible = true;
     }
 
@@ -2020,11 +2102,28 @@ export class Projects {
                             break;
                     }
 
+                    if (this.pendingBannerFile) {
+                        // Show preview immediately while upload is in-flight
+                        mappedProject.bannerUrl = this.dialogBannerPreviewUrl ?? undefined;
+                        this.projectsService.uploadBanner(String(mappedProject.id), this.pendingBannerFile).subscribe({
+                            next: (resp) => {
+                                if (resp.bannerUrl) {
+                                    mappedProject.bannerUrl = resp.bannerUrl.startsWith('http')
+                                        ? resp.bannerUrl
+                                        : `${environment.baseUrl}${resp.bannerUrl}`;
+                                }
+                            },
+                            error: (err) => console.error('Error uploading project banner:', err)
+                        });
+                    }
+
                     this.dialogVisible = false;
                     this.currentProject = this.getEmptyProject();
                     this.startDate = null;
                     this.endDate = null;
                     this.selectedMemberNames = [];
+                    this.pendingBannerFile = null;
+                    this.dialogBannerPreviewUrl = null;
                 },
                 error: (err) => {
                     console.error('Error creating project:', err);
@@ -2050,6 +2149,11 @@ export class Projects {
                     console.log('Project updated successfully:', updatedProject);
                     const mappedProject = this.mapProjectFromApi(updatedProject);
 
+                    // Preserve banner if not changing/removing it (server PUT response doesn't include bannerUrl)
+                    if (!this.pendingBannerFile && !this.removeBannerInEdit) {
+                        mappedProject.bannerUrl = this.currentProject.bannerUrl;
+                    }
+
                     // Remove from old lists
                     this.upcomingProjects = this.upcomingProjects.filter(p => p.id !== mappedProject.id);
                     this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== mappedProject.id);
@@ -2073,12 +2177,45 @@ export class Projects {
                         this.selectedProject = mappedProject;
                     }
 
+                    if (this.pendingBannerFile) {
+                        // Show preview immediately while upload is in-flight
+                        mappedProject.bannerUrl = this.dialogBannerPreviewUrl ?? undefined;
+                        if (this.selectedProject?.id === mappedProject.id) {
+                            this.selectedProject.bannerUrl = mappedProject.bannerUrl;
+                        }
+                        this.projectsService.uploadBanner(String(mappedProject.id), this.pendingBannerFile).subscribe({
+                            next: (resp) => {
+                                if (resp.bannerUrl) {
+                                    const bannerUrl = resp.bannerUrl.startsWith('http')
+                                        ? resp.bannerUrl
+                                        : `${environment.baseUrl}${resp.bannerUrl}`;
+                                    mappedProject.bannerUrl = bannerUrl;
+                                    if (this.selectedProject?.id === mappedProject.id) {
+                                        this.selectedProject.bannerUrl = bannerUrl;
+                                    }
+                                }
+                            },
+                            error: (err) => console.error('Error uploading project banner:', err)
+                        });
+                    } else if (this.removeBannerInEdit) {
+                        this.projectsService.deleteBanner(String(mappedProject.id)).subscribe({
+                            error: (err) => console.error('Error deleting project banner:', err)
+                        });
+                        mappedProject.bannerUrl = undefined;
+                        if (this.selectedProject?.id === mappedProject.id) {
+                            this.selectedProject.bannerUrl = undefined;
+                        }
+                    }
+
                     this.dialogVisible = false;
                     this.currentProject = this.getEmptyProject();
                     this.startDate = null;
                     this.endDate = null;
                     this.selectedMemberNames = [];
                     this.projectDialogError = null;
+                    this.pendingBannerFile = null;
+                    this.dialogBannerPreviewUrl = null;
+                    this.removeBannerInEdit = false;
                 },
                 error: (err) => {
                     console.error('Error updating project:', err);
@@ -2091,6 +2228,9 @@ export class Projects {
     closeProjectDialog() {
         this.dialogVisible = false;
         this.projectDialogError = null;
+        this.pendingBannerFile = null;
+        this.dialogBannerPreviewUrl = null;
+        this.removeBannerInEdit = false;
     }
     
     confirmDeleteProject(project: Project) {
@@ -3561,7 +3701,10 @@ export class Projects {
             createdByLastName: p.createdByLastName,
             moderatorUserId: p.moderatorUserId,
             moderatorFirstName: p.moderatorFirstName,
-            moderatorLastName: p.moderatorLastName
+            moderatorLastName: p.moderatorLastName,
+            bannerUrl: p.bannerUrl
+                ? (p.bannerUrl.startsWith('http') ? p.bannerUrl : `${environment.baseUrl}${p.bannerUrl}`)
+                : undefined
         };
     }
 
@@ -3582,5 +3725,67 @@ export class Projects {
         
         // Users can edit their own resources
         return resource.createdByUserId === currentUser.id;
+    }
+
+    onDialogBannerSelect(event: any) {
+        const file = event.files[0];
+        if (!file) return;
+        this.pendingBannerFile = file;
+        this.removeBannerInEdit = false;
+        // Use createObjectURL — synchronous and zone-safe (no FileReader async callback)
+        this.dialogBannerPreviewUrl = URL.createObjectURL(file);
+    }
+
+    removeDialogBanner() {
+        this.pendingBannerFile = null;
+        this.dialogBannerPreviewUrl = null;
+        if (this.dialogMode === 'edit') {
+            this.removeBannerInEdit = true;
+        }
+    }
+
+    onProjectBannerSelect(event: any) {
+        const file = event.files[0];
+        if (!file || !this.selectedProject) return;
+        const projectId = this.selectedProject.id;
+        // Apply preview immediately (synchronous, in-zone)
+        const previewUrl = URL.createObjectURL(file);
+        this.selectedProject.bannerUrl = previewUrl;
+        this.updateProjectBannerInArrays(projectId, previewUrl);
+        this.projectsService.uploadBanner(String(projectId), file).subscribe({
+            next: (response) => {
+                if (response.bannerUrl) {
+                    const bannerUrl = response.bannerUrl.startsWith('http')
+                        ? response.bannerUrl
+                        : `${environment.baseUrl}${response.bannerUrl}`;
+                    if (this.selectedProject?.id === projectId) {
+                        this.selectedProject.bannerUrl = bannerUrl;
+                    }
+                    this.updateProjectBannerInArrays(projectId, bannerUrl);
+                }
+            },
+            error: (err) => console.error('Error uploading project banner:', err)
+        });
+    }
+
+    deleteProjectBanner() {
+        if (!this.selectedProject) return;
+        const projectId = this.selectedProject.id;
+        // Optimistic: remove immediately
+        this.selectedProject.bannerUrl = undefined;
+        this.updateProjectBannerInArrays(projectId, undefined);
+        this.projectsService.deleteBanner(String(projectId)).subscribe({
+            error: (err) => console.error('Error deleting project banner:', err)
+        });
+    }
+
+    private updateProjectBannerInArrays(projectId: any, bannerUrl: string | undefined) {
+        for (const arr of [this.upcomingProjects, this.inProgressProjects, this.completedProjects]) {
+            const project = arr.find(p => p.id === projectId);
+            if (project) {
+                project.bannerUrl = bannerUrl;
+                break;
+            }
+        }
     }
 }

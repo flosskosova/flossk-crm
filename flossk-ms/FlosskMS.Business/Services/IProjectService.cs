@@ -1,4 +1,5 @@
 using FlosskMS.Business.DTOs;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlosskMS.Business.Services;
@@ -45,6 +46,10 @@ public interface IProjectService
     Task<IActionResult> GetResourcesByObjectiveIdAsync(Guid objectiveId);
     Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request, string? userId = null);
     Task<IActionResult> DeleteResourceAsync(Guid id, string? userId = null);
+
+    // Banner operations
+    Task<IActionResult> UploadProjectBannerAsync(Guid projectId, IFormFile bannerFile, string userId, bool isAdmin);
+    Task<IActionResult> DeleteProjectBannerAsync(Guid projectId, string userId, bool isAdmin);
 
     // Seed and cleanup operations
     Task<IActionResult> SeedProjectsAsync(string userId);

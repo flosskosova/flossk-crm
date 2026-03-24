@@ -13,6 +13,7 @@ public class ProjectListDto
     public int TeamMemberCount { get; set; }
     public int ObjectiveCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? BannerUrl { get; set; }
     
     // Creator info
     public string CreatedByUserId { get; set; } = string.Empty;

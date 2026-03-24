@@ -117,6 +117,7 @@ export interface Project {
     objectives: Objective[];
     resources?: Resource[];
     githubRepo?: string; // GitHub repository URL for tracking commits
+    bannerUrl?: string; // Project banner/wallpaper image URL
     createdByUserId?: string; // Project creator user ID
     createdByFirstName?: string; // Project creator first name
     createdByLastName?: string; // Project creator last name
@@ -227,6 +228,16 @@ export class ProjectsService {
 
     assignModerator(projectId: number | string, moderatorUserId: string | null): Observable<any> {
         return this.http.put<any>(`${this.API_URL}/${projectId}/moderator`, { moderatorUserId });
+    }
+
+    uploadBanner(projectId: string, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('bannerFile', file);
+        return this.http.post<any>(`${this.API_URL}/${projectId}/banner`, formData);
+    }
+
+    deleteBanner(projectId: string): Observable<any> {
+        return this.http.delete<any>(`${this.API_URL}/${projectId}/banner`);
     }
 
     uploadFiles(files: File[]): Observable<any> {

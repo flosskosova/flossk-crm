@@ -12,6 +12,7 @@ public class ProjectDto
     public double ProgressPercentage { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public string? BannerUrl { get; set; }
     
     // Creator info
     public string CreatedByUserId { get; set; } = string.Empty;

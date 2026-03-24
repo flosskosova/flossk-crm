@@ -6,5 +6,6 @@ public enum FileType
     ProfilePicture,
     Signature,
     CV,
-    ProfileBanner
+    ProfileBanner,
+    ProjectBanner
 }

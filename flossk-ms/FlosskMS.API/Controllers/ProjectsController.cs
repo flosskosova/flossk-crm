@@ -111,6 +111,34 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         return await _projectService.AssignModeratorAsync(id, request, userId);
     }
 
+    /// <summary>
+    /// Upload or replace a project banner image (Admin or project moderator/creator)
+    /// </summary>
+    [Authorize]
+    [HttpPost("{id:guid}/banner")]
+    public async Task<IActionResult> UploadBanner(Guid id, IFormFile bannerFile)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.UploadProjectBannerAsync(id, bannerFile, userId, isAdmin);
+    }
+
+    /// <summary>
+    /// Delete the project banner image (Admin or project moderator/creator)
+    /// </summary>
+    [Authorize]
+    [HttpDelete("{id:guid}/banner")]
+    public async Task<IActionResult> DeleteBanner(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.DeleteProjectBannerAsync(id, userId, isAdmin);
+    }
+
     #endregion
 
     #region Project Team Member Endpoints

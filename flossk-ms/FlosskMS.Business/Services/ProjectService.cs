@@ -2,6 +2,7 @@ using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,19 +16,22 @@ public class ProjectService : IProjectService
     private readonly ILogger<ProjectService> _logger;
     private readonly IContributionService _contributionService;
     private readonly ILogService _logService;
+    private readonly IFileService _fileService;
 
     public ProjectService(
         ApplicationDbContext dbContext,
         IMapper mapper,
         ILogger<ProjectService> logger,
         IContributionService contributionService,
-        ILogService logService)
+        ILogService logService,
+        IFileService fileService)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
         _contributionService = contributionService;
         _logService = logService;
+        _fileService = fileService;
     }
 
     #region Project Operations
@@ -1791,6 +1795,72 @@ public class ProjectService : IProjectService
             PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         });
+    }
+
+    #endregion
+
+    #region Banner Operations
+
+    public async Task<IActionResult> UploadProjectBannerAsync(Guid projectId, IFormFile bannerFile, string userId, bool isAdmin)
+    {
+        var project = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        if (project == null)
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+
+        if (!isAdmin && project.ModeratorUserId != userId && project.CreatedByUserId != userId)
+            return new ObjectResult(new { Error = "Only an admin, the project creator, or the moderator can change the project banner." }) { StatusCode = 403 };
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(bannerFile.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(fileExtension))
+            return new BadRequestObjectResult(new { Error = "Only image files are allowed for the banner." });
+
+        // Delete old banner file if present
+        if (!string.IsNullOrEmpty(project.BannerUrl))
+        {
+            var oldFileName = Path.GetFileName(project.BannerUrl.TrimStart('/').Replace("uploads/", ""));
+            var oldFile = await _dbContext.UploadedFiles.FirstOrDefaultAsync(f => f.FileName == oldFileName);
+            if (oldFile != null)
+                await _fileService.DeleteFileAsync(oldFile.Id, userId, isAdmin: true);
+        }
+
+        var uploadResult = await _fileService.UploadFileAsync(bannerFile, userId);
+        if (!uploadResult.Success)
+            return new BadRequestObjectResult(new { Error = uploadResult.Error ?? "Failed to upload banner." });
+
+        var uploadedFile = await _dbContext.UploadedFiles.FindAsync(uploadResult.FileId);
+        if (uploadedFile != null)
+            uploadedFile.FileType = FileType.ProjectBanner;
+
+        project.BannerUrl = $"/uploads/{uploadedFile!.FileName}";
+        project.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(new { bannerUrl = project.BannerUrl });
+    }
+
+    public async Task<IActionResult> DeleteProjectBannerAsync(Guid projectId, string userId, bool isAdmin)
+    {
+        var project = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        if (project == null)
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+
+        if (!isAdmin && project.ModeratorUserId != userId && project.CreatedByUserId != userId)
+            return new ObjectResult(new { Error = "Only an admin, the project creator, or the moderator can remove the project banner." }) { StatusCode = 403 };
+
+        if (string.IsNullOrEmpty(project.BannerUrl))
+            return new NotFoundObjectResult(new { Error = "No banner found for this project." });
+
+        var oldFileName = Path.GetFileName(project.BannerUrl.TrimStart('/').Replace("uploads/", ""));
+        var oldFile = await _dbContext.UploadedFiles.FirstOrDefaultAsync(f => f.FileName == oldFileName);
+        if (oldFile != null)
+            await _fileService.DeleteFileAsync(oldFile.Id, userId, isAdmin: true);
+
+        project.BannerUrl = null;
+        project.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+
+        return new OkObjectResult(new { Message = "Banner deleted successfully." });
     }
 
     #endregion
