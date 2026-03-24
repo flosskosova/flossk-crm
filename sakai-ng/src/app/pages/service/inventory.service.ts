@@ -26,12 +26,17 @@ export interface InventoryItemCheckout {
 export interface InventoryItem {
     id: string;
     name: string;
+    manufacturer?: string;
     description?: string;
     category: string;
+    subCategory?: string;
+    unit?: string;
     quantity?: number;
     checkedOutQuantity?: number;
     quantityInUse?: number;
     quantityAvailable?: number;
+    location?: string;
+    electricSpecs?: string;
     status: string;
     createdAt: string;
     updatedAt?: string;

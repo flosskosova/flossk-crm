@@ -4,12 +4,17 @@ public class InventoryItemListDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Manufacturer { get; set; }
     public string? Description { get; set; }
     public string Category { get; set; } = string.Empty;
+    public string? SubCategory { get; set; }
+    public string? Unit { get; set; }
     public int Quantity { get; set; } = 1;
     public int CheckedOutQuantity { get; set; } = 0;
     public int QuantityInUse { get; set; } = 0;
     public int QuantityAvailable { get; set; } = 0;
+    public string? Location { get; set; }
+    public string? ElectricSpecs { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Condition { get; set; } = "Good";
     public string? ConditionNotes { get; set; }

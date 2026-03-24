@@ -136,8 +136,13 @@ public class InventoryService : IInventoryService
         {
             Id = Guid.NewGuid(),
             Name = dto.Name,
+            Manufacturer = dto.Manufacturer,
             Category = category,
+            SubCategory = dto.SubCategory,
+            Unit = dto.Unit,
             Quantity = dto.Quantity,
+            Location = dto.Location,
+            ElectricSpecs = dto.ElectricSpecs,
             Description = dto.Description,
             Status = InventoryStatus.Free,
             CreatedByUserId = createdByUserId,
@@ -210,10 +215,15 @@ public class InventoryService : IInventoryService
         }
 
         // Snapshot old values before any mutation
-        var oldName        = item.Name;
-        var oldCategory    = item.Category.ToString();
-        var oldDescription = item.Description;
-        var oldQuantity    = item.Quantity;
+        var oldName           = item.Name;
+        var oldManufacturer   = item.Manufacturer;
+        var oldCategory       = item.Category.ToString();
+        var oldSubCategory    = item.SubCategory;
+        var oldUnit           = item.Unit;
+        var oldDescription    = item.Description;
+        var oldQuantity       = item.Quantity;
+        var oldLocation       = item.Location;
+        var oldElectricSpecs  = item.ElectricSpecs;
 
         // Track field-level changes for logging
         var fieldChanges = new List<(string Field, string OldValue, string NewValue)>();
@@ -250,6 +260,46 @@ public class InventoryService : IInventoryService
         {
             fieldChanges.Add(("Quantity", oldQuantity.ToString(), dto.Quantity.Value.ToString()));
             item.Quantity = dto.Quantity.Value;
+        }
+
+        if (dto.Manufacturer != null && dto.Manufacturer != item.Manufacturer)
+        {
+            fieldChanges.Add(("Manufacturer",
+                string.IsNullOrWhiteSpace(oldManufacturer) ? "(empty)" : oldManufacturer,
+                string.IsNullOrWhiteSpace(dto.Manufacturer) ? "(empty)" : dto.Manufacturer));
+            item.Manufacturer = dto.Manufacturer;
+        }
+
+        if (dto.SubCategory != null && dto.SubCategory != item.SubCategory)
+        {
+            fieldChanges.Add(("SubCategory",
+                string.IsNullOrWhiteSpace(oldSubCategory) ? "(empty)" : oldSubCategory,
+                string.IsNullOrWhiteSpace(dto.SubCategory) ? "(empty)" : dto.SubCategory));
+            item.SubCategory = dto.SubCategory;
+        }
+
+        if (dto.Unit != null && dto.Unit != item.Unit)
+        {
+            fieldChanges.Add(("Unit",
+                string.IsNullOrWhiteSpace(oldUnit) ? "(empty)" : oldUnit,
+                string.IsNullOrWhiteSpace(dto.Unit) ? "(empty)" : dto.Unit));
+            item.Unit = dto.Unit;
+        }
+
+        if (dto.Location != null && dto.Location != item.Location)
+        {
+            fieldChanges.Add(("Location",
+                string.IsNullOrWhiteSpace(oldLocation) ? "(empty)" : oldLocation,
+                string.IsNullOrWhiteSpace(dto.Location) ? "(empty)" : dto.Location));
+            item.Location = dto.Location;
+        }
+
+        if (dto.ElectricSpecs != null && dto.ElectricSpecs != item.ElectricSpecs)
+        {
+            fieldChanges.Add(("ElectricSpecs",
+                string.IsNullOrWhiteSpace(oldElectricSpecs) ? "(empty)" : oldElectricSpecs,
+                string.IsNullOrWhiteSpace(dto.ElectricSpecs) ? "(empty)" : dto.ElectricSpecs));
+            item.ElectricSpecs = dto.ElectricSpecs;
         }
 
         item.UpdatedAt = DateTime.UtcNow;

@@ -187,12 +187,17 @@ interface User {
             >
                 <ng-template #header>
                     <tr>
-                        <th>Name</th>
+                        <th>Item Name</th>
+                        <th>Manufacturer</th>
                         <th>Category</th>
+                        <th>Sub-Category</th>
+                        <th>Unit</th>
                         <th>Quantity</th>
-                        <th>Status</th>
+                        <th>Location</th>
+                        <th>In-Use</th>
+                        <th>In-Use-By</th>
+                        <th>Electric-Specs</th>
                         <th>Condition</th>
-                        <th>Usage</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
@@ -212,7 +217,10 @@ interface User {
                                 <span class="font-semibold">{{ item.name }}</span>
                             </div>
                         </td>
+                        <td>{{ item.manufacturer || '—' }}</td>
                         <td>{{ item.category }}</td>
+                        <td>{{ item.subCategory || '—' }}</td>
+                        <td>{{ item.unit || '—' }}</td>
                         <td>
                             <div class="flex flex-col gap-1">
                                 <div class="flex items-center gap-2">
@@ -226,6 +234,7 @@ interface User {
                                 </div>
                             </div>
                         </td>
+                        <td>{{ item.location || '—' }}</td>
                         <td>
                             <div class="flex items-center gap-2">
                                 <p-tag 
@@ -234,30 +243,36 @@ interface User {
                                     [style]="item.checkouts && item.checkouts.length > 0 ? {'cursor': 'pointer'} : {}"
                                     (click)="item.checkouts && item.checkouts.length > 0 && openCheckoutsModal(item)"
                                 />
-                                <div *ngIf="item.checkouts && item.checkouts.length > 0" class="flex items-center gap-2">
-                                    <p-avatargroup>
-                                        <p-avatar 
-                                            *ngFor="let checkout of item.checkouts.slice(0, 3)" 
-                                            [image]="hasCheckoutProfilePicture(checkout) ? getProfilePictureUrl(checkout.userProfilePictureUrl) : undefined"
-                                            [label]="!hasCheckoutProfilePicture(checkout) ? getUserInitials(checkout.userFullName) : undefined"
-                                            shape="circle"
-                                            size="normal"
-                                            [style]="!hasCheckoutProfilePicture(checkout) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
-                                            [pTooltip]="checkout.userFullName + ' (' + checkout.quantity + ' unit' + (checkout.quantity > 1 ? 's' : '') + ')'"
-                                            tooltipPosition="top"
-                                        ></p-avatar>
-                                        <p-avatar 
-                                            *ngIf="item.checkouts.length > 3"
-                                            [label]="'+' + (item.checkouts.length - 3)" 
-                                            shape="circle"
-                                            size="normal"
-                                            [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
-                                            [pTooltip]="getAdditionalUsersTooltip(item.checkouts.slice(3))"
-                                            tooltipPosition="top"
-                                        ></p-avatar>
-                                    </p-avatargroup>
-                                </div>
                             </div>
+                        </td>
+                        <td>
+                            <div *ngIf="item.checkouts && item.checkouts.length > 0" class="flex items-center gap-2">
+                                <p-avatargroup>
+                                    <p-avatar 
+                                        *ngFor="let checkout of item.checkouts.slice(0, 3)" 
+                                        [image]="hasCheckoutProfilePicture(checkout) ? getProfilePictureUrl(checkout.userProfilePictureUrl) : undefined"
+                                        [label]="!hasCheckoutProfilePicture(checkout) ? getUserInitials(checkout.userFullName) : undefined"
+                                        shape="circle"
+                                        size="normal"
+                                        [style]="!hasCheckoutProfilePicture(checkout) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
+                                        [pTooltip]="checkout.userFullName + ' (' + checkout.quantity + ' unit' + (checkout.quantity > 1 ? 's' : '') + ')'"
+                                        tooltipPosition="top"
+                                    ></p-avatar>
+                                    <p-avatar 
+                                        *ngIf="item.checkouts.length > 3"
+                                        [label]="'+' + (item.checkouts.length - 3)" 
+                                        shape="circle"
+                                        size="normal"
+                                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                                        [pTooltip]="getAdditionalUsersTooltip(item.checkouts.slice(3))"
+                                        tooltipPosition="top"
+                                    ></p-avatar>
+                                </p-avatargroup>
+                            </div>
+                            <span *ngIf="!item.checkouts || item.checkouts.length === 0" class="text-muted-color text-sm">—</span>
+                        </td>
+                        <td>
+                            <span class="text-sm" style="max-width:12rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" [pTooltip]="item.electricSpecs" tooltipPosition="top">{{ item.electricSpecs || '—' }}</span>
                         </td>
                         <td>
                             <span
@@ -292,10 +307,7 @@ interface User {
                                     pTooltip="Check In"
                                     (onClick)="checkInItem(item)"
                                 />
-                            </div>
-                        </td>
-                        <td>
-                                    <p-button 
+                                <p-button 
                                     icon="pi pi-pencil" 
                                     [rounded]="true" 
                                     [text]="true" 
@@ -337,7 +349,8 @@ interface User {
                                     pTooltip="Report Repair"
                                     (onClick)="confirmReportRepair(item)"
                                 />
-                                </td>
+                            </div>
+                        </td>
                     </tr>
                 </ng-template>
 
@@ -365,12 +378,22 @@ interface User {
         >
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-2">
-                    <label for="name" class="font-semibold">Name</label>
+                    <label for="name" class="font-semibold">Item Name <span class="text-red-500">*</span></label>
                     <input 
                         pInputText 
                         id="name" 
                         [(ngModel)]="currentItem.name" 
                         required 
+                        class="w-full"
+                    />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="manufacturer" class="font-semibold">Manufacturer</label>
+                    <input 
+                        pInputText 
+                        id="manufacturer" 
+                        [(ngModel)]="currentItem.manufacturer" 
                         class="w-full"
                     />
                 </div>
@@ -386,33 +409,75 @@ interface User {
                     ></textarea>
                 </div>
 
-                <div class="flex flex-col gap-2">
-                    <label for="category" class="font-semibold">Category</label>
-                    <p-select 
-                        id="category"
-                        [(ngModel)]="currentItem.category" 
-                        [options]="categories"
-                        placeholder="Select a category"
-                        class="w-full"
-                        appendTo="body"
-                    />
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="category" class="font-semibold">Category <span class="text-red-500">*</span></label>
+                        <p-select 
+                            id="category"
+                            [(ngModel)]="currentItem.category" 
+                            [options]="categories"
+                            placeholder="Select a category"
+                            class="w-full"
+                            appendTo="body"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="subCategory" class="font-semibold">Sub-Category</label>
+                        <input 
+                            pInputText 
+                            id="subCategory" 
+                            [(ngModel)]="currentItem.subCategory" 
+                            class="w-full"
+                        />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="unit" class="font-semibold">Unit</label>
+                        <input 
+                            pInputText 
+                            id="unit" 
+                            [(ngModel)]="currentItem.unit" 
+                            placeholder="e.g. pcs, kg, m"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="quantity" class="font-semibold">Quantity</label>
+                        <input 
+                            pInputText 
+                            id="quantity" 
+                            type="number"
+                            [(ngModel)]="currentItem.quantity" 
+                            [min]="1"
+                            required 
+                            class="w-full"
+                        />
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label for="quantity" class="font-semibold">Quantity</label>
+                    <label for="location" class="font-semibold">Location</label>
                     <input 
                         pInputText 
-                        id="quantity" 
-                        type="number"
-                        [(ngModel)]="currentItem.quantity" 
-                        [min]="1"
-                        required 
+                        id="location" 
+                        [(ngModel)]="currentItem.location" 
+                        placeholder="e.g. Room A, Shelf 3"
                         class="w-full"
                     />
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label for="rating" class="font-semibold">Rating</label>
+                    <label for="electricSpecs" class="font-semibold">Electric-Specs</label>
+                    <textarea 
+                        pTextarea 
+                        id="electricSpecs" 
+                        [(ngModel)]="currentItem.electricSpecs" 
+                        placeholder="e.g. 220V, 50Hz, 500W"
+                        rows="2"
+                        class="w-full"
+                    ></textarea>
                 </div>
 
                 <div class="flex flex-col gap-2">
@@ -1151,9 +1216,14 @@ export class Inventory implements OnInit {
     getEmptyItem(): any {
         return {
             name: '',
+            manufacturer: '',
             description: '',
             category: '',
+            subCategory: '',
+            unit: '',
             quantity: 1,
+            location: '',
+            electricSpecs: '',
             status: 'Free'
         };
     }
@@ -1235,9 +1305,14 @@ export class Inventory implements OnInit {
 
         const formData = new FormData();
         formData.append('Name', this.currentItem.name);
+        formData.append('Manufacturer', this.currentItem.manufacturer || '');
         formData.append('Description', this.currentItem.description || '');
         formData.append('Category', this.currentItem.category);
+        formData.append('SubCategory', this.currentItem.subCategory || '');
+        formData.append('Unit', this.currentItem.unit || '');
         formData.append('Quantity', (this.currentItem.quantity || 1).toString());
+        formData.append('Location', this.currentItem.location || '');
+        formData.append('ElectricSpecs', this.currentItem.electricSpecs || '');
 
         for (const file of this.selectedFiles) {
             formData.append('Images', file, file.name);
