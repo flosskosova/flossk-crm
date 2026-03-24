@@ -22,8 +22,7 @@ public class AuthService(
     ApplicationDbContext dbContext,
     IFileService fileService,
     IEmailService emailService,
-    IOptions<JwtSettings> jwtSettings,
-    IOptions<ResendSettings> resendSettings) : IAuthService
+    IOptions<JwtSettings> jwtSettings) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<IdentityRole> _roleManager = roleManager;
@@ -32,7 +31,6 @@ public class AuthService(
     private readonly IFileService _fileService = fileService;
     private readonly IEmailService _emailService = emailService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-    private readonly ResendSettings _resendSettings = resendSettings.Value;
 
     public async Task<IActionResult> RegisterAsync(RegisterRequestDto request)
     {
@@ -1066,12 +1064,12 @@ public class AuthService(
 
         var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
         // URL-safe base64 encode because the token contains special characters
-        var encodedToken = WebEncoders.Base64UrlEncode(System.Text.Encoding.UTF8.GetBytes(rawToken));
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
         // Store issue time so we can enforce 30-minute expiry on reset
         await _userManager.SetAuthenticationTokenAsync(user, "PasswordReset", "IssuedAt", DateTime.UtcNow.ToString("O"));
 
-        var frontendBaseUrl = _resendSettings.FrontendBaseUrl;
+        var frontendBaseUrl = Environment.GetEnvironmentVariable("SmtpSettings__FrontendBaseUrl") ?? "http://localhost:4200";
         var resetLink = $"{frontendBaseUrl}/auth/reset-password?token={encodedToken}&email={Uri.EscapeDataString(request.Email)}";
 
         var displayName = $"{user.FirstName} {user.LastName}".Trim();
@@ -1081,7 +1079,7 @@ public class AuthService(
         {
             await _emailService.SendPasswordResetEmailAsync(request.Email, displayName, resetLink);
         }
-        catch (InvalidOperationException)
+        catch (Exception)
         {
             return new ObjectResult(new { Message = "Email service is temporarily unavailable. Please try again later." })
             {

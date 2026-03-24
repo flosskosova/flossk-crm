@@ -64,18 +64,7 @@ public static class DbSeeder
         }
         else
         {
-            // User already exists — ensure password is correct by resetting it
-            var resetToken = await userManager.GeneratePasswordResetTokenAsync(adminUser);
-            var resetResult = await userManager.ResetPasswordAsync(adminUser, resetToken, adminPassword);
-            if (!resetResult.Succeeded)
-            {
-                var errors = string.Join(", ", resetResult.Errors.Select(e => e.Description));
-                logger?.LogWarning("Seeder: could not reset admin password — {Errors}", errors);
-            }
-            else
-            {
-                logger?.LogInformation("Seeder: admin user already existed; password synced ({Email})", adminEmail);
-            }
+            logger?.LogInformation("Seeder: admin user already exists ({Email})", adminEmail);
         }
 
         // Ensure Admin role

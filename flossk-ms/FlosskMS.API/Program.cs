@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Resend;
 
 var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 if (File.Exists(envFile))
@@ -136,24 +135,7 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
-builder.Services.Configure<ResendSettings>(builder.Configuration.GetSection("ResendSettings"));
-builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-}
-else
-{
-    builder.Services.AddOptions();
-    builder.Services.AddHttpClient<ResendClient>();
-    builder.Services.Configure<ResendClientOptions>(options =>
-    {
-        options.ApiToken = builder.Configuration["ResendSettings:ApiKey"] ?? string.Empty;
-    });
-    builder.Services.AddTransient<IResend, ResendClient>();
-    builder.Services.AddScoped<IEmailService, ResendEmailService>();
-}
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 

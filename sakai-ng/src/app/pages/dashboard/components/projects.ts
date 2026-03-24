@@ -1801,6 +1801,17 @@ export class Projects {
             if (objectiveIndex !== undefined && objectiveIndex >= 0 && this.selectedProject.objectives) {
                 this.selectedProject.objectives[objectiveIndex].status = newStatus;
             }
+
+            // Also sync the objective status into the kanban-list project item so that
+            // the in-progress guard in onDrop reads up-to-date data without a reload.
+            const listProject = [...this.upcomingProjects, ...this.inProgressProjects, ...this.completedProjects]
+                .find(p => p.id === this.selectedProject!.id);
+            if (listProject?.objectives) {
+                const listIdx = listProject.objectives.findIndex(o => o.id === objectiveId);
+                if (listIdx >= 0) {
+                    listProject.objectives[listIdx].status = newStatus;
+                }
+            }
             
             // Recalculate project progress based on completed objectives
             this.updateProjectProgress();
@@ -1843,6 +1854,16 @@ export class Projects {
             const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === objective.id);
             if (objectiveIndex >= 0) {
                 this.selectedProject.objectives[objectiveIndex].status = oldStatus;
+            }
+        }
+
+        // Also revert the objective status in the kanban-list project item.
+        const listProject = [...this.upcomingProjects, ...this.inProgressProjects, ...this.completedProjects]
+            .find(p => p.id === this.selectedProject?.id);
+        if (listProject?.objectives) {
+            const listIdx = listProject.objectives.findIndex(o => o.id === objective.id);
+            if (listIdx >= 0) {
+                listProject.objectives[listIdx].status = oldStatus;
             }
         }
         
@@ -2349,6 +2370,10 @@ export class Projects {
                     
                     if (this.selectedProject) {
                         this.selectedProject.objectives.push(newObjective);
+                        // Sync new objective into the kanban-list project item
+                        const listProject = [...this.upcomingProjects, ...this.inProgressProjects, ...this.completedProjects]
+                            .find(p => p.id === this.selectedProject!.id);
+                        listProject?.objectives?.push(newObjective);
                         this.updateProjectProgress();
                     }
                     
@@ -2380,6 +2405,16 @@ export class Projects {
                                 createdByFirstName: updatedObjective.createdByFirstName,
                                 createdByLastName: updatedObjective.createdByLastName
                             };
+                        }
+                        // Sync the updated objective status into the kanban-list project item
+                        const updatedStatus = this.mapObjectiveStatusFromApi(updatedObjective.status);
+                        const listProject = [...this.upcomingProjects, ...this.inProgressProjects, ...this.completedProjects]
+                            .find(p => p.id === this.selectedProject!.id);
+                        if (listProject?.objectives) {
+                            const listIdx = listProject.objectives.findIndex(o => o.id === this.currentObjective.id);
+                            if (listIdx >= 0) {
+                                listProject.objectives[listIdx].status = updatedStatus;
+                            }
                         }
                         this.updateProjectProgress();
                     }
