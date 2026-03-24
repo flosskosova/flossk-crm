@@ -79,7 +79,7 @@ public class ElectionService : IElectionService
         if (request.StartDate >= request.EndDate)
             return new BadRequestObjectResult(new { Error = "End date must be after start date." });
 
-        if (request.CandidateIds == null || request.CandidateIds.Count < 4)
+        if (request.CandidateIds == null || request.CandidateIds.Count < 2)
             return new BadRequestObjectResult(new { Error = "At least 4 candidates are required." });
 
         // Verify every candidate user exists
@@ -247,10 +247,10 @@ public class ElectionService : IElectionService
         if (election.Votes.Any(v => v.VoterUserId == userId))
             return new BadRequestObjectResult(new { Error = "You have already voted in this election." });
 
-        if (request.CandidateUserIds == null || request.CandidateUserIds.Count != 3)
-            return new BadRequestObjectResult(new { Error = "You must vote for exactly 3 candidates." });
+        if (request.CandidateUserIds == null || request.CandidateUserIds.Count != 1)
+            return new BadRequestObjectResult(new { Error = "You must vote for exactly 1 candidate." });
 
-        if (request.CandidateUserIds.Distinct().Count() != 3)
+        if (request.CandidateUserIds.Distinct().Count() != 1)
             return new BadRequestObjectResult(new { Error = "Duplicate candidates are not allowed." });
 
         if (request.CandidateUserIds.Contains(userId))

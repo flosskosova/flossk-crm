@@ -301,16 +301,16 @@ import { environment } from '@environments/environment.prod';
                 <!-- Voting Interface -->
                 <div *ngIf="activeElection.status === 'active' && !activeElection.hasVoted">
                     <div class="flex items-center justify-between mb-5">
-                        <p class="text-surface-600 dark:text-surface-400 m-0">Select exactly 3 candidates you want to support.</p>
-                        <span class="text-sm font-semibold" [class.text-primary]="selectedCandidates.length === 3" [class.text-surface-500]="selectedCandidates.length !== 3">
-                            {{ selectedCandidates.length }} / 3 selected
+                        <p class="text-surface-600 dark:text-surface-400 m-0">Select 1 candidate you want to support.</p>
+                        <span class="text-sm font-semibold" [class.text-primary]="selectedCandidates.length === 1" [class.text-surface-500]="selectedCandidates.length !== 1">
+                            {{ selectedCandidates.length }} / 1 selected
                         </span>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div
                             *ngFor="let candidate of activeElection.candidates"
                             class="border rounded-xl p-5 transition-all duration-200"
-                            [class.cursor-pointer]="!isSelf(candidate.userId) && (isSelected(candidate.userId) || selectedCandidates.length < 3)"
+                            [class.cursor-pointer]="!isSelf(candidate.userId) && (isSelected(candidate.userId) || selectedCandidates.length < 1)"
                             [class.cursor-not-allowed]="isSelf(candidate.userId)"
                             [class.opacity-40]="isSelf(candidate.userId)"
                             [class.border-primary]="isSelected(candidate.userId)"
@@ -320,7 +320,7 @@ import { environment } from '@environments/environment.prod';
                             [class.border-surface-200]="!isSelected(candidate.userId) && !isSelf(candidate.userId)"
                             [class.dark:border-surface-700]="!isSelected(candidate.userId) && !isSelf(candidate.userId)"
                             [class.border-surface-200]="isSelf(candidate.userId)"
-                            [class.opacity-60]="!isSelected(candidate.userId) && selectedCandidates.length === 3 && !isSelf(candidate.userId)"
+                            [class.opacity-60]="!isSelected(candidate.userId) && selectedCandidates.length === 1 && !isSelf(candidate.userId)"
                             (click)="toggleCandidate(candidate.userId)"
                         >
                             <div class="flex items-start gap-4">
@@ -352,7 +352,7 @@ import { environment } from '@environments/environment.prod';
                             icon="pi pi-check"
                             severity="success"
                             [loading]="submittingVote"
-                            [disabled]="selectedCandidates.length !== 3"
+                            [disabled]="selectedCandidates.length !== 1"
                             (onClick)="submitVote()"
                         />
                     </div>
@@ -496,10 +496,16 @@ import { environment } from '@environments/environment.prod';
         >
             <div class="flex flex-col gap-4">
                 <div>
-                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Title</label>
-                    <div class="w-full px-3 py-2 border border-surface-300 dark:border-surface-600 rounded-md bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 font-semibold">
-                        {{ electionForm.title }}
-                    </div>
+                    <label class="block font-medium text-surface-900 dark:text-surface-0 mb-2">Title <span class="text-red-500">*</span></label>
+                    <p-select
+                        [(ngModel)]="electionForm.title"
+                        [options]="categoryTitleOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select election category"
+                        appendTo="body"
+                        styleClass="w-full"
+                    />
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -538,7 +544,7 @@ import { environment } from '@environments/environment.prod';
                         filterPlaceholder="Search members..."
                         appendTo="body" styleClass="w-full"
                     />
-                    <small class="text-surface-500 mt-1 block">Minimum 4 candidates required.</small>
+                    <small class="text-surface-500 mt-1 block">Minimum 2 candidates required.</small>
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
@@ -546,7 +552,7 @@ import { environment } from '@environments/environment.prod';
                 <p-button
                     label="Create"
                     [loading]="savingElection"
-                    [disabled]="!electionForm.startDate || !electionForm.endDate || selectedCandidateIds.length < 4"
+                    [disabled]="!electionForm.title || !electionForm.startDate || !electionForm.endDate || selectedCandidateIds.length < 2"
                     (onClick)="createElection()"
                 />
             </div>
@@ -703,7 +709,7 @@ import { environment } from '@environments/environment.prod';
                         filterPlaceholder="Search members..."
                         appendTo="body" styleClass="w-full"
                     />
-                    <small class="text-surface-500 mt-1 block">Minimum 4 candidates required. Note: editing is blocked once voting has started.</small>
+                    <small class="text-surface-500 mt-1 block">Minimum 2 candidates required. Note: editing is blocked once voting has started.</small>
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
@@ -711,7 +717,7 @@ import { environment } from '@environments/environment.prod';
                 <p-button
                     label="Save Changes"
                     [loading]="savingElection"
-                    [disabled]="!electionForm.endDate || (!editingElectionVotingStarted && (!electionForm.startDate || selectedCandidateIds.length < 4))"
+                    [disabled]="!electionForm.endDate || (!editingElectionVotingStarted && (!electionForm.startDate || selectedCandidateIds.length < 2))"
                     (onClick)="updateElection()"
                 />
             </div>
@@ -767,6 +773,10 @@ export class Elections implements OnInit {
     fullMemberOptions: { label: string; value: string }[] = [];
     selectedCandidateIds: string[] = [];
     loadingFullMembers = false;
+
+    get categoryTitleOptions(): { label: string; value: string }[] {
+        return this.categories.map(c => ({ label: c.title, value: c.title }));
+    }
 
     ngOnInit() {
         const currentUser = this.authService.currentUser();
@@ -835,9 +845,9 @@ export class Elections implements OnInit {
     // -------------------------------------------------------------------------
 
     submitVote() {
-        if (!this.activeElection || this.selectedCandidates.length !== 3) return;
+        if (!this.activeElection || this.selectedCandidates.length !== 1) return;
         this.confirmationService.confirm({
-            message: 'Are you sure you want to submit your 3 votes? This cannot be changed.',
+            message: 'Are you sure you want to submit your vote? This cannot be changed.',
             header: 'Confirm Votes',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
@@ -956,7 +966,7 @@ export class Elections implements OnInit {
 
     openCreateElectionDialog() {
         this.electionForm = {
-            title: `Annual Board Elections ${this.currentYear}`,
+            title: '',
             startDate: new Date(),
             endDate: new Date()
         };
@@ -1141,7 +1151,7 @@ export class Elections implements OnInit {
         if (this.isSelf(userId)) return;
         if (this.isSelected(userId)) {
             this.selectedCandidates = this.selectedCandidates.filter(id => id !== userId);
-        } else if (this.selectedCandidates.length < 3) {
+        } else if (this.selectedCandidates.length < 1) {
             this.selectedCandidates = [...this.selectedCandidates, userId];
         }
     }
