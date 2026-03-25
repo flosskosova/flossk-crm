@@ -228,11 +228,11 @@ interface User {
                         <td>{{ item.unit || '—' }}</td>
                         <td style="max-width: 14rem;">
                             <span
-                                *ngIf="getWordCount(item.description) > 20"
+                                *ngIf="getWordCount(item.description) > 10"
                                 class="cursor-pointer text-primary hover:underline text-sm"
                                 (click)="openDescriptionModal(item)"
-                            >{{ getTruncatedDescription(item.description) }}<span class="text-muted-color"> …read more</span></span>
-                            <span *ngIf="getWordCount(item.description) <= 20" class="text-sm">{{ item.description || '—' }}</span>
+                            >{{ getTruncatedDescription(item.description) }}</span>
+                            <span *ngIf="getWordCount(item.description) <= 10" class="text-sm">{{ item.description || '—' }}</span>
                         </td>
                         <td>
                             <div class="flex flex-col gap-1">
@@ -1563,7 +1563,7 @@ export class Inventory implements OnInit {
 
     submitCheckout() {
         if (!this.checkoutItem) return;
-        
+
         // Validate quantity does not exceed available
         const availableQty = this.checkoutItem.quantityAvailable || 0;
         if (this.checkoutQuantity > availableQty) {
@@ -1574,7 +1574,7 @@ export class Inventory implements OnInit {
             });
             return;
         }
-        
+
         if (this.checkoutQuantity < 1) {
             this.messageService.add({
                 severity: 'error',
@@ -1583,7 +1583,7 @@ export class Inventory implements OnInit {
             });
             return;
         }
-        
+
         this.http.post(`${this.apiUrl}/${this.checkoutItem.id}/checkout`, {
             quantity: this.checkoutQuantity
         }).subscribe({
@@ -1618,7 +1618,7 @@ export class Inventory implements OnInit {
 
     submitCheckin() {
         if (!this.checkinItem) return;
-        
+
         // Validate quantity does not exceed user's checked out quantity
         const userCheckedOutQty = this.getUserCheckedOutQuantity(this.checkinItem);
         if (this.checkinQuantity > userCheckedOutQty) {
@@ -1629,7 +1629,7 @@ export class Inventory implements OnInit {
             });
             return;
         }
-        
+
         if (this.checkinQuantity < 1) {
             this.messageService.add({
                 severity: 'error',
@@ -1638,7 +1638,7 @@ export class Inventory implements OnInit {
             });
             return;
         }
-        
+
         this.http.post(`${this.apiUrl}/${this.checkinItem.id}/checkin`, {
             quantity: this.checkinQuantity
         }).subscribe({
@@ -1707,10 +1707,20 @@ export class Inventory implements OnInit {
         return text.trim().split(/\s+/).length;
     }
 
+    // getTruncatedDescription(text: string | undefined): string {
+    //     if (!text) return '';
+    //     return text.trim().split(/\s+/).slice(0, 10).join(' ');
+    // }
+
     getTruncatedDescription(text: string | undefined): string {
         if (!text) return '';
-        return text.trim().split(/\s+/).slice(0, 20).join(' ');
+        return text.trim().split(/\s+/).slice(0, 10).join(' ') + '...';
     }
+
+    // getTruncatedDescription(text: string | undefined): string {
+    //     if (text!.length <= length) return text!;
+    //     return text!.slice(0, length) + "...";
+    // };
 
     openDescriptionModal(item: InventoryItem): void {
         this.descriptionModalItem = item;

@@ -31,27 +31,27 @@ import { AuthService } from '@/pages/service/auth.service';
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="flex flex-col gap-2">
                         <label for="adminFirstName" class="font-medium">First Name</label>
-                        <input pInputText id="adminFirstName" type="text" placeholder="First name" [(ngModel)]="form.firstName" />
+                        <input pInputText id="adminFirstName" type="text" placeholder="First name" [(ngModel)]="form.firstName" autocomplete="off" />
                     </div>
                     <div class="flex flex-col gap-2">
                         <label for="adminLastName" class="font-medium">Last Name</label>
-                        <input pInputText id="adminLastName" type="text" placeholder="Last name" [(ngModel)]="form.lastName" />
+                        <input pInputText id="adminLastName" type="text" placeholder="Last name" [(ngModel)]="form.lastName" autocomplete="off" />
                     </div>
                 </div>
 
                 <div class="flex flex-col gap-2 mb-4">
                     <label for="adminEmail" class="font-medium">Email</label>
-                    <input pInputText id="adminEmail" type="text" placeholder="Email address" [(ngModel)]="form.email" class="w-full md:w-120" />
+                    <input pInputText id="adminEmail" type="text" placeholder="Email address" [(ngModel)]="form.email" class="w-full md:w-120" autocomplete="off" />
                 </div>
 
                 <div class="flex flex-col gap-2 mb-4">
                     <label for="adminPassword" class="font-medium">Password</label>
-                    <p-password id="adminPassword" [(ngModel)]="form.password" placeholder="Password" [toggleMask]="true" [fluid]="true" />
+                    <p-password id="adminPassword" [(ngModel)]="form.password" placeholder="Password" [toggleMask]="true" [fluid]="true" [pt]="{pcInputText: {root: {autocomplete: 'new-password'}}}" />
                 </div>
 
                 <div class="flex flex-col gap-2 mb-6">
                     <label for="adminConfirmPassword" class="font-medium">Confirm Password</label>
-                    <p-password id="adminConfirmPassword" [(ngModel)]="form.confirmPassword" placeholder="Confirm password" [toggleMask]="true" [fluid]="true" [feedback]="false" />
+                    <p-password id="adminConfirmPassword" [(ngModel)]="form.confirmPassword" placeholder="Confirm password" [toggleMask]="true" [fluid]="true" [feedback]="false" [pt]="{pcInputText: {root: {autocomplete: 'new-password'}}}" />
                 </div>
 
                 <p-button label="Create Admin" icon="pi pi-user-plus" [loading]="loading" (onClick)="onSeedAdmin()" />
