@@ -217,6 +217,10 @@ export class AuthService {
         );
     }
 
+    seedAdmin(data: RegisterRequest): Observable<AuthResponse> {
+        return this.http.post<AuthResponse>(`${this.API_URL}/seed-admin`, data);
+    }
+
     /**
      * Get the current theme preference
      * Returns user's theme if available, otherwise falls back to localStorage

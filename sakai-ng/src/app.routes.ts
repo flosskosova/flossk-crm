@@ -53,7 +53,7 @@ export const appRoutes: Routes = [
             { path: 'leaderboard', component: Leaderboard },
             { path: 'external-messages', component: ExternalMessages },
             { path: 'expenses', component: Expenses },
-            { path: 'settings', component: Settings },
+            { path: 'settings', component: Settings, canActivate: [roleGuard(['Admin'])] },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
