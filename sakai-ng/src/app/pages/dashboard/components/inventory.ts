@@ -23,6 +23,8 @@ import { IconField } from "primeng/iconfield";
 import { AvatarModule } from 'primeng/avatar';
 import { AvatarGroupModule } from 'primeng/avatargroup';
 import { TooltipModule } from 'primeng/tooltip';
+import { PopoverModule } from 'primeng/popover';
+import { DividerModule } from 'primeng/divider';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { InventoryItem, InventoryItemImage, InventoryItemCheckout, PaginatedInventoryResponse } from '@/pages/service/inventory.service';
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
@@ -57,7 +59,9 @@ interface User {
         IconField,
         AvatarModule,
         AvatarGroupModule,
-        TooltipModule
+        TooltipModule,
+        PopoverModule,
+        DividerModule
     ],
     providers: [ConfirmationService, MessageService],
     styles: `
@@ -192,13 +196,14 @@ interface User {
                         <th>Category</th>
                         <th>Sub-Category</th>
                         <th>Unit</th>
+                        <th>Description</th>
                         <th>Quantity</th>
                         <th>Location</th>
                         <th>In-Use</th>
                         <th>In-Use-By</th>
                         <th>Electric-Specs</th>
                         <th>Condition</th>
-                        <th>Actions</th>
+                        <th></th>
                     </tr>
                 </ng-template>
 
@@ -221,6 +226,14 @@ interface User {
                         <td>{{ item.category }}</td>
                         <td>{{ item.subCategory || '—' }}</td>
                         <td>{{ item.unit || '—' }}</td>
+                        <td style="max-width: 14rem;">
+                            <span
+                                *ngIf="getWordCount(item.description) > 20"
+                                class="cursor-pointer text-primary hover:underline text-sm"
+                                (click)="openDescriptionModal(item)"
+                            >{{ getTruncatedDescription(item.description) }}<span class="text-muted-color"> …read more</span></span>
+                            <span *ngIf="getWordCount(item.description) <= 20" class="text-sm">{{ item.description || '—' }}</span>
+                        </td>
                         <td>
                             <div class="flex flex-col gap-1">
                                 <div class="flex items-center gap-2">
@@ -288,68 +301,13 @@ interface User {
                             </span>
                         </td>
                         <td>
-                            <div class="flex gap-1">
-                                <p-button 
-                                    *ngIf="(item.quantityAvailable || 0) > 0"
-                                    icon="pi pi-sign-in" 
-                                    [rounded]="true" 
-                                    [text]="true" 
-                                    severity="success"
-                                    pTooltip="Check Out"
-                                    (onClick)="checkOutItem(item)"
-                                />
-                                <p-button 
-                                    *ngIf="checkedOutByLoggedInUser(item)"
-                                    icon="pi pi-sign-out" 
-                                    [rounded]="true" 
-                                    [text]="true" 
-                                    severity="warn"
-                                    pTooltip="Check In"
-                                    (onClick)="checkInItem(item)"
-                                />
-                                <p-button 
-                                    icon="pi pi-pencil" 
-                                    [rounded]="true" 
-                                    [text]="true" 
-                                    severity="secondary"
-                                    pTooltip="Edit"
-                                    (onClick)="openEditDialog(item)"
-                                />
-                                <p-button 
-                                    icon="pi pi-trash" 
-                                    [rounded]="true" 
-                                    [text]="true" 
-                                    severity="danger"
-                                    pTooltip="Delete"
-                                    (onClick)="confirmDelete(item)"
-                                />
-                                <p-button
-                                    icon="pi pi-history"
-                                    [rounded]="true"
-                                    [text]="true"
-                                    severity="info"
-                                    pTooltip="History"
-                                    (onClick)="openHistoryDialog(item)"
-                                />
-                                <p-button
-                                    *ngIf="item.condition !== 'Damaged'"
-                                    icon="pi pi-exclamation-triangle"
-                                    [rounded]="true"
-                                    [text]="true"
-                                    severity="danger"
-                                    pTooltip="Report Damage"
-                                    (onClick)="confirmReportDamage(item)"
-                                />
-                                <p-button
-                                    *ngIf="item.condition === 'Damaged'"
-                                    icon="pi pi-wrench"
-                                    [rounded]="true"
-                                    [text]="true"
-                                    severity="success"
-                                    pTooltip="Report Repair"
-                                    (onClick)="confirmReportRepair(item)"
-                                />
-                            </div>
+                            <p-button
+                                icon="pi pi-ellipsis-v"
+                                [rounded]="true"
+                                [text]="true"
+                                severity="secondary"
+                                (onClick)="actionsPopover.toggle($event); activePopoverItem = item"
+                            />
                         </td>
                     </tr>
                 </ng-template>
@@ -366,6 +324,76 @@ interface User {
                 </ng-template>
             </p-table>
         </div>
+
+        <!-- Actions Popover -->
+        <p-popover #actionsPopover>
+            <div class="flex flex-col gap-0 min-w-40 items-start">
+                <p-button
+                    *ngIf="activePopoverItem && (activePopoverItem.quantityAvailable || 0) > 0"
+                    label="Check Out"
+                    icon="pi pi-sign-in"
+                    [text]="true"
+                    severity="success"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); checkOutItem(activePopoverItem)"
+                />
+                <p-button
+                    *ngIf="activePopoverItem && checkedOutByLoggedInUser(activePopoverItem)"
+                    label="Check In"
+                    icon="pi pi-sign-out"
+                    [text]="true"
+                    severity="warn"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); checkInItem(activePopoverItem)"
+                />
+                <p-button
+                    *ngIf="activePopoverItem"
+                    label="Edit"
+                    icon="pi pi-pencil"
+                    [text]="true"
+                    severity="secondary"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); openEditDialog(activePopoverItem)"
+                />
+                <p-button
+                    *ngIf="activePopoverItem"
+                    label="History"
+                    icon="pi pi-history"
+                    [text]="true"
+                    severity="info"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); openHistoryDialog(activePopoverItem)"
+                />
+                <p-button
+                    *ngIf="activePopoverItem && activePopoverItem.condition !== 'Damaged'"
+                    label="Report Damage"
+                    icon="pi pi-exclamation-triangle"
+                    [text]="true"
+                    severity="danger"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); confirmReportDamage(activePopoverItem)"
+                />
+                <p-button
+                    *ngIf="activePopoverItem && activePopoverItem.condition === 'Damaged'"
+                    label="Report Repair"
+                    icon="pi pi-wrench"
+                    [text]="true"
+                    severity="success"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); confirmReportRepair(activePopoverItem)"
+                />
+                <p-divider styleClass="" />
+                <p-button
+                    *ngIf="activePopoverItem"
+                    label="Delete"
+                    icon="pi pi-trash"
+                    [text]="true"
+                    severity="danger"
+                    styleClass="w-full items-start"
+                    (onClick)="actionsPopover.hide(); confirmDelete(activePopoverItem)"
+                />
+            </div>
+        </p-popover>
 
         <!-- Add/Edit Dialog -->
         <p-dialog 
@@ -940,6 +968,27 @@ interface User {
                 </div>
             </ng-template>
         </p-dialog>
+
+        <!-- Description Modal -->
+        <p-dialog
+            [(visible)]="descriptionModalVisible"
+            [header]="descriptionModalItem?.name"
+            [modal]="true"
+            [style]="{ width: '38rem' }"
+            [breakpoints]="{ '575px': '95vw' }"
+            [contentStyle]="{ 'max-height': '60vh', 'overflow-y': 'auto' }"
+        >
+            <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ descriptionModalItem?.description }}</p>
+            <ng-template #footer>
+                <div class="flex justify-end">
+                    <p-button
+                        label="Close"
+                        severity="secondary"
+                        (onClick)="descriptionModalVisible = false"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
     `
 })
 export class Inventory implements OnInit {
@@ -1028,6 +1077,9 @@ export class Inventory implements OnInit {
     checkinQuantity = 1;
     checkoutsModalVisible = false;
     checkoutsModalItem: InventoryItem | null = null;
+    activePopoverItem: InventoryItem | null = null;
+    descriptionModalVisible = false;
+    descriptionModalItem: InventoryItem | null = null;
     inventoryItems: InventoryItem[] = [];
     totalRecords = 0;
     currentPage = 1;
@@ -1648,5 +1700,20 @@ export class Inventory implements OnInit {
     openCheckoutsModal(item: InventoryItem): void {
         this.checkoutsModalItem = item;
         this.checkoutsModalVisible = true;
+    }
+
+    getWordCount(text: string | undefined): number {
+        if (!text) return 0;
+        return text.trim().split(/\s+/).length;
+    }
+
+    getTruncatedDescription(text: string | undefined): string {
+        if (!text) return '';
+        return text.trim().split(/\s+/).slice(0, 20).join(' ');
+    }
+
+    openDescriptionModal(item: InventoryItem): void {
+        this.descriptionModalItem = item;
+        this.descriptionModalVisible = true;
     }
 }
