@@ -1079,8 +1079,9 @@ public class AuthService(
         {
             await _emailService.SendPasswordResetEmailAsync(request.Email, displayName, resetLink);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.Error.WriteLine($"[EMAIL ERROR] {ex.GetType().Name}: {ex.Message}");
             return new ObjectResult(new { Message = "Email service is temporarily unavailable. Please try again later." })
             {
                 StatusCode = 503
