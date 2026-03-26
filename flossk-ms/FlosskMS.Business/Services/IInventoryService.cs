@@ -22,6 +22,7 @@ public interface IInventoryService
     Task<IActionResult> ImportInventoryItemsAsync(IFormFile file, string createdByUserId);
     Task<IActionResult> DeleteAllInventoryItemsAsync();
     Task<IActionResult> GetInventoryCountAsync();
+    Task<IActionResult> GetInventoryCategoriesAsync();
     
     // Checkout specific endpoints
     Task<IActionResult> GetAllCheckoutsAsync();

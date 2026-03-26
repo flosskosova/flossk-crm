@@ -46,6 +46,15 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     }
 
     /// <summary>
+    /// Get all distinct categories present in inventory items
+    /// </summary>
+    [HttpGet("categories")]
+    public async Task<IActionResult> GetInventoryCategories()
+    {
+        return await _inventoryService.GetInventoryCategoriesAsync();
+    }
+
+    /// <summary>
     /// Get an inventory item by ID
     /// </summary>
     [HttpGet("{id:guid}")]

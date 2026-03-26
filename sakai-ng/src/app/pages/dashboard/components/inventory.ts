@@ -26,7 +26,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { PopoverModule } from 'primeng/popover';
 import { DividerModule } from 'primeng/divider';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
-import { InventoryItem, InventoryItemImage, InventoryItemCheckout, PaginatedInventoryResponse } from '@/pages/service/inventory.service';
+import { InventoryItem, InventoryItemImage, InventoryItemCheckout, PaginatedInventoryResponse, InventoryService } from '@/pages/service/inventory.service';
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 interface User {
@@ -1016,6 +1016,7 @@ interface User {
 export class Inventory implements OnInit {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
+    private inventoryService = inject(InventoryService);
     private apiUrl = `${environment.apiUrl}/Inventory`;
     importingJson = false;
 
@@ -1025,6 +1026,13 @@ export class Inventory implements OnInit {
     ) { }
 
     ngOnInit() {
+        this.inventoryService.getCategories().subscribe({
+            next: (cats) => {
+                console.log('Inventory categories:', cats);
+                this.filterCategoryOptions = cats.map(c => ({ label: c, value: c }));
+            },
+            error: () => {} // keep existing options on failure
+        });
     }
 
     onLazyLoad(event: any) {
@@ -1121,14 +1129,7 @@ export class Inventory implements OnInit {
     filterUsage = '';
     private searchTimer: any = null;
 
-    filterCategoryOptions = [
-        { label: 'Electronic', value: 'Electronic' },
-        { label: 'Tool', value: 'Tool' },
-        { label: 'Components', value: 'Components' },
-        { label: 'Furniture', value: 'Furniture' },
-        { label: 'Hardware', value: 'Hardware' },
-        { label: 'Office Supplies', value: 'OfficeSupplies' }
-    ];
+    filterCategoryOptions: { label: string; value: string }[] = [];
     filterStatusOptions = [
         { label: 'Free', value: 'Free' },
         { label: 'In Use', value: 'InUse' }

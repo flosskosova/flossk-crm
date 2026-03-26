@@ -1030,6 +1030,17 @@ public class InventoryService : IInventoryService
         return new OkObjectResult(new { Count = count });
     }
 
+    public async Task<IActionResult> GetInventoryCategoriesAsync()
+    {
+        var categories = await _context.InventoryItems
+            .Where(i => i.Category != null && i.Category != string.Empty)
+            .Select(i => i.Category)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync();
+        return new OkObjectResult(categories);
+    }
+
     public async Task<IActionResult> DeleteAllInventoryItemsAsync()
     {
         var allItems = await _context.InventoryItems.ToListAsync();

@@ -79,6 +79,10 @@ export class InventoryService {
 
     constructor(private http: HttpClient) {}
 
+    getCategories(): Observable<string[]> {
+        return this.http.get<string[]>(`${this.API_URL}/categories`);
+    }
+
     getInventoryItems(page: number = 1, pageSize: number = 20, search?: string): Observable<PaginatedInventoryResponse> {
         let params = new HttpParams()
             .set('page', page.toString())
