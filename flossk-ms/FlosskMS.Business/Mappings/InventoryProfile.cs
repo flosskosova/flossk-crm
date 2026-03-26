@@ -9,7 +9,6 @@ public class InventoryProfile : Profile
     public InventoryProfile()
     {
         CreateMap<InventoryItem, InventoryItemDto>()
-            .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Condition, opt => opt.MapFrom(src => src.Condition.ToString()))
             .ForMember(dest => dest.QuantityInUse, opt => opt.MapFrom(src => src.CheckedOutQuantity))
@@ -73,7 +72,6 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images));
 
         CreateMap<InventoryItem, InventoryItemListDto>()
-            .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.Condition, opt => opt.MapFrom(src => src.Condition.ToString()))
             .ForMember(dest => dest.QuantityInUse, opt => opt.MapFrom(src => src.CheckedOutQuantity))
@@ -160,6 +158,6 @@ public class InventoryProfile : Profile
             .ForMember(dest => dest.Images, opt => opt.Ignore())
             .ForMember(dest => dest.Checkouts, opt => opt.Ignore())
             .ForMember(dest => dest.CheckedOutQuantity, opt => opt.Ignore())
-            .ForMember(dest => dest.Category, opt => opt.MapFrom(src => Enum.Parse<InventoryCategory>(src.Category, true)));
+            .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category));
     }
 }

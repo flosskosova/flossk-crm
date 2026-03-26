@@ -1,4 +1,5 @@
 using FlosskMS.Business.DTOs;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlosskMS.Business.Services;
@@ -18,7 +19,9 @@ public interface IInventoryService
     Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId, string userId);
     Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId, string userId);
     Task<IActionResult> SeedInventoryItemsAsync(string createdByUserId);
+    Task<IActionResult> ImportInventoryItemsAsync(IFormFile file, string createdByUserId);
     Task<IActionResult> DeleteAllInventoryItemsAsync();
+    Task<IActionResult> GetInventoryCountAsync();
     
     // Checkout specific endpoints
     Task<IActionResult> GetAllCheckoutsAsync();

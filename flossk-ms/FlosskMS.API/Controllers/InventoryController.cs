@@ -20,7 +20,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     /// </summary>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 20)</param>
-    /// <param name="category">Filter by category: Electronic, Tool, Components, Furniture, Hardware, OfficeSupplies</param>
+    /// <param name="category">Filter by category (free text, e.g. Electronic, Tool, Components, Furniture, Hardware)</param>
     /// <param name="status">Filter by status: Free, InUse</param>
     /// <param name="search">Search by name or description</param>
     [HttpGet]
@@ -34,6 +34,15 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
         [FromQuery] string? currentUserId = null)
     {
         return await _inventoryService.GetAllInventoryItemsAsync(page, pageSize, category, status, condition, search, currentUserId);
+    }
+
+    /// <summary>
+    /// Get total count of inventory items
+    /// </summary>
+    [HttpGet("count")]
+    public async Task<IActionResult> GetInventoryCount()
+    {
+        return await _inventoryService.GetInventoryCountAsync();
     }
 
     /// <summary>
@@ -112,6 +121,24 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
             return Unauthorized();
         }
         return await _inventoryService.DeleteInventoryItemAsync(id, userId);
+    }
+
+    /// <summary>
+    /// Import inventory items from a JSON file (Admin only).
+    /// The file must be a JSON array of objects with fields: name (required), category,
+    /// manufacturer, description, subCategory, unit, quantity, location, electricSpecs.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("import")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> ImportInventoryItems([FromForm] ImportInventoryItemsDto request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        return await _inventoryService.ImportInventoryItemsAsync(request.File, userId);
     }
 
     /// <summary>

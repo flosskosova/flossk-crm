@@ -20,7 +20,7 @@ public class AuthController(IAuthService authService) : ControllerBase
         => await _authService.LoginAsync(new LoginRequestDto
         {
             Email = "daorsahyseni@gmail.com",
-            Password = "P@ssword123"
+            Password = "P@ssword321"
         });
 
     [HttpPost("register")]

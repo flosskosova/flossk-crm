@@ -393,7 +393,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.Category)
                 .HasConversion<string>()
-                .HasMaxLength(20);
+                .HasMaxLength(200);
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20);

@@ -79,7 +79,12 @@ interface User {
         <div class="card">
             <p-toolbar class="mb-4">
                 <ng-template #start>
-                    <span class="font-semibold text-lg">Inventory</span>
+                    <div class="flex items-center gap-3">
+                        <span class="font-semibold text-lg">Inventory</span>
+                        <span class="text-sm text-muted-color bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded-full">
+                            {{ totalRecords }} item{{ totalRecords !== 1 ? 's' : '' }}
+                        </span>
+                    </div>
                 </ng-template>
                 <ng-template #end>
                     <div class="flex gap-2">
@@ -88,6 +93,20 @@ interface User {
                             icon="pi pi-plus"
                             severity="success"
                             (onClick)="openAddDialog()"
+                        />
+                        <p-button
+                            label="Import"
+                            icon="pi pi-file-import"
+                            severity="secondary"
+                            [loading]="importingJson"
+                            (onClick)="jsonImportInput.click()"
+                        />
+                        <input
+                            #jsonImportInput
+                            type="file"
+                            accept=".json"
+                            style="display:none"
+                            (change)="importInventoryItems($event)"
                         />
                         <p-button
                             label="Export"
@@ -183,8 +202,12 @@ interface User {
             <p-table 
                 [value]="inventoryItems" 
                 [paginator]="true" 
-                [rows]="10"
-                [rowsPerPageOptions]="[5, 10, 20]"
+                [rows]="pageSize"
+                [rowsPerPageOptions]="[10, 25, 50, 100, 250, 500, 700]"
+                [totalRecords]="totalRecords"
+                [lazy]="true"
+                [first]="(currentPage - 1) * pageSize"
+                (onLazyLoad)="onLazyLoad($event)"
                 [tableStyle]="{ 'min-width': '75rem' }"
                 [globalFilterFields]="['name', 'category', 'status']"
                 #dt
@@ -439,14 +462,13 @@ interface User {
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-2">
-                        <label for="category" class="font-semibold">Category <span class="text-red-500">*</span></label>
-                        <p-select 
+                        <label for="category" class="font-semibold">Category</label>
+                        <input
+                            pInputText
                             id="category"
-                            [(ngModel)]="currentItem.category" 
-                            [options]="categories"
-                            placeholder="Select a category"
+                            [(ngModel)]="currentItem.category"
+                            placeholder="e.g. Electronic, Tool, Furniture"
                             class="w-full"
-                            appendTo="body"
                         />
                     </div>
                     <div class="flex flex-col gap-2">
@@ -995,6 +1017,7 @@ export class Inventory implements OnInit {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
     private apiUrl = `${environment.apiUrl}/Inventory`;
+    importingJson = false;
 
     constructor(
         private confirmationService: ConfirmationService,
@@ -1002,6 +1025,11 @@ export class Inventory implements OnInit {
     ) { }
 
     ngOnInit() {
+    }
+
+    onLazyLoad(event: any) {
+        this.pageSize = event.rows;
+        this.currentPage = Math.floor(event.first / event.rows) + 1;
         this.loadInventoryItems();
     }
 
@@ -1083,7 +1111,7 @@ export class Inventory implements OnInit {
     inventoryItems: InventoryItem[] = [];
     totalRecords = 0;
     currentPage = 1;
-    pageSize = 20;
+    pageSize = 25;
 
     // Filters
     filterSearch = '';
@@ -1552,6 +1580,40 @@ export class Inventory implements OnInit {
             severity: 'success',
             summary: 'Success',
             detail: 'Inventory exported successfully'
+        });
+    }
+
+    importInventoryItems(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        this.importingJson = true;
+        this.http.post<{ message: string; imported: number; skipped: number; errors: string[] }>(
+            `${this.apiUrl}/import`, formData
+        ).subscribe({
+            next: (res) => {
+                this.importingJson = false;
+                input.value = '';
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Import Complete',
+                    detail: `${res.imported} item(s) imported${res.skipped > 0 ? ', ' + res.skipped + ' skipped' : ''}.`
+                });
+                if (res.skipped > 0) {
+                    this.messageService.add({ severity: 'warn', summary: 'Skipped Rows', detail: `${res.skipped} row(s) were skipped because they had no item name (likely blank rows in the source file).` });
+                }
+                this.loadInventoryItems();
+            },
+            error: (err) => {
+                this.importingJson = false;
+                input.value = '';
+                const detail = err.error?.message || 'Failed to import inventory items.';
+                this.messageService.add({ severity: 'error', summary: 'Import Failed', detail });
+            }
         });
     }
 

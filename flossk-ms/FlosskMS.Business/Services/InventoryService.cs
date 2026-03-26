@@ -1,7 +1,9 @@
+using System.Text.Json;
 using AutoMapper;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,9 +39,9 @@ public class InventoryService : IInventoryService
             .AsQueryable();
 
         // Filter by category
-        if (!string.IsNullOrEmpty(category) && Enum.TryParse<InventoryCategory>(category, true, out var categoryEnum))
+        if (!string.IsNullOrEmpty(category))
         {
-            query = query.Where(i => i.Category == categoryEnum);
+            query = query.Where(i => i.Category == category);
         }
 
         // Filter by status
@@ -120,12 +122,6 @@ public class InventoryService : IInventoryService
 
     public async Task<IActionResult> CreateInventoryItemAsync(CreateInventoryItemDto dto, string createdByUserId)
     {
-        // Validate category
-        if (!Enum.TryParse<InventoryCategory>(dto.Category, true, out var category))
-        {
-            return new BadRequestObjectResult(new { Message = "Invalid category. Valid values are: Electronic, Tool, Components, Furniture, Hardware, OfficeSupplies." });
-        }
-
         var user = await _context.Users.FindAsync(createdByUserId);
         if (user == null)
         {
@@ -137,7 +133,7 @@ public class InventoryService : IInventoryService
             Id = Guid.NewGuid(),
             Name = dto.Name,
             Manufacturer = dto.Manufacturer,
-            Category = category,
+            Category = dto.Category,
             SubCategory = dto.SubCategory,
             Unit = dto.Unit,
             Quantity = dto.Quantity,
@@ -217,7 +213,7 @@ public class InventoryService : IInventoryService
         // Snapshot old values before any mutation
         var oldName           = item.Name;
         var oldManufacturer   = item.Manufacturer;
-        var oldCategory       = item.Category.ToString();
+        var oldCategory       = item.Category;
         var oldSubCategory    = item.SubCategory;
         var oldUnit           = item.Unit;
         var oldDescription    = item.Description;
@@ -235,17 +231,10 @@ public class InventoryService : IInventoryService
             item.Name = dto.Name;
         }
 
-        if (!string.IsNullOrEmpty(dto.Category))
+        if (!string.IsNullOrEmpty(dto.Category) && dto.Category != item.Category)
         {
-            if (!Enum.TryParse<InventoryCategory>(dto.Category, true, out var category))
-            {
-                return new BadRequestObjectResult(new { Message = "Invalid category. Valid values are: Electronic, Tool, Components, Furniture, Hardware, OfficeSupplies." });
-            }
-            if (category != item.Category)
-            {
-                fieldChanges.Add(("Category", oldCategory, category.ToString()));
-                item.Category = category;
-            }
+            fieldChanges.Add(("Category", oldCategory ?? string.Empty, dto.Category));
+            item.Category = dto.Category;
         }
 
         if (dto.Description != null && dto.Description != item.Description)
@@ -729,7 +718,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Arduino Uno R3",
-                Category = InventoryCategory.Electronic,
+                Category = "Electronic",
                 Quantity = 5,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -745,7 +734,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Raspberry Pi 4 Model B",
-                Category = InventoryCategory.Electronic,
+                Category = "Electronic",
                 Quantity = 3,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -761,7 +750,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Soldering Iron Station",
-                Category = InventoryCategory.Tool,
+                Category = "Tool",
                 Quantity = 2,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -777,7 +766,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "3D Printer Filament (PLA)",
-                Category = InventoryCategory.Components,
+                Category = "Components",
                 Quantity = 10,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -793,7 +782,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Oscilloscope",
-                Category = InventoryCategory.Electronic,
+                Category = "Electronic",
                 Quantity = 1,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -809,7 +798,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Breadboards",
-                Category = InventoryCategory.Components,
+                Category = "Components",
                 Quantity = 15,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -825,7 +814,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Screwdriver Set",
-                Category = InventoryCategory.Tool,
+                Category = "Tool",
                 Quantity = 4,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -841,7 +830,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Workbench",
-                Category = InventoryCategory.Furniture,
+                Category = "Furniture",
                 Quantity = 1,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -857,7 +846,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Multimeter",
-                Category = InventoryCategory.Electronic,
+                Category = "Electronic",
                 Quantity = 6,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -873,7 +862,7 @@ public class InventoryService : IInventoryService
             {
                 Id = Guid.NewGuid(),
                 Name = "Wire Stripper",
-                Category = InventoryCategory.Tool,
+                Category = "Tool",
                 Quantity = 3,
                 CheckedOutQuantity = 0,
                 Status = InventoryStatus.Free,
@@ -896,6 +885,149 @@ public class InventoryService : IInventoryService
             Count = seedItems.Count,
             Items = seedItems.Select(i => new { i.Id, i.Name, i.Category, i.Status }).ToList()
         });
+    }
+
+    public async Task<IActionResult> ImportInventoryItemsAsync(IFormFile file, string createdByUserId)
+    {
+        if (file == null || file.Length == 0)
+            return new BadRequestObjectResult(new { Message = "No file provided." });
+
+        if (!file.FileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return new BadRequestObjectResult(new { Message = "File must be a .json file." });
+
+        var user = await _context.Users.FindAsync(createdByUserId);
+        if (user == null)
+            return new NotFoundObjectResult(new { Message = "User not found." });
+
+        JsonDocument doc;
+        try
+        {
+            using var stream = file.OpenReadStream();
+            doc = await JsonDocument.ParseAsync(stream);
+        }
+        catch (JsonException ex)
+        {
+            return new BadRequestObjectResult(new { Message = $"Invalid JSON: {ex.Message}" });
+        }
+
+        if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            return new BadRequestObjectResult(new { Message = "JSON must be an array of objects." });
+
+        var elements = doc.RootElement.EnumerateArray().ToList();
+        if (elements.Count == 0)
+            return new BadRequestObjectResult(new { Message = "JSON file contains no items." });
+
+        int imported = 0;
+        var errors = new List<string>();
+        var itemsToLog = new List<(string id, string name)>();
+
+        foreach (var (el, index) in elements.Select((e, i) => (e, i)))
+        {
+            // Return the string value, or null for non-string tokens (NaN, numbers, etc. from pandas)
+            static string? ReadAsString(JsonElement parent, string key)
+            {
+                if (!parent.TryGetProperty(key, out var prop))
+                {
+                    // Try case-insensitive fallback
+                    foreach (var p in parent.EnumerateObject())
+                    {
+                        if (string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            prop = p.Value;
+                            break;
+                        }
+                    }
+                }
+                return prop.ValueKind switch
+                {
+                    JsonValueKind.String => prop.GetString(),
+                    _ => null
+                };
+            }
+
+            static int ReadAsInt(JsonElement parent, string key, int fallback = 1)
+            {
+                if (!parent.TryGetProperty(key, out var prop))
+                {
+                    foreach (var p in parent.EnumerateObject())
+                    {
+                        if (string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase))
+                        { prop = p.Value; break; }
+                    }
+                }
+                return prop.ValueKind switch
+                {
+                    JsonValueKind.Number when prop.TryGetInt32(out var n) => n,
+                    JsonValueKind.String when int.TryParse(prop.GetString(), out var n) => n,
+                    _ => fallback
+                };
+            }
+
+            var name = ReadAsString(el, "Name") ?? ReadAsString(el, "name");
+            var categoryStr = ReadAsString(el, "Category");
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                // Only report rows that have some data — truly blank rows are silently skipped
+                bool hasAnyValue = el.ValueKind == JsonValueKind.Object &&
+                    el.EnumerateObject().Any(p => p.Value.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(p.Value.GetString()));
+                if (hasAnyValue)
+                    errors.Add($"Item {index + 1}: skipped (has data but no name).");
+                continue;
+            }
+
+            var quantity = ReadAsInt(el, "Quantity");
+
+            var item = new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Manufacturer = ReadAsString(el, "Manufacturer"),
+                Category = categoryStr,
+                SubCategory = ReadAsString(el, "SubCategory") ?? ReadAsString(el, "Sub-Category"),
+                Unit = ReadAsString(el, "Unit"),
+                Quantity = quantity > 0 ? quantity : 1,
+                Location = ReadAsString(el, "Location"),
+                ElectricSpecs = ReadAsString(el, "ElectricSpecs") ?? ReadAsString(el, "Electric-Specs"),
+                Description = ReadAsString(el, "Description"),
+                Status = InventoryStatus.Free,
+                Condition = InventoryCondition.Good,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.InventoryItems.Add(item);
+            itemsToLog.Add((item.Id.ToString(), item.Name!));
+            imported++;
+        }
+
+        await _context.SaveChangesAsync();
+
+        foreach (var (id, name) in itemsToLog)
+        {
+            await _logService.CreateAsync(new CreateLogDto
+            {
+                EntityType = "Inventory",
+                EntityId = id,
+                EntityName = name,
+                Action = "Item created",
+                UserId = createdByUserId
+            });
+        }
+
+        return new OkObjectResult(new
+        {
+            Message = $"Successfully imported {imported} item(s).",
+            Imported = imported,
+            Skipped = errors.Count,
+            Errors = errors
+        });
+    }
+
+    public async Task<IActionResult> GetInventoryCountAsync()
+    {
+        var count = await _context.InventoryItems.CountAsync();
+        return new OkObjectResult(new { Count = count });
     }
 
     public async Task<IActionResult> DeleteAllInventoryItemsAsync()

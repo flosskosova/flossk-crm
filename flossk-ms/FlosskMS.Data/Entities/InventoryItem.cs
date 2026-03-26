@@ -5,7 +5,7 @@ public class InventoryItem
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Manufacturer { get; set; }
-    public InventoryCategory Category { get; set; }
+    public string? Category { get; set; }
     public string? SubCategory { get; set; }
     public string? Unit { get; set; }
     public int Quantity { get; set; } = 1;
