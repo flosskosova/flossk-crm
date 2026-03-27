@@ -449,22 +449,7 @@ interface FieldBox {
                                                 appendTo="body"
                                             />
                                         </div>
-                                        @if (selectedTemplate?.isPptx) {
-                                            <div class="rounded-lg p-3 text-xs leading-relaxed" style="background:var(--p-blue-50);color:var(--p-blue-700);border:1px solid var(--p-blue-200)">
-                                                <i class="pi pi-info-circle mr-1"></i>
-                                                <strong>PPTX template</strong> — placeholders in your file will be replaced automatically.<br>
-                                                Supported tokens: <code>{{'{{'}}recipientName{{'}}'}}</code>, <code>{{'{{'}}eventName{{'}}'}}</code>,
-                                                <code>{{'{{'}}description{{'}}'}}</code>, <code>{{'{{'}}issuedDate{{'}}'}}</code>, <code>{{'{{'}}issuedBy{{'}}'}}</code>.<br>
-                                                The certificate will download as a <strong>.pptx</strong> file.
-                                            </div>
-                                            <div class="flex flex-col gap-1.5">
-                                                <label class="text-sm font-semibold">Recipient Name</label>
-                                                <div class="flex gap-2">
-                                                    <input pInputText [(ngModel)]="certForm.recipientFirstName" placeholder="First name..." class="flex-1" />
-                                                    <input pInputText [(ngModel)]="certForm.recipientLastName" placeholder="Last name..." class="flex-1" />
-                                                </div>
-                                            </div>
-                                        }
+
                                     }
 
                                     <div class="flex flex-col gap-1.5">
@@ -543,46 +528,26 @@ interface FieldBox {
                     </ng-template>
                     <ng-template #end>
                         <p-button label="Upload Template" icon="pi pi-upload" (onClick)="triggerTemplateUpload()" [loading]="uploadingTemplate" />
-                        <input #templateFileInput type="file" accept="image/png,image/jpeg,image/webp,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none" (change)="onTemplateFileSelected($event)" />
+                        <input #templateFileInput type="file" accept="image/png,image/jpeg,image/webp" style="display:none" (change)="onTemplateFileSelected($event)" />
                     </ng-template>
                 </p-toolbar>
 
                 @if (templates.length === 0) {
                     <div class="flex flex-col items-center gap-3 text-muted-color py-8">
                         <i class="pi pi-image text-4xl"></i>
-                        <span>No templates uploaded yet. Upload a PNG/JPG image or a .pptx file to use as a certificate template.</span>
+                        <span>No templates uploaded yet. Upload a PNG/JPG/WebP image to use as a certificate template.</span>
                     </div>
                 } @else {
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         @for (tmpl of templates; track tmpl.id) {
                             <div class="border rounded-lg p-3 flex flex-col gap-2 relative">
-                                @if (tmpl.isPptx) {
-                                    <div class="w-full rounded flex flex-col items-center justify-center bg-surface-100 dark:bg-surface-700" style="aspect-ratio:1.414;">
-                                        <div class="flex flex-col items-center gap-2 text-muted-color">
-                                            <i class="pi pi-file text-4xl"></i>
-                                            <span class="text-xs font-semibold uppercase">PPTX</span>
-                                            <p-button
-                                                label="Open file"
-                                                icon="pi pi-external-link"
-                                                size="small"
-                                                [text]="true"
-                                                severity="info"
-                                                pTooltip="Download / open this PPTX template"
-                                                (onClick)="downloadTemplate(tmpl)"
-                                            />
-                                        </div>
-                                    </div>
-                                } @else {
-                                    <img [src]="getTemplatePreviewUrl(tmpl)" [alt]="tmpl.name" class="w-full rounded object-cover" style="aspect-ratio:1.414;object-fit:cover" />
-                                }
+                                <img [src]="getTemplatePreviewUrl(tmpl)" [alt]="tmpl.name" class="w-full rounded object-cover" style="aspect-ratio:1.414;object-fit:cover" />
                                 <div class="flex flex-col gap-1">
                                     <span class="font-semibold text-sm truncate" [title]="tmpl.name">{{ tmpl.name }}</span>
                                     <span class="text-xs text-muted-color">{{ tmpl.uploadedAt | date:'mediumDate' }}</span>
                                 </div>
                                 <div class="flex justify-end gap-1">
-                                    @if (!tmpl.isPptx) {
-                                        <p-button icon="pi pi-sliders-h" [rounded]="true" [text]="true" severity="info" pTooltip="Edit Layout" (onClick)="openLayoutEditor(tmpl)" />
-                                    }
+                                    <p-button icon="pi pi-sliders-h" [rounded]="true" [text]="true" severity="info" pTooltip="Edit Layout" (onClick)="openLayoutEditor(tmpl)" />
                                     <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" pTooltip="Delete template" (onClick)="deleteTemplate(tmpl)" />
                                 </div>
                             </div>
@@ -674,7 +639,8 @@ export class CertBuilder implements OnInit, OnDestroy {
         this.projectsLoading = true;
         this.http.get<any>(`${environment.apiUrl}/Projects`).subscribe({
             next: (data) => {
-                this.projects = Array.isArray(data) ? data : (data.projects || []);
+                this.projects = (Array.isArray(data) ? data : (data.projects || []))
+                    .filter((p: any) => p.status === 'Completed');
                 this.projectsWithCustom = [
                     ...this.projects,
                     { id: this.CUSTOM_EVENT_ID, title: 'Custom...' }
@@ -880,10 +846,6 @@ export class CertBuilder implements OnInit, OnDestroy {
 
         const signatureDataUrl = this.signaturePad!.toDataURL('image/png');
 
-        const recipientNameOverride = this.selectedTemplate?.isPptx
-            ? `${this.certForm.recipientFirstName} ${this.certForm.recipientLastName}`.trim() || undefined
-            : undefined;
-
         const payload = {
             recipientUserId: this.activeIssuingUser.id,
             eventName,
@@ -892,7 +854,6 @@ export class CertBuilder implements OnInit, OnDestroy {
             templateId: this.certForm.templateId || null,
             projectId: this.certForm.eventId !== this.CUSTOM_EVENT_ID ? this.certForm.eventId : null,
             issuerSignatureDataUrl: signatureDataUrl,
-            recipientNameOverride
         };
 
         this.http.post<CertificateRecord>(`${environment.apiUrl}/Certificates`, payload).subscribe({

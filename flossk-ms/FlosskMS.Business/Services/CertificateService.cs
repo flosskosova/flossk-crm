@@ -101,41 +101,25 @@ public class CertificateService : ICertificateService
                 ? Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(cert.Template.FilePath))
                 : null;
 
-            bool isPptx = templateFilePath != null
-                && templateFilePath.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase)
-                && System.IO.File.Exists(templateFilePath);
+            byte[]? templateImageBytes = null;
+            if (templateFilePath != null && System.IO.File.Exists(templateFilePath))
+                templateImageBytes = await System.IO.File.ReadAllBytesAsync(templateFilePath);
 
-            if (isPptx)
+            byte[] pdfBytes;
+            if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
             {
-                var pptxBytes = GeneratePptxCertificate(cert, templateFilePath!, request.RecipientNameOverride);
-                var fileName = $"{cert.Id}.pptx";
-                var filePath = Path.Combine(pdfDir, fileName);
-                await System.IO.File.WriteAllBytesAsync(filePath, pptxBytes);
-                cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
-                cert.IsPptx = true;
+                var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList());
+                pdfBytes = WrapImageInPdf(compositeImageBytes);
             }
             else
             {
-                byte[]? templateImageBytes = null;
-                if (templateFilePath != null && System.IO.File.Exists(templateFilePath))
-                    templateImageBytes = await System.IO.File.ReadAllBytesAsync(templateFilePath);
-
-                byte[] pdfBytes;
-                if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
-                {
-                    var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList());
-                    pdfBytes = WrapImageInPdf(compositeImageBytes);
-                }
-                else
-                {
-                    pdfBytes = GenerateCertificatePdf(cert, templateImageBytes);
-                }
-
-                var fileName = $"{cert.Id}.pdf";
-                var filePath = Path.Combine(pdfDir, fileName);
-                await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
-                cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
+                pdfBytes = GenerateCertificatePdf(cert, templateImageBytes);
             }
+
+            var fileName = $"{cert.Id}.pdf";
+            var filePath = Path.Combine(pdfDir, fileName);
+            await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+            cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
         }
 
         await _dbContext.SaveChangesAsync();
@@ -324,12 +308,9 @@ public class CertificateService : ICertificateService
         var allowedImageTypes = new[] { "image/png", "image/jpeg", "image/jpg", "image/webp" };
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         bool isImageUpload = allowedImageTypes.Contains(file.ContentType.ToLower());
-        bool isPptxUpload  = ext == ".pptx" || file.ContentType.Equals(
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            StringComparison.OrdinalIgnoreCase);
 
-        if (!isImageUpload && !isPptxUpload)
-            return new BadRequestObjectResult(new { Error = "Only PNG, JPG, WebP images or .pptx files are supported as certificate templates." });
+        if (!isImageUpload)
+            return new BadRequestObjectResult(new { Error = "Only PNG, JPG, and WebP images are supported as certificate templates." });
 
         const long maxSize = 50 * 1024 * 1024; // 50 MB
         if (file.Length > maxSize)
