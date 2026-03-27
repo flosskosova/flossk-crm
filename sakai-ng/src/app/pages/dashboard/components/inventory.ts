@@ -26,7 +26,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { PopoverModule } from 'primeng/popover';
 import { DividerModule } from 'primeng/divider';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
-import { InventoryItem, InventoryItemImage, InventoryItemCheckout, PaginatedInventoryResponse, InventoryService } from '@/pages/service/inventory.service';
+import { InventoryItem, InventoryItemImage, InventoryItemCheckout, PaginatedInventoryResponse, InventoryService, CheckoutUser } from '@/pages/service/inventory.service';
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
 
 interface User {
@@ -188,7 +188,7 @@ interface User {
                         [(ngModel)]="filterUsage"
                         [options]="filterUsageOptions"
                         placeholder="All"
-                        (ngModelChange)="applyFilters()"
+                        (ngModelChange)="onUsageFilterChange()"
                         [showClear]="true"
                         appendTo="body"
                         class="w-full"
@@ -1041,6 +1041,18 @@ export class Inventory implements OnInit {
             },
             error: () => {} // keep existing options on failure
         });
+
+        this.inventoryService.getUsersWithCheckouts().subscribe({
+            next: (users) => {
+                console.log('Users with checkouts:', users);
+                const loggedInUserId = this.authService.currentUser()?.id;
+                this.filterUsageOptions = users.map(u => ({
+                    label: u.id === loggedInUserId ? 'Checked out by me' : u.fullName,
+                    value: u.id === loggedInUserId ? 'mine' : u.id
+                }));
+            },
+            error: (err) => console.error('Error fetching users with checkouts:', err)
+        });
     }
 
     onLazyLoad(event: any) {
@@ -1061,6 +1073,8 @@ export class Inventory implements OnInit {
         if (this.filterUsage === 'mine') {
             const uid = this.authService.currentUser()?.id;
             if (uid) params.push(`currentUserId=${encodeURIComponent(uid)}`);
+        } else if (this.filterUsage) {
+            params.push(`currentUserId=${encodeURIComponent(this.filterUsage)}`);
         }
         this.http.get<PaginatedInventoryResponse>(
             `${this.apiUrl}?${params.join('&')}`
@@ -1147,7 +1161,7 @@ export class Inventory implements OnInit {
         { label: 'Damaged', value: 'Damaged' },
         { label: 'Repaired', value: 'Repaired' }
     ];
-    filterUsageOptions = [
+    filterUsageOptions: { label: string; value: string }[] = [
         { label: 'Checked out by me', value: 'mine' }
     ];
 
@@ -1183,6 +1197,10 @@ export class Inventory implements OnInit {
     applyFilters() {
         this.currentPage = 1;
         this.loadInventoryItems();
+    }
+
+    onUsageFilterChange() {
+        this.applyFilters();
     }
 
     onSearchChange() {

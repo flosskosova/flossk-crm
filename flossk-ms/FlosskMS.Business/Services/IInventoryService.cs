@@ -30,4 +30,5 @@ public interface IInventoryService
     Task<IActionResult> GetAllCheckoutsAsync();
     Task<IActionResult> GetCheckoutsByItemIdAsync(Guid itemId);
     Task<IActionResult> GetCheckoutsByUserIdAsync(string userId);
+    Task<IActionResult> GetUsersWithCheckoutsAsync();
 }

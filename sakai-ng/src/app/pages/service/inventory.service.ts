@@ -63,6 +63,11 @@ export interface InventoryItem {
     properties?: { [key: string]: any };
 }
 
+export interface CheckoutUser {
+    id: string;
+    fullName: string;
+}
+
 export interface PaginatedInventoryResponse {
     data: InventoryItem[];
     totalCount: number;
@@ -135,5 +140,9 @@ export class InventoryService {
         const formData = new FormData();
         formData.append('file', file);
         return this.http.post(`${this.API_URL}/import/parse`, formData);
+    }
+
+    getUsersWithCheckouts(): Observable<CheckoutUser[]> {
+        return this.http.get<CheckoutUser[]>(`${this.API_URL}/checkouts/users`);
     }
 }

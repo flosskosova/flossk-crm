@@ -337,6 +337,15 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
         }
         return await _inventoryService.GetCheckoutsByUserIdAsync(userId);
     }
+
+    /// <summary>
+    /// Get all users (id + fullName) that currently have any checked-out item
+    /// </summary>
+    [HttpGet("checkouts/users")]
+    public async Task<IActionResult> GetUsersWithCheckouts()
+    {
+        return await _inventoryService.GetUsersWithCheckoutsAsync();
+    }
 }
 
     #endregion

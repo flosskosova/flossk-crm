@@ -1232,5 +1232,15 @@ public class InventoryService : IInventoryService
         var checkoutDtos = _mapper.Map<List<InventoryItemCheckoutDto>>(checkouts);
         return new OkObjectResult(new { Data = checkoutDtos, Count = checkoutDtos.Count });
     }
+
+    public async Task<IActionResult> GetUsersWithCheckoutsAsync()
+    {
+        var users = await _context.InventoryItemCheckouts
+            .Select(c => new { Id = c.UserId, FullName = c.User.FirstName + " " + c.User.LastName })
+            .Distinct()
+            .ToListAsync();
+
+        return new OkObjectResult(users);
+    }
 }
     #endregion
