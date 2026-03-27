@@ -30,4 +30,10 @@ public class Certificate
 
     /// <summary>True when the stored certificate file is a .pptx (externally uploaded or PPTX-template generated).</summary>
     public bool IsPptx { get; set; }
+
+    /// <summary>Unique random token embedded in the QR code for public verification lookups.</summary>
+    public string? VerificationToken { get; set; }
+
+    /// <summary>HMAC-SHA256 over "{Id}|{RecipientUserId}|{IssuedDate:O}" using the server secret. Allows third parties to verify authenticity offline.</summary>
+    public string? HmacSignature { get; set; }
 }

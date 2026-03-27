@@ -21,4 +21,7 @@ public interface ICertificateService
 
     Task<IActionResult> SaveLayoutAsync(Guid templateId, DTOs.SaveLayoutDto request);
     Task<IActionResult> GetLayoutAsync(Guid templateId);
+
+    /// <summary>Public endpoint — no authentication required. Looks up a certificate by its verification token and returns its public metadata + HMAC signature.</summary>
+    Task<IActionResult> VerifyCertificateAsync(string token);
 }

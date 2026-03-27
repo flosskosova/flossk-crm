@@ -576,6 +576,7 @@ export class CertBuilder implements OnInit, OnDestroy {
         { key: 'issuedDate',    label: 'Issue Date',  icon: 'pi-clock',         color: '#F59E0B' },
         { key: 'issuedBy',      label: 'Issued By',   icon: 'pi-id-card',       color: '#06B6D4' },
         { key: 'signature',     label: 'Signature',   icon: 'pi-pen-to-square', color: '#EF4444' },
+        { key: 'qrCode',        label: 'QR Code',     icon: 'pi-qrcode',        color: '#6366F1' },
     ];
 
     isAdmin = computed(() => {

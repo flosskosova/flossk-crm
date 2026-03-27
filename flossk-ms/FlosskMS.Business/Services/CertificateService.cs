@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
 using FlosskMS.Business.DTOs;
@@ -7,7 +8,9 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using QRCoder;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -20,15 +23,42 @@ public class CertificateService : ICertificateService
     private readonly ApplicationDbContext _dbContext;
     private readonly IHostEnvironment _env;
     private readonly IMapper _mapper;
+    private readonly IConfiguration _config;
 
     public CertificateService(
         ApplicationDbContext dbContext,
         IHostEnvironment env,
-        IMapper mapper)
+        IMapper mapper,
+        IConfiguration config)
     {
         _dbContext = dbContext;
         _env = env;
         _mapper = mapper;
+        _config = config;
+    }
+
+    // ── Verification helpers ──────────────────────────────────────────────────
+
+    private string GetVerifyUrl(string token)
+    {
+        var baseUrl = (_config["Certificates:BaseUrl"] ?? "https://flossk.org").TrimEnd('/');
+        return $"{baseUrl}/api/certificates/verify/{token}";
+    }
+
+    private string ComputeHmac(Guid certId, string recipientUserId, DateTime issuedDate)
+    {
+        var secret = _config["Certificates:HmacSecret"] ?? "default-secret-change-in-production";
+        var message = $"{certId}|{recipientUserId}|{issuedDate:O}";
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(message))).ToLowerInvariant();
+    }
+
+    private static byte[] GenerateQrCodePng(string data)
+    {
+        using var generator = new QRCodeGenerator();
+        using var qrData = generator.CreateQrCode(data, QRCodeGenerator.ECCLevel.M);
+        using var png = new PngByteQRCode(qrData);
+        return png.GetGraphic(10);
     }
 
     public async Task<IActionResult> IssueCertificatesAsync(IssueCertificateDto request, string issuedByUserId)
@@ -62,10 +92,12 @@ public class CertificateService : ICertificateService
         }
 
         var issuedDate = request.IssuedDate ?? DateTime.UtcNow;
+        var certId = Guid.NewGuid();
+        var verificationToken = Guid.NewGuid().ToString("N");
 
         var certificate = new Certificate
         {
-            Id = Guid.NewGuid(),
+            Id = certId,
             EventName = request.EventName,
             Description = request.Description,
             Status = CertificateStatus.Issued,
@@ -75,7 +107,9 @@ public class CertificateService : ICertificateService
             IssuedByUserId = issuedByUserId,
             TemplateId = request.TemplateId,
             ProjectId = request.ProjectId,
-            IssuerSignatureDataUrl = request.IssuerSignatureDataUrl
+            IssuerSignatureDataUrl = request.IssuerSignatureDataUrl,
+            VerificationToken = verificationToken,
+            HmacSignature = ComputeHmac(certId, recipientUser.Id, issuedDate)
         };
 
         _dbContext.Certificates.Add(certificate);
@@ -97,6 +131,10 @@ public class CertificateService : ICertificateService
 
         foreach (var cert in saved)
         {
+            var qrCodeUrl = !string.IsNullOrEmpty(cert.VerificationToken)
+                ? GetVerifyUrl(cert.VerificationToken)
+                : null;
+
             var templateFilePath = cert.Template != null
                 ? Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(cert.Template.FilePath))
                 : null;
@@ -108,12 +146,12 @@ public class CertificateService : ICertificateService
             byte[] pdfBytes;
             if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
             {
-                var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList());
+                var compositeImageBytes = RenderCertificateWithSkia(cert, templateImageBytes, cert.Template.Fields.ToList(), qrCodeUrl);
                 pdfBytes = WrapImageInPdf(compositeImageBytes);
             }
             else
             {
-                pdfBytes = GenerateCertificatePdf(cert, templateImageBytes);
+                pdfBytes = GenerateCertificatePdf(cert, templateImageBytes, qrCodeUrl);
             }
 
             var fileName = $"{cert.Id}.pdf";
@@ -201,6 +239,10 @@ public class CertificateService : ICertificateService
         // Fall back to on-the-fly generation (non-PPTX only)
         QuestPDF.Settings.License = LicenseType.Community;
 
+        var qrCodeUrl = !string.IsNullOrEmpty(certificate.VerificationToken)
+            ? GetVerifyUrl(certificate.VerificationToken)
+            : null;
+
         byte[]? templateImageBytes = null;
         if (certificate.Template != null)
         {
@@ -213,12 +255,12 @@ public class CertificateService : ICertificateService
         if (templateImageBytes != null && certificate.Template?.Fields.Count > 0)
         {
             // SkiaSharp path: render text onto the template image, then wrap in a PDF
-            var compositeImageBytes = RenderCertificateWithSkia(certificate, templateImageBytes, certificate.Template.Fields.ToList());
+            var compositeImageBytes = RenderCertificateWithSkia(certificate, templateImageBytes, certificate.Template.Fields.ToList(), qrCodeUrl);
             pdfBytes = WrapImageInPdf(compositeImageBytes);
         }
         else
         {
-            pdfBytes = GenerateCertificatePdf(certificate, templateImageBytes);
+            pdfBytes = GenerateCertificatePdf(certificate, templateImageBytes, qrCodeUrl);
         }
 
         return new FileContentResult(pdfBytes, "application/pdf")
@@ -276,18 +318,24 @@ public class CertificateService : ICertificateService
         await using (var stream = new FileStream(diskPath, FileMode.Create))
             await request.File.CopyToAsync(stream);
 
+        var externalCertId = Guid.NewGuid();
+        var externalIssuedDate = DateTime.UtcNow;
+        var externalToken = Guid.NewGuid().ToString("N");
+
         var certificate = new Certificate
         {
-            Id = Guid.NewGuid(),
+            Id = externalCertId,
             EventName = request.EventName,
             Description = request.Description ?? string.Empty,
             Status = CertificateStatus.Issued,
-            IssuedDate = DateTime.UtcNow,
+            IssuedDate = externalIssuedDate,
             CreatedAt = DateTime.UtcNow,
             RecipientUserId = recipient.Id,
             IssuedByUserId = uploadedByUserId,
             GeneratedPdfPath = Path.Combine("uploads", "certificates", storedFileName),
-            IsPptx = ext == ".pptx"
+            IsPptx = ext == ".pptx",
+            VerificationToken = externalToken,
+            HmacSignature = ComputeHmac(externalCertId, recipient.Id, externalIssuedDate)
         };
 
         _dbContext.Certificates.Add(certificate);
@@ -476,12 +524,37 @@ public class CertificateService : ICertificateService
         });
     }
 
+    public async Task<IActionResult> VerifyCertificateAsync(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return new BadRequestObjectResult(new { Error = "Verification token is required." });
+
+        var cert = await _dbContext.Certificates
+            .Include(c => c.RecipientUser)
+            .Include(c => c.IssuedByUser)
+            .FirstOrDefaultAsync(c => c.VerificationToken == token);
+
+        if (cert == null)
+            return new NotFoundObjectResult(new { Error = "Certificate not found." });
+
+        return new OkObjectResult(new CertificateVerifyDto
+        {
+            Status       = cert.Status.ToString(),
+            EventName    = cert.EventName,
+            Description  = cert.Description,
+            RecipientName = $"{cert.RecipientUser.FirstName} {cert.RecipientUser.LastName}",
+            IssuedDate   = cert.IssuedDate,
+            IssuedByName = $"{cert.IssuedByUser.FirstName} {cert.IssuedByUser.LastName}",
+            HmacSignature = cert.HmacSignature ?? string.Empty
+        });
+    }
+
     private CertificateDto MapToDto(Certificate cert)
     {
         return _mapper.Map<CertificateDto>(cert);
     }
 
-    private byte[] GenerateCertificatePdf(Certificate certificate, byte[]? templateImageBytes = null)
+    private static byte[] GenerateCertificatePdf(Certificate certificate, byte[]? templateImageBytes = null, string? qrCodeUrl = null)
     {
         var recipientName = $"{certificate.RecipientUser.FirstName} {certificate.RecipientUser.LastName}";
         var document = Document.Create(container =>
@@ -498,9 +571,9 @@ public class CertificateService : ICertificateService
                 page.Content().Element(c =>
                 {
                     if (templateImageBytes != null)
-                        ComposeTemplateOverlay(c, certificate, recipientName);
+                        ComposeTemplateOverlay(c, certificate, recipientName, qrCodeUrl);
                     else
-                        ComposeCertificateContent(c, certificate, recipientName);
+                        ComposeCertificateContent(c, certificate, recipientName, qrCodeUrl);
                 });
             });
         });
@@ -508,7 +581,7 @@ public class CertificateService : ICertificateService
         return document.GeneratePdf();
     }
 
-    private static void ComposeCertificateContent(IContainer container, Certificate certificate, string recipientName)
+    private static void ComposeCertificateContent(IContainer container, Certificate certificate, string recipientName, string? qrCodeUrl = null)
     {
         container.Border(2).BorderColor(Colors.Blue.Darken2).Padding(30).Column(column =>
         {
@@ -573,10 +646,25 @@ public class CertificateService : ICertificateService
                     c.Item().AlignRight().Text($"{certificate.IssuedByUser.FirstName} {certificate.IssuedByUser.LastName}").FontSize(12).Bold();
                 });
             });
+
+            // QR code for verification
+            if (!string.IsNullOrEmpty(qrCodeUrl))
+            {
+                var qrPng = GenerateQrCodePng(qrCodeUrl);
+                column.Item().PaddingTop(10).Row(row =>
+                {
+                    row.AutoItem().Column(qrCol =>
+                    {
+                        qrCol.Item().Width(60).Height(60).Image(qrPng);
+                        qrCol.Item().Text("Scan to verify").FontSize(7).FontColor(Colors.Grey.Darken1);
+                    });
+                    row.RelativeItem();
+                });
+            }
         });
     }
 
-    private static void ComposeTemplateOverlay(IContainer container, Certificate certificate, string recipientName)
+    private static void ComposeTemplateOverlay(IContainer container, Certificate certificate, string recipientName, string? qrCodeUrl = null)
     {
         // When using a custom template image as background, overlay only the dynamic text.
         // The template design is expected to leave space in the center for the recipient name,
@@ -630,6 +718,21 @@ public class CertificateService : ICertificateService
                     c.Item().AlignRight().Text($"{certificate.IssuedByUser.FirstName} {certificate.IssuedByUser.LastName}").FontSize(12).Bold();
                 });
             });
+
+            // QR code for verification (bottom-left corner)
+            if (!string.IsNullOrEmpty(qrCodeUrl))
+            {
+                var qrPng = GenerateQrCodePng(qrCodeUrl);
+                column.Item().PaddingTop(6).Row(row =>
+                {
+                    row.AutoItem().Column(qrCol =>
+                    {
+                        qrCol.Item().Width(55).Height(55).Image(qrPng);
+                        qrCol.Item().Text("Scan to verify").FontSize(7).FontColor(Colors.Grey.Darken1);
+                    });
+                    row.RelativeItem();
+                });
+            }
         });
     }
 
@@ -653,7 +756,8 @@ public class CertificateService : ICertificateService
     private static byte[] RenderCertificateWithSkia(
         Certificate cert,
         byte[] templateImageBytes,
-        List<CertificateTemplateField> fields)
+        List<CertificateTemplateField> fields,
+        string? qrCodeUrl = null)
     {
         using var templateBitmap = SKBitmap.Decode(templateImageBytes)
             ?? throw new InvalidOperationException("Failed to decode template image.");
@@ -694,6 +798,22 @@ public class CertificateService : ICertificateService
                 else
                 {
                     DrawSignatureField(canvas, fx, fy, fw, fh);
+                }
+                continue;
+            }
+
+            if (field.Key == "qrCode")
+            {
+                // White fill to cover any template placeholder
+                using (var wp = new SKPaint { Color = SKColors.White })
+                    canvas.DrawRect(new SKRect(fx, fy, fx + fw, fy + fh), wp);
+
+                if (!string.IsNullOrEmpty(qrCodeUrl))
+                {
+                    var qrPng = GenerateQrCodePng(qrCodeUrl);
+                    using var qrBitmap = SKBitmap.Decode(qrPng);
+                    if (qrBitmap != null)
+                        canvas.DrawBitmap(qrBitmap, new SKRect(fx, fy, fx + fw, fy + fh));
                 }
                 continue;
             }

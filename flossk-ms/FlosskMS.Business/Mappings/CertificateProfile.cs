@@ -21,7 +21,8 @@ public class CertificateProfile : Profile
                         .FirstOrDefault() ?? string.Empty
                     : string.Empty))
             .ForMember(dest => dest.IssuedByName, opt => opt.MapFrom(src => src.IssuedByUser.FirstName + " " + src.IssuedByUser.LastName))
-            .ForMember(dest => dest.IsPptx, opt => opt.MapFrom(src => src.IsPptx));
+            .ForMember(dest => dest.IsPptx, opt => opt.MapFrom(src => src.IsPptx))
+            .ForMember(dest => dest.VerificationToken, opt => opt.MapFrom(src => src.VerificationToken));
 
         CreateMap<CertificateTemplate, CertificateTemplateDto>()
             .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName + " " + src.CreatedByUser.LastName))

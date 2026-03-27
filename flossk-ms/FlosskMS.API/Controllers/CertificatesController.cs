@@ -42,10 +42,14 @@ public class CertificatesController(ICertificateService certificateService) : Co
         return await _certificateService.DownloadCertificateAsync(id);
     }
 
+    [AllowAnonymous]
+    [HttpGet("verify/{token}")]
+    public async Task<IActionResult> VerifyCertificate(string token)
+        => await _certificateService.VerifyCertificateAsync(token);
+
     [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/revoke")]
-    public async Task<IActionResult> RevokeCertificate(Guid id)
-    {
+    public async Task<IActionResult> RevokeCertificate(Guid id)    {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
         return await _certificateService.RevokeCertificateAsync(id, userId);
