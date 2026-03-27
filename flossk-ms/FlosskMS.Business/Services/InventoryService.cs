@@ -1,5 +1,8 @@
 using System.Text.Json;
 using AutoMapper;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -1039,6 +1042,108 @@ public class InventoryService : IInventoryService
             .OrderBy(c => c)
             .ToListAsync();
         return new OkObjectResult(categories);
+    }
+
+    public async Task<IActionResult> GetInventoryExportAsync()
+    {
+        var items = await _context.InventoryItems
+            .AsNoTracking()
+            .OrderBy(i => i.Name)
+            .Select(i => new
+            {
+                i.Id,
+                i.Name,
+                i.Manufacturer,
+                i.Description,
+                i.Category,
+                i.SubCategory,
+                i.Unit,
+                i.Quantity,
+                i.Location,
+                i.ElectricSpecs,
+                Status = i.Status.ToString(),
+                Condition = i.Condition.ToString(),
+                i.ConditionNotes,
+                i.CreatedAt,
+                i.UpdatedAt
+            })
+            .ToListAsync();
+        return new OkObjectResult(items);
+    }
+
+    public async Task<IActionResult> GetInventoryExportExcelAsync()
+    {
+        var items = await _context.InventoryItems
+            .AsNoTracking()
+            .OrderBy(i => i.Name)
+            .Select(i => new
+            {
+                i.Name,
+                i.Manufacturer,
+                i.Description,
+                i.Category,
+                i.SubCategory,
+                i.Unit,
+                i.Quantity,
+                i.Location,
+                i.ElectricSpecs,
+                Status = i.Status.ToString(),
+                Condition = i.Condition.ToString(),
+                i.ConditionNotes,
+                i.CreatedAt,
+                i.UpdatedAt
+            })
+            .ToListAsync();
+
+        using var stream = new MemoryStream();
+        using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+        {
+            var workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            var sheetData = new SheetData();
+            worksheetPart.Worksheet = new Worksheet(sheetData);
+
+            var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+            sheets.AppendChild(new Sheet
+            {
+                Id = workbookPart.GetIdOfPart(worksheetPart),
+                SheetId = 1,
+                Name = "Inventory"
+            });
+
+            string[] headers = ["Name", "Manufacturer", "Description", "Category", "Sub-Category", "Unit", "Quantity", "Location", "Electric Specs", "Status", "Condition", "Condition Notes", "Created At", "Updated At"];
+            var headerRow = new Row();
+            foreach (var h in headers)
+                headerRow.AppendChild(new Cell { DataType = CellValues.InlineString, InlineString = new InlineString(new Text(h)) });
+            sheetData.AppendChild(headerRow);
+
+            foreach (var item in items)
+            {
+                var row = new Row();
+                string?[] values =
+                [
+                    item.Name, item.Manufacturer, item.Description, item.Category, item.SubCategory,
+                    item.Unit, item.Quantity.ToString(), item.Location, item.ElectricSpecs,
+                    item.Status, item.Condition, item.ConditionNotes,
+                    item.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                    item.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")
+                ];
+                foreach (var v in values)
+                    row.AppendChild(new Cell { DataType = CellValues.InlineString, InlineString = new InlineString(new Text(v ?? string.Empty)) });
+                sheetData.AppendChild(row);
+            }
+
+            workbookPart.Workbook.Save();
+        }
+
+        stream.Position = 0;
+        var bytes = stream.ToArray();
+        return new FileContentResult(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            FileDownloadName = $"inventory_export_{DateTime.UtcNow:yyyyMMdd}.xlsx"
+        };
     }
 
     public async Task<IActionResult> DeleteAllInventoryItemsAsync()

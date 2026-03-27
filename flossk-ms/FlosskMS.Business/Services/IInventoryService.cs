@@ -23,6 +23,8 @@ public interface IInventoryService
     Task<IActionResult> DeleteAllInventoryItemsAsync();
     Task<IActionResult> GetInventoryCountAsync();
     Task<IActionResult> GetInventoryCategoriesAsync();
+    Task<IActionResult> GetInventoryExportAsync();
+    Task<IActionResult> GetInventoryExportExcelAsync();
     
     // Checkout specific endpoints
     Task<IActionResult> GetAllCheckoutsAsync();

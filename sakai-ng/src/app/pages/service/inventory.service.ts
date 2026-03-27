@@ -83,6 +83,14 @@ export class InventoryService {
         return this.http.get<string[]>(`${this.API_URL}/categories`);
     }
 
+    exportAll(): Observable<any[]> {
+        return this.http.get<any[]>(`${this.API_URL}/export`);
+    }
+
+    exportExcel(): Observable<Blob> {
+        return this.http.get(`${this.API_URL}/export/excel`, { responseType: 'blob' });
+    }
+
     getInventoryItems(page: number = 1, pageSize: number = 20, search?: string): Observable<PaginatedInventoryResponse> {
         let params = new HttpParams()
             .set('page', page.toString())

@@ -55,6 +55,24 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     }
 
     /// <summary>
+    /// Export all inventory items (lightweight, no navigation properties)
+    /// </summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportInventory()
+    {
+        return await _inventoryService.GetInventoryExportAsync();
+    }
+
+    /// <summary>
+    /// Export all inventory items as an Excel (.xlsx) file
+    /// </summary>
+    [HttpGet("export/excel")]
+    public async Task<IActionResult> ExportInventoryExcel()
+    {
+        return await _inventoryService.GetInventoryExportExcelAsync();
+    }
+
+    /// <summary>
     /// Get an inventory item by ID
     /// </summary>
     [HttpGet("{id:guid}")]

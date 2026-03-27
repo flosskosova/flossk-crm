@@ -109,10 +109,18 @@ interface User {
                             (change)="importInventoryItems($event)"
                         />
                         <p-button
-                            label="Export"
+                            label="Export JSON"
                             icon="pi pi-upload"
                             severity="help"
+                            [loading]="exportingData"
                             (onClick)="exportData()"
+                        />
+                        <p-button
+                            label="Export Excel"
+                            icon="pi pi-file-excel"
+                            severity="secondary"
+                            [loading]="exportingExcel"
+                            (onClick)="exportExcel()"
                         />
                     </div>
                 </ng-template>
@@ -1567,20 +1575,65 @@ export class Inventory implements OnInit {
         return severities[status] || 'success';
     }
 
-    exportData() {
-        const dataStr = JSON.stringify(this.inventoryItems, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'inventory_export.json';
-        link.click();
-        URL.revokeObjectURL(url);
+    exportingData = false;
+    exportingExcel = false;
 
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Inventory exported successfully'
+    exportData() {
+        this.exportingData = true;
+        this.inventoryService.exportAll().subscribe({
+            next: (items) => {
+                console.log(`Exporting ${items.length} items (all records, total: ${this.totalRecords})`);
+                const dataStr = JSON.stringify(items, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'inventory_export.json';
+                link.click();
+                URL.revokeObjectURL(url);
+                this.exportingData = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: `${items.length} item(s) exported successfully`
+                });
+            },
+            error: () => {
+                this.exportingData = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to export inventory'
+                });
+            }
+        });
+    }
+
+    exportExcel() {
+        this.exportingExcel = true;
+        this.inventoryService.exportExcel().subscribe({
+            next: (blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `inventory_export_${new Date().toISOString().slice(0,10)}.xlsx`;
+                link.click();
+                URL.revokeObjectURL(url);
+                this.exportingExcel = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: 'Inventory exported as Excel'
+                });
+            },
+            error: () => {
+                this.exportingExcel = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to export inventory as Excel'
+                });
+            }
         });
     }
 
