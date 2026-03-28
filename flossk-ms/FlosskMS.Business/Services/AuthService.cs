@@ -299,8 +299,10 @@ public class AuthService(
             });
         }
 
-        // Assign Admin role
-        await _userManager.AddToRoleAsync(user, "Admin");
+        // Assign requested role
+        var allowedRoles = new[] { "User", "Admin", "Full Member" };
+        var targetRole = allowedRoles.Contains(request.Role) ? request.Role : "User";
+        await _userManager.AddToRoleAsync(user, targetRole);
 
         // Auto-approve the admin email
         var isEmailApproved = await _dbContext.ApprovedEmails
