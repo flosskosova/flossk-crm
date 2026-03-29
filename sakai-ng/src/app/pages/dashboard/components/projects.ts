@@ -18,6 +18,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TooltipModule } from 'primeng/tooltip';
 import { FileUploadModule } from 'primeng/fileupload';
+import { EditorModule } from 'primeng/editor';
 import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
@@ -28,12 +29,12 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
 @Component({
     selector: 'app-projects',
-    imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule, FileUploadModule],
+    imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule, FileUploadModule, EditorModule],
     providers: [ConfirmationService],
     template: `
         <p-confirmdialog></p-confirmdialog>
         
-        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="projectName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Name</label>
@@ -43,18 +44,18 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <div class="flex flex-col lg:flex-row align-center justify-between gap-3">
                     <div class="">
                         <label for="startDate" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Start Date</label>
-                        <p-datepicker id="startDate" [(ngModel)]="startDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" />
+                        <p-datepicker id="startDate" [(ngModel)]="startDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" appendTo="body" />
                     </div>
                     
                     <div class="">
                         <label for="endDate" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">End Date</label>
-                        <p-datepicker id="endDate" [(ngModel)]="endDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" />
+                        <p-datepicker id="endDate" [(ngModel)]="endDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" appendTo="body" />
                     </div>
                 </div>
                 
                 <div>
                     <label for="description" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <textarea pInputTextarea id="description" [(ngModel)]="currentProject.description" [rows]="4" class="w-full"></textarea>
+                    <p-editor [(ngModel)]="currentProject.description" [style]="{'height': '150px'}"></p-editor>
                 </div>
                 
                 <!-- <div>
@@ -74,7 +75,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 
                 <div>
                     <label for="status" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
-                    <p-select id="status" [(ngModel)]="currentProject.status" [options]="statusOptions" placeholder="Select Status" class="w-full" />
+                    <p-select id="status" [(ngModel)]="currentProject.status" [options]="statusOptions" placeholder="Select Status" class="w-full" appendTo="body" />
                 </div>
 
                 <div>
@@ -87,6 +88,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         placeholder="Select type(s)"
                         display="chip"
                         class="w-full"
+                        appendTo="body"
                     />
                 </div>
 
@@ -120,11 +122,12 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <span class="text-sm text-red-700 dark:text-red-300">{{ projectDialogError }}</span>
                 </div>
             </div>
-            
-            <div class="flex justify-end gap-2 mt-6">
-                <p-button label="Cancel" severity="secondary" (onClick)="closeProjectDialog()" />
-                <p-button [label]="dialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveProject()" [disabled]="dialogMode === 'add' && !isProjectFormValid()" />
-            </div>
+            <ng-template pTemplate="footer">
+                <div class="flex justify-end gap-2">
+                    <p-button label="Cancel" severity="secondary" (onClick)="closeProjectDialog()" />
+                    <p-button [label]="dialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveProject()" [disabled]="dialogMode === 'add' && !isProjectFormValid()" />
+                </div>
+            </ng-template>
         </p-dialog>
         
         <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Task' : 'Edit Task'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
@@ -136,7 +139,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 
                 <div>
                     <label for="objectiveDescription" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <textarea pInputTextarea id="objectiveDescription" [(ngModel)]="currentObjective.description" [rows]="3" class="w-full"></textarea>
+                    <p-editor [(ngModel)]="currentObjective.description" [style]="{'height': '120px'}"></p-editor>
                 </div>
                 
                 <div>
@@ -278,7 +281,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <!-- Description -->
                 <div>
                     <h6 class="text-sm font-semibold text-muted-color mb-2 tracking-wide">Description</h6>
-                    <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0">{{ viewingObjective.description || 'No description provided.' }}</p>
+                    <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0" [innerHTML]="viewingObjective.description || 'No description provided.'"></p>
                 </div>
                 
                 <p-divider></p-divider>
@@ -662,7 +665,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <p class="text-surface-700 dark:text-surface-300 text-sm mb-3 line-clamp-2">
-                                    {{ project.description }}
+                                    {{ stripHtml(project.description) }}
                                 </p>
 
                                 <div class="flex items-center gap-2 text-xs text-muted-color mb-3">
@@ -758,7 +761,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <p class="text-surface-700 dark:text-surface-300 text-sm mb-3 line-clamp-2">
-                                    {{ project.description }}
+                                    {{ stripHtml(project.description) }}
                                 </p>
 
                                 <div class="mb-3">
@@ -857,7 +860,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <p class="text-surface-700 dark:text-surface-300 text-sm mb-3 line-clamp-2">
-                                    {{ project.description }}
+                                    {{ stripHtml(project.description) }}
                                 </p>
 
                                 <div class="flex items-center gap-2 text-xs text-muted-color mb-3">
@@ -986,7 +989,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
-                                                <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ stripHtml(objective.description) }}</p>
                                                 <div class="flex items-center gap-1 mb-2">
                                                     <i class="pi pi-star-fill text-primary" style="font-size: 0.65rem"></i>
                                                     <span class="text-xs font-semibold text-primary">{{ objective.points ?? 1 }} pts</span>
@@ -1044,7 +1047,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="confirmDeleteObjective(objective); $event.stopPropagation()" />
                                                     </div>
                                                 </div>
-                                                <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ stripHtml(objective.description) }}</p>
                                                 <div class="flex items-center gap-1 mb-2">
                                                     <i class="pi pi-star-fill text-primary" style="font-size: 0.65rem"></i>
                                                     <span class="text-xs font-semibold text-primary">{{ objective.points ?? 1 }} pts</span>
@@ -1109,7 +1112,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                     <div class="flex gap-1">
                                                     </div>
                                                 </div>
-                                                <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
+                                                <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ stripHtml(objective.description) }}</p>
                                                 <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
                                                     <i class="pi pi-user" style="font-size: 0.65rem"></i>
                                                     <span>{{ objective.createdByFirstName }} {{ objective.createdByLastName }}</span>
@@ -1148,9 +1151,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         <!-- Project Overview Card -->
                         <div class="mb-6">
                             <!-- Description -->
-                            <p class="text-surface-700 dark:text-surface-300 m-0 mb-4">
-                                {{ selectedProject.description }}
-                            </p>
+                            <p class="text-surface-700 dark:text-surface-300 m-0 mb-4" [innerHTML]="selectedProject.description"></p>
 
                             <!-- Dates and Info -->
                             <div class="flex flex-wrap items-center gap-4 mb-4 text-sm">
@@ -2924,6 +2925,11 @@ export class Projects {
         }
     }
     
+    stripHtml(html: string | null | undefined): string {
+        if (!html) return '';
+        return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    }
+
     formatFileSize(bytes: number): string {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
