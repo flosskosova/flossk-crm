@@ -28,21 +28,21 @@ import { environment } from '@environments/environment.prod';
 
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
-                <button type="button" class="layout-topbar-action" (click)="profilePopover.toggle($event)">
-                    <p-avatar
-                        *ngIf="hasProfilePicture()"
-                        [image]="getProfilePictureUrl()"
-                        shape="circle"
-                        size="normal"
-                    ></p-avatar>
-                    <p-avatar
-                        *ngIf="!hasProfilePicture()"
-                        [label]="getUserInitials()"
-                        shape="circle"
-                        size="normal"
-                        [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
-                    ></p-avatar>
-                    <span>Profile</span>
+                <button type="button" class="layout-topbar-action" style="width: auto; height: auto; border-radius: 0; background: none;" (click)="profilePopover.toggle($event)">
+                    @if (hasProfilePicture()) {
+                        <p-avatar
+                            [image]="getProfilePictureUrl()"
+                            shape="circle"
+                            size="normal"
+                        ></p-avatar>
+                    } @else {
+\                        <p-avatar
+                            [label]="getUserInitials()"
+                            shape="circle"
+                            size="normal"
+                            [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
+                        ></p-avatar>
+                    }
                 </button>
                 <p-popover #profilePopover>
                     <div class="flex flex-col w-72">
@@ -106,10 +106,15 @@ export class AppTopbar implements OnInit {
 
     getUserInitials(): string {
         const user = this.authService.currentUser();
-        if (user?.fullName) {
-            return getInitials(user.fullName);
+        let initials = '?';
+        if (user?.firstName || user?.lastName) {
+            const name = (user.firstName ?? '') + ' ' + (user.lastName ?? '');
+            initials = getInitials(name);
+        } else if (user?.email) {
+            initials = user.email.charAt(0).toUpperCase();
         }
-        return (user?.email ?? '?').charAt(0).toUpperCase();
+        console.log('User initials in topbar:', initials);
+        return initials;
     }
 
     hasProfilePicture(): boolean {
