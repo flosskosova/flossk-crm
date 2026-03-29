@@ -29,7 +29,7 @@ interface MenuChangeEvent {
 export class LayoutService {
     _config: layoutConfig = {
         preset: 'Aura',
-        primary: 'yellow',
+        primary: 'flossk',
         surface: null,
         darkTheme: false,
         menuMode: 'static'
@@ -82,9 +82,20 @@ export class LayoutService {
     private authService = inject(AuthService);
 
     constructor() {
+        // Read saved layout preferences from localStorage
+        const storedPrimary = localStorage.getItem('layout_primary');
+        const storedSurface = localStorage.getItem('layout_surface');
+        const storedPreset = localStorage.getItem('layout_preset');
+
         // Initialize theme from localStorage or user preference
         const initialTheme = this.authService.getThemePreference();
-        this.layoutConfig.update((config) => ({ ...config, darkTheme: initialTheme }));
+        this.layoutConfig.update((config) => ({
+            ...config,
+            darkTheme: initialTheme,
+            ...(storedPrimary ? { primary: storedPrimary } : {}),
+            ...(storedSurface != null ? { surface: storedSurface } : {}),
+            ...(storedPreset ? { preset: storedPreset } : {}),
+        }));
         
         // Apply theme immediately to DOM to prevent flash
         this.toggleDarkMode({ ...this.layoutConfig(), darkTheme: initialTheme });
@@ -94,6 +105,15 @@ export class LayoutService {
             if (config) {
                 this.onConfigUpdate();
             }
+        });
+
+        // Persist primary, surface, preset to localStorage whenever they change
+        effect(() => {
+            const config = this.layoutConfig();
+            if (config.primary) localStorage.setItem('layout_primary', config.primary);
+            if (config.surface != null) localStorage.setItem('layout_surface', config.surface);
+            else localStorage.removeItem('layout_surface');
+            if (config.preset) localStorage.setItem('layout_preset', config.preset);
         });
 
         effect(() => {

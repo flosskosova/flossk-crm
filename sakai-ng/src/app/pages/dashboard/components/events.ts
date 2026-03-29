@@ -40,7 +40,6 @@ import { AuthService } from '@/pages/service/auth.service';
                     </p-button>
                     <p-button 
                         *ngIf="calendarEvent" 
-                        label="Edit Calendar" 
                         icon="pi pi-pencil" 
                         size="small" 
                         severity="secondary"
@@ -48,7 +47,6 @@ import { AuthService } from '@/pages/service/auth.service';
                     </p-button>
                     <p-button 
                         *ngIf="calendarEvent" 
-                        label="Delete Calendar" 
                         icon="pi pi-trash" 
                         size="small" 
                         severity="danger"

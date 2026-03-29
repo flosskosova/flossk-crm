@@ -273,7 +273,25 @@ export class AppConfigurator {
     primaryColors = computed<SurfacesType[]>(() => {
         const presetPalette = presets[this.layoutService.layoutConfig().preset as KeyOfType<typeof presets>].primitive;
         const colors = ['emerald', 'green', 'lime', 'orange', 'amber', 'yellow', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose'];
-        const palettes: SurfacesType[] = [{ name: 'noir', palette: {} }];
+        const palettes: SurfacesType[] = [
+            { name: 'noir', palette: {} },
+            {
+                name: 'flossk',
+                palette: {
+                    50:  '#fffef0',
+                    100: '#fffde0',
+                    200: '#fffab8',
+                    300: '#fff680',
+                    400: '#fff200',
+                    500: '#eacb2c',
+                    600: '#c9a800',
+                    700: '#9a7d00',
+                    800: '#6b5600',
+                    900: '#3d3200',
+                    950: '#1f1900'
+                }
+            }
+        ];
 
         colors.forEach((color) => {
             palettes.push({
@@ -332,6 +350,43 @@ export class AppConfigurator {
                                 focusBackground: '{primary.300}',
                                 color: '{primary.950}',
                                 focusColor: '{primary.950}'
+                            }
+                        }
+                    }
+                }
+            };
+        } else if (color.name === 'flossk') {
+            // FLOSSK brand palette: yellow accent with black contrast text
+            return {
+                semantic: {
+                    primary: color.palette,
+                    colorScheme: {
+                        light: {
+                            primary: {
+                                color: '{primary.400}',
+                                contrastColor: '#000000',
+                                hoverColor: '{primary.500}',
+                                activeColor: '{primary.600}'
+                            },
+                            highlight: {
+                                background: '{primary.400}',
+                                focusBackground: '{primary.500}',
+                                color: '#000000',
+                                focusColor: '#000000'
+                            }
+                        },
+                        dark: {
+                            primary: {
+                                color: '{primary.400}',
+                                contrastColor: '#000000',
+                                hoverColor: '{primary.300}',
+                                activeColor: '{primary.200}'
+                            },
+                            highlight: {
+                                background: 'color-mix(in srgb, {primary.400}, transparent 84%)',
+                                focusBackground: 'color-mix(in srgb, {primary.400}, transparent 76%)',
+                                color: '#000000',
+                                focusColor: '#000000'
                             }
                         }
                     }

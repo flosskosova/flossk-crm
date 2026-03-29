@@ -25,7 +25,6 @@ import { environment } from '@environments/environment.prod';
 <a class="layout-topbar-logo" routerLink="/">
 <img class="h-8 max-w-full" [src]="layoutService.isDarkTheme() ? 'assets/images/flossk_logo_dark_mode.png' : 'assets/images/logo.png'" alt="Flossk Logo"></a>
         </div>
-
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" style="width: auto; height: auto; border-radius: 0; background: none;" (click)="profilePopover.toggle($event)">

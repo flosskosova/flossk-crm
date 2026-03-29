@@ -169,10 +169,14 @@ interface AnnouncementDisplay {
                                         {{ announcement.title }}
                                     </h3>
                                 <div class="flex flex-col md:flex-row gap-2 text-sm text-muted-color">
-                                    <span>{{ announcement.author }}</span>
-                                    <span>•</span>
-                                    <span>{{ announcement.date }}</span>
-                                    <span>•</span>
+                                    <div class="flex gap-2">
+                                        <span>{{ announcement.author }}</span>
+                                        <span>•</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <span>{{ announcement.date }}</span>
+                                        <span>•</span>
+                                    </div>
                                     <span class="flex items-center gap-1"><i class="pi pi-eye"></i> {{ announcement.views }} views</span>
                                 </div>
                             </div>
@@ -250,7 +254,7 @@ export class Announcements implements OnInit {
         private confirmationService: ConfirmationService,
         private announcementsService: AnnouncementsService,
         private authService: AuthService
-    ) {}
+    ) { }
 
     dialogVisible = false;
     viewDialogVisible = false;
@@ -270,13 +274,13 @@ export class Announcements implements OnInit {
         isCurrentUserCreator: true
     };
     selectedAnnouncement: AnnouncementDisplay | null = null;
-    
+
     // Computed admin check - reactive to auth state changes
     isAdmin = computed(() => {
         const currentUser = this.authService.currentUser();
         return currentUser?.role === 'Admin' || currentUser?.roles?.includes('Admin') || false;
     });
-    
+
     // Available emoji reactions
     availableEmojis = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 
@@ -287,7 +291,7 @@ export class Announcements implements OnInit {
     private longPressStartX = 0;
     private longPressStartY = 0;
     private dismissPopupTimer: any = null;
-    
+
     categoryOptions = [
         { label: 'General', value: 'General' },
         { label: 'Events', value: 'Events' },
@@ -295,7 +299,7 @@ export class Announcements implements OnInit {
         { label: 'Maintenance', value: 'Maintenance' },
         { label: 'Meetings', value: 'Meetings' }
     ];
-    
+
     priorityOptions = [
         { label: 'Normal', value: 'normal' },
         { label: 'Medium', value: 'medium' },
@@ -324,17 +328,17 @@ export class Announcements implements OnInit {
     }
 
     mapToDisplay(a: any): AnnouncementDisplay {
-        const authorName = a.createdByFirstName && a.createdByLastName 
-            ? `${a.createdByFirstName} ${a.createdByLastName}` 
+        const authorName = a.createdByFirstName && a.createdByLastName
+            ? `${a.createdByFirstName} ${a.createdByLastName}`
             : 'Unknown';
-        
+
         let authorAvatar = '';
         if (a.createdByProfilePicture) {
             authorAvatar = a.createdByProfilePicture.startsWith('http')
                 ? a.createdByProfilePicture
                 : `${environment.baseUrl}${a.createdByProfilePicture}`;
         }
-        
+
         return {
             id: a.id,
             title: a.title,
@@ -352,7 +356,7 @@ export class Announcements implements OnInit {
     }
 
     getPrioritySeverity(priority: string): 'success' | 'info' | 'warn' | 'danger' {
-        switch(priority?.toLowerCase()) {
+        switch (priority?.toLowerCase()) {
             case 'urgent': return 'danger';
             case 'high': return 'warn';
             case 'normal': return 'info';
@@ -364,14 +368,14 @@ export class Announcements implements OnInit {
     getEmptyAnnouncement(): AnnouncementDisplay {
         const currentUser = this.authService.currentUser();
         const authorName = currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Current User';
-        
+
         let authorAvatar = '';
         if (currentUser?.profilePictureUrl) {
             authorAvatar = currentUser.profilePictureUrl.startsWith('http')
                 ? currentUser.profilePictureUrl
                 : `${environment.baseUrl}${currentUser.profilePictureUrl}`;
         }
-        
+
         return {
             id: '',
             title: '',
@@ -506,19 +510,19 @@ export class Announcements implements OnInit {
             }
         });
     }
-    
+
     openAddDialog() {
         this.dialogMode = 'add';
         this.currentAnnouncement = this.getEmptyAnnouncement();
         this.dialogVisible = true;
     }
-    
+
     openEditDialog(announcement: AnnouncementDisplay) {
         this.dialogMode = 'edit';
         this.currentAnnouncement = { ...announcement };
         this.dialogVisible = true;
     }
-    
+
     saveAnnouncement() {
         const announcementData = {
             title: this.currentAnnouncement.title,
