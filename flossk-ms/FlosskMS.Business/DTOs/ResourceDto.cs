@@ -4,7 +4,7 @@ public class ResourceDto
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string? Url { get; set; }
+    public List<string> Urls { get; set; } = [];
     public string? Description { get; set; }
     public string Type { get; set; } = string.Empty;
     public Guid? ProjectId { get; set; }

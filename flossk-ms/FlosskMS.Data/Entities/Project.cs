@@ -18,11 +18,8 @@ public class Project
     public string CreatedByUserId { get; set; } = string.Empty;
     public ApplicationUser CreatedByUser { get; set; } = null!;
 
-    // Moderator (optional — assigned by admin, has full project permissions)
-    public string? ModeratorUserId { get; set; }
-    public ApplicationUser? ModeratorUser { get; set; }
-
     // Navigation properties
+    public ICollection<ProjectModerator> Moderators { get; set; } = [];
     public ICollection<ProjectTeamMember> TeamMembers { get; set; } = [];
     public ICollection<Objective> Objectives { get; set; } = [];
     public ICollection<Resource> Resources { get; set; } = [];

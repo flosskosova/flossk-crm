@@ -96,7 +96,8 @@ public class ProjectService : IProjectService
     {
         var query = _dbContext.Projects
             .Include(p => p.CreatedByUser)
-            .Include(p => p.ModeratorUser)
+            .Include(p => p.Moderators)
+                .ThenInclude(m => m.User)
             .Include(p => p.TeamMembers)
                 .ThenInclude(tm => tm.User)
                     .ThenInclude(u => u.UploadedFiles)
@@ -131,7 +132,8 @@ public class ProjectService : IProjectService
 
         var projects = await _dbContext.Projects
             .Include(p => p.CreatedByUser)
-            .Include(p => p.ModeratorUser)
+            .Include(p => p.Moderators)
+                .ThenInclude(m => m.User)
             .Include(p => p.TeamMembers)
                 .ThenInclude(tm => tm.User)
                     .ThenInclude(u => u.UploadedFiles)
@@ -148,7 +150,8 @@ public class ProjectService : IProjectService
     {
         var project = await _dbContext.Projects
             .Include(p => p.CreatedByUser)
-            .Include(p => p.ModeratorUser)
+            .Include(p => p.Moderators)
+                .ThenInclude(m => m.User)
             .Include(p => p.TeamMembers)
                 .ThenInclude(tm => tm.User)
                     .ThenInclude(u => u.UploadedFiles)
@@ -184,6 +187,7 @@ public class ProjectService : IProjectService
     {
         var project = await _dbContext.Projects
             .Include(p => p.Objectives)
+            .Include(p => p.Moderators)
             .FirstOrDefaultAsync(p => p.Id == id);
         if (project == null)
         {
@@ -191,7 +195,7 @@ public class ProjectService : IProjectService
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && project.ModeratorUserId != userId)
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == userId))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can edit this project." }) { StatusCode = 403 };
         }
@@ -322,14 +326,16 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> DeleteProjectAsync(Guid id, string? userId = null, bool isAdmin = false)
     {
-        var project = await _dbContext.Projects.FindAsync(id);
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && project.ModeratorUserId != userId)
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == userId))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can delete this project." }) { StatusCode = 403 };
         }
@@ -364,6 +370,7 @@ public class ProjectService : IProjectService
     {
         var project = await _dbContext.Projects
             .Include(p => p.Objectives)
+            .Include(p => p.Moderators)
             .FirstOrDefaultAsync(p => p.Id == id);
         if (project == null)
         {
@@ -371,7 +378,7 @@ public class ProjectService : IProjectService
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && project.ModeratorUserId != userId)
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == userId))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can change the project status." }) { StatusCode = 403 };
         }
@@ -422,66 +429,94 @@ public class ProjectService : IProjectService
         return new OkObjectResult(new { Message = $"Project status updated to {projectStatus}." });
     }
 
-    public async Task<IActionResult> AssignModeratorAsync(Guid projectId, AssignModeratorDto request, string actingUserId)
+    public async Task<IActionResult> AddModeratorAsync(Guid projectId, AssignModeratorDto request, string actingUserId)
     {
+        if (string.IsNullOrWhiteSpace(request.ModeratorUserId))
+        {
+            return new BadRequestObjectResult(new { Error = "ModeratorUserId is required." });
+        }
+
         var project = await _dbContext.Projects
-            .Include(p => p.ModeratorUser)
+            .Include(p => p.Moderators)
             .FirstOrDefaultAsync(p => p.Id == projectId);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
-        // Remove moderator
-        if (string.IsNullOrWhiteSpace(request.ModeratorUserId))
+        if (project.Moderators.Any(m => m.UserId == request.ModeratorUserId))
         {
-            var oldModeratorName = project.ModeratorUser != null
-                ? $"{project.ModeratorUser.FirstName} {project.ModeratorUser.LastName}".Trim()
-                : null;
-
-            project.ModeratorUserId = null;
-            project.ModeratorUser = null;
-            project.UpdatedAt = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync();
-
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = project.Id.ToString(),
-                EntityName = project.Title,
-                Action = "Moderator removed",
-                Detail = oldModeratorName,
-                UserId = actingUserId
-            });
-
-            return new OkObjectResult(new { Message = "Project moderator removed." });
+            return new BadRequestObjectResult(new { Error = "User is already a moderator of this project." });
         }
 
-        // Assign new moderator
         var user = await _dbContext.Users.FindAsync(request.ModeratorUserId);
         if (user == null)
         {
             return new NotFoundObjectResult(new { Error = "User not found." });
         }
 
-        project.ModeratorUserId = user.Id;
-        project.ModeratorUser = user;
+        var moderator = new ProjectModerator
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            UserId = user.Id,
+            AssignedAt = DateTime.UtcNow
+        };
+
+        _dbContext.ProjectModerators.Add(moderator);
         project.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation("User {UserId} assigned as moderator of project {ProjectId}", user.Id, projectId);
+        _logger.LogInformation("User {UserId} added as moderator of project {ProjectId}", user.Id, projectId);
 
         await _logService.CreateAsync(new CreateLogDto
         {
             EntityType = "Project",
             EntityId = project.Id.ToString(),
             EntityName = project.Title,
-            Action = "Moderator assigned",
+            Action = "Moderator added",
             Detail = $"{user.FirstName} {user.LastName}".Trim(),
             UserId = actingUserId
         });
 
-        return new OkObjectResult(new { Message = $"{user.FirstName} {user.LastName} assigned as project moderator." });
+        return new OkObjectResult(new { Message = $"{user.FirstName} {user.LastName} added as project moderator." });
+    }
+
+    public async Task<IActionResult> RemoveModeratorAsync(Guid projectId, string moderatorUserId, string actingUserId)
+    {
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+                .ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
+        if (project == null)
+        {
+            return new NotFoundObjectResult(new { Error = "Project not found." });
+        }
+
+        var moderator = project.Moderators.FirstOrDefault(m => m.UserId == moderatorUserId);
+        if (moderator == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User is not a moderator of this project." });
+        }
+
+        var moderatorName = $"{moderator.User.FirstName} {moderator.User.LastName}".Trim();
+        _dbContext.ProjectModerators.Remove(moderator);
+        project.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} removed as moderator of project {ProjectId}", moderatorUserId, projectId);
+
+        await _logService.CreateAsync(new CreateLogDto
+        {
+            EntityType = "Project",
+            EntityId = project.Id.ToString(),
+            EntityName = project.Title,
+            Action = "Moderator removed",
+            Detail = moderatorName,
+            UserId = actingUserId
+        });
+
+        return new OkObjectResult(new { Message = $"{moderatorName} removed as project moderator." });
     }
 
     #endregion
@@ -550,13 +585,15 @@ public class ProjectService : IProjectService
     public async Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId)
     {
         // Check if the current user is the project creator, moderator, or admin (admin checked at controller level)
-        var project = await _dbContext.Projects.FindAsync(projectId);
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
-        if (project.CreatedByUserId != currentUserId && project.ModeratorUserId != currentUserId)
+        if (project.CreatedByUserId != currentUserId && !project.Moderators.Any(m => m.UserId == currentUserId))
         {
             return new ForbidResult();
         }
@@ -606,13 +643,15 @@ public class ProjectService : IProjectService
         }
 
         // Check if the current user is the project creator or moderator (admin bypasses this at controller level)
-        var project = await _dbContext.Projects.FindAsync(projectId);
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
-        if (project.CreatedByUserId != currentUserId && project.ModeratorUserId != currentUserId)
+        if (project.CreatedByUserId != currentUserId && !project.Moderators.Any(m => m.UserId == currentUserId))
         {
             return new ForbidResult();
         }
@@ -790,14 +829,16 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> CreateObjectiveAsync(CreateObjectiveDto request, string userId, bool isAdmin = false)
     {
-        var project = await _dbContext.Projects.FindAsync(request.ProjectId);
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+            .FirstOrDefaultAsync(p => p.Id == request.ProjectId);
         if (project == null)
         {
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && project.ModeratorUserId != userId)
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == userId))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can add objectives." }) { StatusCode = 403 };
         }
@@ -890,6 +931,7 @@ public class ProjectService : IProjectService
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
+                .ThenInclude(p => p!.Moderators)
             .FirstOrDefaultAsync(o => o.Id == id);
         if (objective == null)
         {
@@ -897,7 +939,7 @@ public class ProjectService : IProjectService
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && objective.Project?.ModeratorUserId != userId)
+        if (!isAdmin && !(objective.Project?.Moderators.Any(m => m.UserId == userId) ?? false))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can edit objectives." }) { StatusCode = 403 };
         }
@@ -972,6 +1014,7 @@ public class ProjectService : IProjectService
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
+                .ThenInclude(p => p!.Moderators)
             .FirstOrDefaultAsync(o => o.Id == id);
         if (objective == null)
         {
@@ -979,7 +1022,7 @@ public class ProjectService : IProjectService
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && objective.Project?.ModeratorUserId != userId)
+        if (!isAdmin && !(objective.Project?.Moderators.Any(m => m.UserId == userId) ?? false))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can delete objectives." }) { StatusCode = 403 };
         }
@@ -1012,6 +1055,7 @@ public class ProjectService : IProjectService
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
+                .ThenInclude(p => p!.Moderators)
             .FirstOrDefaultAsync(o => o.Id == id);
         if (objective == null)
         {
@@ -1019,7 +1063,7 @@ public class ProjectService : IProjectService
         }
 
         // Authorization: must be admin or the project's moderator
-        if (!isAdmin && objective.Project?.ModeratorUserId != userId)
+        if (!isAdmin && !(objective.Project?.Moderators.Any(m => m.UserId == userId) ?? false))
         {
             return new ObjectResult(new { Error = "Only an admin or the project moderator can update objective status." }) { StatusCode = 403 };
         }
@@ -1062,6 +1106,7 @@ public class ProjectService : IProjectService
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
+                .ThenInclude(p => p.Moderators)
             .FirstOrDefaultAsync(o => o.Id == objectiveId);
         if (objective == null)
         {
@@ -1069,7 +1114,7 @@ public class ProjectService : IProjectService
         }
 
         // Check if current user is the project creator or moderator
-        if (objective.Project.CreatedByUserId != currentUserId && objective.Project.ModeratorUserId != currentUserId)
+        if (objective.Project.CreatedByUserId != currentUserId && !objective.Project.Moderators.Any(m => m.UserId == currentUserId))
         {
             return new ObjectResult(new { Error = "Only the project creator or moderator can assign members to objectives." }) { StatusCode = 401 };
         }
@@ -1144,6 +1189,7 @@ public class ProjectService : IProjectService
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
+                .ThenInclude(p => p.Moderators)
             .FirstOrDefaultAsync(o => o.Id == objectiveId);
         if (objective == null)
         {
@@ -1151,7 +1197,7 @@ public class ProjectService : IProjectService
         }
 
         // Check if current user is the project creator or moderator
-        if (objective.Project.CreatedByUserId != currentUserId && objective.Project.ModeratorUserId != currentUserId)
+        if (objective.Project.CreatedByUserId != currentUserId && !objective.Project.Moderators.Any(m => m.UserId == currentUserId))
         {
             return new ObjectResult(new { Error = "Only the project creator or moderator can remove members from objectives." }) { StatusCode = 401 };
         }
@@ -1333,7 +1379,7 @@ public class ProjectService : IProjectService
         }
 
         // Resource must have at least a URL or files
-        var hasUrl = !string.IsNullOrWhiteSpace(request.Url);
+        var hasUrl = request.Urls?.Count > 0;
         var hasFiles = request.FileIds != null && request.FileIds.Count > 0;
         
         if (!hasUrl && !hasFiles)
@@ -1522,7 +1568,7 @@ public class ProjectService : IProjectService
         }
 
         // Check if after update the resource will have at least URL or files
-        var willHaveUrl = !string.IsNullOrWhiteSpace(request.Url);
+        var willHaveUrl = request.Urls?.Count > 0;
         var currentFileCount = resource.Files.Count;
         var filesToAdd = request.FileIdsToAdd?.Count ?? 0;
         var filesToRemove = request.FileIdsToRemove?.Count ?? 0;
@@ -1604,7 +1650,7 @@ public class ProjectService : IProjectService
 
         // Snapshot old values for field-level logging
         var oldResTitle       = resource.Title;
-        var oldResUrl         = resource.Url;
+        var oldResUrls        = resource.Urls != null ? new List<string>(resource.Urls) : new List<string>();
         var oldResDescription = resource.Description;
         var oldResType        = resource.Type.ToString();
 
@@ -1630,10 +1676,11 @@ public class ProjectService : IProjectService
                 var resFieldChanges = new List<(string Field, string OldValue, string NewValue)>();
                 if (!string.Equals(resource.Title, oldResTitle))
                     resFieldChanges.Add(("Title", oldResTitle, resource.Title));
-                if (!string.Equals(resource.Url, oldResUrl))
-                    resFieldChanges.Add(("URL",
-                        string.IsNullOrWhiteSpace(oldResUrl) ? "(none)" : oldResUrl,
-                        string.IsNullOrWhiteSpace(resource.Url) ? "(none)" : resource.Url));
+                var newResUrls = resource.Urls ?? new List<string>();
+                if (!newResUrls.SequenceEqual(oldResUrls))
+                    resFieldChanges.Add(("URLs",
+                        oldResUrls.Count == 0 ? "(none)" : string.Join(", ", oldResUrls),
+                        newResUrls.Count == 0 ? "(none)" : string.Join(", ", newResUrls)));
                 if (!string.Equals(resource.Description, oldResDescription))
                     resFieldChanges.Add(("Description",
                         string.IsNullOrWhiteSpace(oldResDescription) ? "(empty)" : oldResDescription,
@@ -1803,11 +1850,13 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> UploadProjectBannerAsync(Guid projectId, IFormFile bannerFile, string userId, bool isAdmin)
     {
-        var project = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
         if (project == null)
             return new NotFoundObjectResult(new { Error = "Project not found." });
 
-        if (!isAdmin && project.ModeratorUserId != userId && project.CreatedByUserId != userId)
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == userId) && project.CreatedByUserId != userId)
             return new ObjectResult(new { Error = "Only an admin, the project creator, or the moderator can change the project banner." }) { StatusCode = 403 };
 
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
@@ -1841,11 +1890,13 @@ public class ProjectService : IProjectService
 
     public async Task<IActionResult> DeleteProjectBannerAsync(Guid projectId, string userId, bool isAdmin)
     {
-        var project = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        var project = await _dbContext.Projects
+            .Include(p => p.Moderators)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
         if (project == null)
             return new NotFoundObjectResult(new { Error = "Project not found." });
 
-        if (!isAdmin && project.ModeratorUserId != userId && project.CreatedByUserId != userId)
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == userId) && project.CreatedByUserId != userId)
             return new ObjectResult(new { Error = "Only an admin, the project creator, or the moderator can remove the project banner." }) { StatusCode = 403 };
 
         if (string.IsNullOrEmpty(project.BannerUrl))
@@ -2035,7 +2086,7 @@ public class ProjectService : IProjectService
             {
                 Id = Guid.NewGuid(),
                 Title = "Figma Design Files",
-                Url = "https://figma.com/file/flossk-redesign",
+                Urls = ["https://figma.com/file/flossk-redesign"],
                 Description = "Main design files for the website redesign project.",
                 Type = ResourceType.Tool,
                 ProjectId = projects[0].Id,
@@ -2045,7 +2096,7 @@ public class ProjectService : IProjectService
             {
                 Id = Guid.NewGuid(),
                 Title = "Angular Documentation",
-                Url = "https://angular.io/docs",
+                Urls = ["https://angular.io/docs"],
                 Description = "Official Angular documentation for frontend development.",
                 Type = ResourceType.Documentation,
                 ProjectId = projects[0].Id,
@@ -2055,7 +2106,7 @@ public class ProjectService : IProjectService
             {
                 Id = Guid.NewGuid(),
                 Title = "Git Tutorial for Beginners",
-                Url = "https://git-scm.com/book/en/v2",
+                Urls = ["https://git-scm.com/book/en/v2"],
                 Description = "Pro Git book - comprehensive guide to Git.",
                 Type = ResourceType.Tutorial,
                 ProjectId = projects[1].Id,
@@ -2065,7 +2116,7 @@ public class ProjectService : IProjectService
             {
                 Id = Guid.NewGuid(),
                 Title = "Open Source Guide",
-                Url = "https://opensource.guide/",
+                Urls = ["https://opensource.guide/"],
                 Description = "GitHub's guide to open source contribution.",
                 Type = ResourceType.Reference,
                 ProjectId = projects[1].Id,

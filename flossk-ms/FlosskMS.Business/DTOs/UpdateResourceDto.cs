@@ -8,9 +8,7 @@ public class UpdateResourceDto
     [StringLength(200, MinimumLength = 1)]
     public string Title { get; set; } = string.Empty;
 
-    [StringLength(2000)]
-    [Url]
-    public string? Url { get; set; }
+    public List<string>? Urls { get; set; }
 
     [StringLength(1000)]
     public string? Description { get; set; }

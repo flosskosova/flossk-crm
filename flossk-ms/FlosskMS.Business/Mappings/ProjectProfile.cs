@@ -19,9 +19,7 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.CreatedByUserId, opt => opt.MapFrom(src => src.CreatedByUserId))
             .ForMember(dest => dest.CreatedByFirstName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName))
             .ForMember(dest => dest.CreatedByLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
-            .ForMember(dest => dest.ModeratorUserId, opt => opt.MapFrom(src => src.ModeratorUserId))
-            .ForMember(dest => dest.ModeratorFirstName, opt => opt.MapFrom(src => src.ModeratorUser != null ? src.ModeratorUser.FirstName : null))
-            .ForMember(dest => dest.ModeratorLastName, opt => opt.MapFrom(src => src.ModeratorUser != null ? src.ModeratorUser.LastName : null))
+            .ForMember(dest => dest.Moderators, opt => opt.MapFrom(src => src.Moderators))
             .ForMember(dest => dest.TeamMembers, opt => opt.MapFrom(src => src.TeamMembers))
             .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives))
             .ForMember(dest => dest.Resources, opt => opt.MapFrom(src => src.Resources));
@@ -37,9 +35,7 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.CreatedByUserId, opt => opt.MapFrom(src => src.CreatedByUserId))
             .ForMember(dest => dest.CreatedByFirstName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName))
             .ForMember(dest => dest.CreatedByLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
-            .ForMember(dest => dest.ModeratorUserId, opt => opt.MapFrom(src => src.ModeratorUserId))
-            .ForMember(dest => dest.ModeratorFirstName, opt => opt.MapFrom(src => src.ModeratorUser != null ? src.ModeratorUser.FirstName : null))
-            .ForMember(dest => dest.ModeratorLastName, opt => opt.MapFrom(src => src.ModeratorUser != null ? src.ModeratorUser.LastName : null))
+            .ForMember(dest => dest.Moderators, opt => opt.MapFrom(src => src.Moderators))
             .ForMember(dest => dest.TeamMemberCount, opt => opt.MapFrom(src => src.TeamMembers.Count))
             .ForMember(dest => dest.ObjectiveCount, opt => opt.MapFrom(src => src.Objectives.Count))
             .ForMember(dest => dest.TeamMembers, opt => opt.MapFrom(src => src.TeamMembers))
@@ -52,8 +48,7 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUser, opt => opt.Ignore())
-            .ForMember(dest => dest.ModeratorUserId, opt => opt.Ignore())
-            .ForMember(dest => dest.ModeratorUser, opt => opt.Ignore())
+            .ForMember(dest => dest.Moderators, opt => opt.Ignore())
             .ForMember(dest => dest.TeamMembers, opt => opt.Ignore())
             .ForMember(dest => dest.Objectives, opt => opt.Ignore())
             .ForMember(dest => dest.Resources, opt => opt.Ignore())
@@ -66,13 +61,18 @@ public class ProjectProfile : Profile
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByUser, opt => opt.Ignore())
-            .ForMember(dest => dest.ModeratorUserId, opt => opt.Ignore())
-            .ForMember(dest => dest.ModeratorUser, opt => opt.Ignore())
+            .ForMember(dest => dest.Moderators, opt => opt.Ignore())
             .ForMember(dest => dest.TeamMembers, opt => opt.Ignore())
             .ForMember(dest => dest.Objectives, opt => opt.Ignore())
             .ForMember(dest => dest.Resources, opt => opt.Ignore())
             .ForMember(dest => dest.Types, opt => opt.Ignore())
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => Enum.Parse<ProjectStatus>(src.Status, true)));
+
+        // ProjectModerator → ModeratorInfoDto
+        CreateMap<ProjectModerator, ModeratorInfoDto>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
+            .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName));
 
         // Objective mappings
         CreateMap<Objective, ObjectiveDto>()

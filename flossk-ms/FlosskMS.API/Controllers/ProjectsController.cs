@@ -98,17 +98,29 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     }
 
     /// <summary>
-    /// Assign or remove a project moderator (Admin only).
-    /// Send null ModeratorUserId to remove the current moderator.
+    /// Add a moderator to a project (Admin only).
     /// </summary>
     [Authorize(Roles = "Admin")]
-    [HttpPut("{id:guid}/moderator")]
-    public async Task<IActionResult> AssignModerator(Guid id, [FromBody] AssignModeratorDto request)
+    [HttpPost("{id:guid}/moderators")]
+    public async Task<IActionResult> AddModerator(Guid id, [FromBody] AssignModeratorDto request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
-        return await _projectService.AssignModeratorAsync(id, request, userId);
+        return await _projectService.AddModeratorAsync(id, request, userId);
+    }
+
+    /// <summary>
+    /// Remove a moderator from a project (Admin only).
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:guid}/moderators/{moderatorUserId}")]
+    public async Task<IActionResult> RemoveModerator(Guid id, string moderatorUserId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+        return await _projectService.RemoveModeratorAsync(id, moderatorUserId, userId);
     }
 
     /// <summary>

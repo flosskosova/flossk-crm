@@ -6,9 +6,9 @@ public class Resource
     public string Title { get; set; } = string.Empty;
     
     /// <summary>
-    /// Optional external URL for the resource
+    /// Optional external URLs for the resource
     /// </summary>
-    public string? Url { get; set; }
+    public List<string> Urls { get; set; } = [];
     
     public string? Description { get; set; }
     public ResourceType Type { get; set; } = ResourceType.Other;

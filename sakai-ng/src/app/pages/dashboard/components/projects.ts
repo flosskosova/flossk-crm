@@ -21,7 +21,7 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
-import { GitHubCommit, Member, Objective, Project, ProjectsService, Resource, ResourceFile } from '../../service/projects.service';
+import { GitHubCommit, Member, ModeratorInfo, Objective, Project, ProjectsService, Resource, ResourceFile } from '../../service/projects.service';
 import { AuthService, getInitials, isDefaultAvatar } from '../../service/auth.service';
 import { environment } from '@environments/environment.prod';
 import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/history-log';
@@ -127,7 +127,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
             </div>
         </p-dialog>
         
-        <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Objective' : 'Edit Objective'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Task' : 'Edit Task'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objectiveTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -166,8 +166,21 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 </div>
                 
                 <div>
-                    <label for="resourceUrl" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URL</label>
-                    <input pInputText id="resourceUrl" [(ngModel)]="currentResource.url" placeholder="https://example.com" class="w-full" />
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URLs</label>
+                    <div class="flex gap-2 mb-2">
+                        <input pInputText [(ngModel)]="newResourceUrl" placeholder="https://example.com" class="flex-1" (keyup.enter)="addUrlToCurrentResource()" />
+                        <p-button icon="pi pi-plus" [text]="true" (onClick)="addUrlToCurrentResource()" />
+                    </div>
+                    @if (currentResource.urls && currentResource.urls.length > 0) {
+                        <div class="flex flex-col gap-1 mb-2">
+                            @for (url of currentResource.urls; track url; let i = $index) {
+                                <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
+                                    <span class="flex-1 truncate text-sm">{{ url }}</span>
+                                    <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeUrlFromCurrentResource(i)" />
+                                </div>
+                            }
+                        </div>
+                    }
                     <small class="text-surface-500">Optional if files are attached</small>
                 </div>
                 
@@ -232,41 +245,41 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
             </div>
         </p-dialog>
         
-        <!-- Objective Detail Dialog -->
+        <!-- Task Detail Dialog -->
         <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
             <div *ngIf="viewingObjective" class="flex flex-col gap-5">
-                <!-- Creator Information -->
-                <div *ngIf="viewingObjective.createdByFirstName || viewingObjective.createdByLastName" class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3">
-                    <div class="flex items-center gap-2">
+                <!-- Creator & Date -->
+                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 flex flex-col gap-2">
+                    <div *ngIf="viewingObjective.createdByFirstName || viewingObjective.createdByLastName" class="flex items-center gap-2">
                         <i class="pi pi-user text-primary"></i>
                         <span class="font-semibold text-surface-600 dark:text-surface-400">Created by:</span>
                         <span class="text-surface-900 dark:text-surface-0">{{ viewingObjective.createdByFirstName }} {{ viewingObjective.createdByLastName }}</span>
                     </div>
+                    <div *ngIf="viewingObjective.createdAt" class="flex items-center gap-2">
+                        <i class="pi pi-calendar text-primary"></i>
+                        <span class="font-semibold text-surface-600 dark:text-surface-400">Created:</span>
+                        <span class="text-surface-900 dark:text-surface-0">{{ viewingObjective.createdAt | date:'medium' }}</span>
+                    </div>
                 </div>
 
-                <!-- Status and Progress
-                <div class="flex items-center justify-between">
+                <!-- Status & Points -->
+                <div class="flex items-center gap-4">
                     <p-tag 
                         [value]="viewingObjective.status === 'todo' ? 'To Do' : viewingObjective.status === 'in-progress' ? 'In Progress' : 'Completed'" 
                         [severity]="getObjectiveStatusSeverity(viewingObjective.status)"
                         styleClass="text-sm"
                     ></p-tag>
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm text-muted-color">Progress</span>
-                        <div class="flex items-center gap-2">
-                            <div style="width: 120px;">
-                                <p-progressbar [value]="viewingObjective.progress" [showValue]="false"></p-progressbar>
-                            </div>
-                            <span class="font-semibold">{{ viewingObjective.progress | number:'1.0-1' }}%</span>
-                        </div>
+                    <div *ngIf="viewingObjective.points" class="flex items-center gap-2">
+                        <i class="pi pi-star-fill text-primary"></i>
+                        <span class="font-semibold text-primary">{{ viewingObjective.points }} {{ viewingObjective.points === 1 ? 'point' : 'points' }}</span>
                     </div>
-                </div> -->
-                
+                </div>
+
                 <!-- Description -->
-                <!-- <div>
+                <div>
                     <h6 class="text-sm font-semibold text-muted-color mb-2 tracking-wide">Description</h6>
                     <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0">{{ viewingObjective.description || 'No description provided.' }}</p>
-                </div> -->
+                </div>
                 
                 <p-divider></p-divider>
                 
@@ -305,15 +318,19 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         <div *ngFor="let resource of viewingObjective.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex-1">
-                                    <a *ngIf="resource.url" [href]="resource.url" target="_blank" class="font-semibold text-primary hover:underline flex items-center gap-2">
+                                    <div class="font-semibold text-surface-900 dark:text-surface-0 flex items-center gap-2">
                                         <i [class]="getResourceIcon(resource.type)"></i>
                                         {{ resource.title }}
-                                        <i class="pi pi-external-link text-xs"></i>
-                                    </a>
-                                    <span *ngIf="!resource.url" class="font-semibold text-surface-900 dark:text-surface-0 flex items-center gap-2">
-                                        <i [class]="getResourceIcon(resource.type)"></i>
-                                        {{ resource.title }}
-                                    </span>
+                                    </div>
+                                    @if (resource.urls && resource.urls.length > 0) {
+                                        <div class="flex flex-col gap-1 mt-1 ml-5">
+                                            @for (url of resource.urls; track url) {
+                                                <a [href]="url" target="_blank" class="text-primary hover:underline flex items-center gap-1 text-sm">
+                                                    <i class="pi pi-external-link text-xs"></i>{{ url }}
+                                                </a>
+                                            }
+                                        </div>
+                                    }
                                     <p class="text-sm text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                 </div>
                                 <div class="flex gap-1" *ngIf="canEditResource(resource) && viewingObjective?.status !== 'completed'">
@@ -337,7 +354,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         </span>
                                         <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
                                         <div class="flex gap-1">
-                                            <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
+                                            <p-button *ngIf="!(file.originalFileName ?? '').toLowerCase().endsWith('.pptx')" icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
                                             <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.originalFileName)" />
                                         </div>
                                     </div>
@@ -355,9 +372,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
             <div class="flex justify-between gap-2 mt-6">
                 <div class="flex gap-2">
                     @if (viewingObjective && viewingObjective.status !== 'completed' && !isUserInObjective(viewingObjective)) {
-                        <p-button label="Join Objective" icon="pi pi-user-plus" [outlined]="true" (onClick)="joinObjectiveFromDetail()" />
+                        <p-button label="Join Task" icon="pi pi-user-plus" [outlined]="true" (onClick)="joinObjectiveFromDetail()" />
                     } @else if (viewingObjective && viewingObjective.status !== 'completed' && isUserInObjective(viewingObjective)) {
-                        <p-button label="Leave Objective" icon="pi pi-user-minus" [outlined]="true" severity="warn" (onClick)="leaveObjectiveFromDetail()" />
+                        <p-button label="Leave Task" icon="pi pi-user-minus" [outlined]="true" severity="warn" (onClick)="leaveObjectiveFromDetail()" />
                     }
                 </div>
                 <div class="flex gap-2">
@@ -367,8 +384,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
             </div>
         </p-dialog>
         
-        <!-- Objective Resource Dialog -->
-        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Objective' : 'Edit Objective Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
+        <!-- Task Resource Dialog -->
+        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Task' : 'Edit Task Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objResourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
@@ -376,8 +393,21 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 </div>
                 
                 <div>
-                    <label for="objResourceUrl" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URL</label>
-                    <input pInputText id="objResourceUrl" [(ngModel)]="currentObjectiveResource.url" placeholder="https://example.com" class="w-full" />
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URLs</label>
+                    <div class="flex gap-2 mb-2">
+                        <input pInputText [(ngModel)]="newObjectiveResourceUrl" placeholder="https://example.com" class="flex-1" (keyup.enter)="addUrlToCurrentObjectiveResource()" />
+                        <p-button icon="pi pi-plus" [text]="true" (onClick)="addUrlToCurrentObjectiveResource()" />
+                    </div>
+                    @if (currentObjectiveResource.urls && currentObjectiveResource.urls.length > 0) {
+                        <div class="flex flex-col gap-1 mb-2">
+                            @for (url of currentObjectiveResource.urls; track url; let i = $index) {
+                                <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
+                                    <span class="flex-1 truncate text-sm">{{ url }}</span>
+                                    <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeUrlFromCurrentObjectiveResource(i)" />
+                                </div>
+                            }
+                        </div>
+                    }
                     <small class="text-surface-500">Optional if files are attached</small>
                 </div>
                 
@@ -489,7 +519,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
             </div>
         </p-dialog> 
         
-        <!-- Assign Members to Objective Dialog -->
+        <!-- Assign Members to Task Dialog -->
         <p-dialog [(visible)]="assignMembersToObjectiveDialogVisible" [header]="'Assign Members to: ' + (assigningObjective?.title || '')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
@@ -538,40 +568,57 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
         </p-dialog>
 
         <!-- Assign Moderator Dialog -->
-        <p-dialog [(visible)]="assignModeratorDialogVisible" [header]="'Assign Moderator: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '35rem'}" [contentStyle]="{'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="assignModeratorDialogVisible" [header]="'Manage Moderators: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
-                <div *ngIf="selectedProject?.moderatorFirstName" class="flex items-center gap-2 p-3 bg-surface-100 dark:bg-surface-800 rounded-lg">
-                    <i class="pi pi-shield text-warning"></i>
-                    <span class="text-sm">Current moderator: <strong>{{ selectedProject?.moderatorFirstName }} {{ selectedProject?.moderatorLastName }}</strong></span>
-                </div>
+                <!-- Current moderators list -->
                 <div>
-                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Moderator</label>
-                    <p-select
-                        [(ngModel)]="selectedModeratorUserId"
-                        [options]="availableMembers"
-                        optionLabel="name"
-                        optionValue="userId"
-                        placeholder="Select a member as moderator"
-                        class="w-full"
-                        [showClear]="true"
-                    >
-                        <ng-template let-member pTemplate="item">
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Current Moderators</label>
+                    <div *ngIf="!selectedProject?.moderators?.length" class="text-sm text-muted-color p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
+                        No moderators assigned yet.
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <div *ngFor="let mod of selectedProject?.moderators" class="flex items-center justify-between p-3 bg-surface-100 dark:bg-surface-800 rounded-lg">
                             <div class="flex items-center gap-2">
-                                <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
-                                <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
-                                <div>
-                                    <span class="font-medium">{{ member.name }}</span>
-                                    <span class="text-xs text-muted-color ml-2">{{ member.role }}</span>
-                                </div>
+                                <i class="pi pi-shield text-warning"></i>
+                                <span class="font-medium">{{ mod.firstName }} {{ mod.lastName }}</span>
                             </div>
-                        </ng-template>
-                    </p-select>
+                            <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="danger" size="small"
+                                [loading]="removingModeratorUserId === mod.userId"
+                                (onClick)="removeProjectModerator(mod.userId)" pTooltip="Remove moderator" />
+                        </div>
+                    </div>
                 </div>
-                <p class="text-sm text-muted-color m-0">The moderator can edit, delete and manage objectives for this project. Clear the selection to remove the current moderator.</p>
+                <!-- Add new moderator -->
+                <div>
+                    <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Add Moderator</label>
+                    <div class="flex gap-2">
+                        <p-select
+                            [(ngModel)]="selectedModeratorUserId"
+                            [options]="getAvailableMembersForModerator()"
+                            optionLabel="name"
+                            optionValue="userId"
+                            placeholder="Select a member to add"
+                            class="flex-1"
+                            [showClear]="true"
+                        >
+                            <ng-template let-member pTemplate="item">
+                                <div class="flex items-center gap-2">
+                                    <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
+                                    <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
+                                    <div>
+                                        <span class="font-medium">{{ member.name }}</span>
+                                        <span class="text-xs text-muted-color ml-2">{{ member.role }}</span>
+                                    </div>
+                                </div>
+                            </ng-template>
+                        </p-select>
+                        <p-button label="Add" icon="pi pi-plus" [loading]="savingModerator" [disabled]="!selectedModeratorUserId" (onClick)="saveProjectModerator()" />
+                    </div>
+                </div>
+                <p class="text-sm text-muted-color m-0">Moderators can edit, delete and manage tasks for this project.</p>
             </div>
             <div class="flex justify-end gap-2 mt-6">
-                <p-button label="Cancel" severity="secondary" (onClick)="assignModeratorDialogVisible = false" />
-                <p-button label="Save" [loading]="savingModerator" (onClick)="saveProjectModerator()" />
+                <p-button label="Close" severity="secondary" (onClick)="assignModeratorDialogVisible = false" />
             </div>
         </p-dialog>
         
@@ -912,11 +959,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <div class="col-span-12 lg:col-span-8">
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold m-0">Objectives</h3>
-                                <p-button *ngIf="selectedProject.status !== 'completed'" label="Add Objective" icon="pi pi-plus" size="small" (onClick)="openAddObjectiveDialog()" />
+                                <h3 class="text-lg font-semibold m-0">Tasks</h3>
+                                <p-button *ngIf="selectedProject.status !== 'completed'" label="Add Task" icon="pi pi-plus" size="small" (onClick)="openAddObjectiveDialog()" />
                             </div>
                             
-                            <!-- Kanban Board for Objectives -->
+                            <!-- Kanban Board for Tasks -->
                             <div class="grid grid-cols-12 gap-4">
                                 <!-- Todo Column -->
                                 <div *ngIf="selectedProject.status !== 'completed'" class="col-span-12 md:col-span-4">
@@ -941,8 +988,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
                                                 <div class="flex items-center gap-1 mb-2">
-                                                    <i class="pi pi-star-fill" style="font-size: 0.65rem; color: #ca8a04"></i>
-                                                    <span class="text-xs font-semibold" style="color: #ca8a04">{{ objective.points ?? 1 }} pts</span>
+                                                    <i class="pi pi-star-fill text-primary" style="font-size: 0.65rem"></i>
+                                                    <span class="text-xs font-semibold text-primary">{{ objective.points ?? 1 }} pts</span>
                                                 </div>
                                                 <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
                                                     <i class="pi pi-user" style="font-size: 0.65rem"></i>
@@ -999,8 +1046,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                 </div>
                                                 <p class="text-xs text-surface-600 dark:text-surface-400 mb-2 line-clamp-2">{{ objective.description }}</p>
                                                 <div class="flex items-center gap-1 mb-2">
-                                                    <i class="pi pi-star-fill" style="font-size: 0.65rem; color: #ca8a04"></i>
-                                                    <span class="text-xs font-semibold" style="color: #ca8a04">{{ objective.points ?? 1 }} pts</span>
+                                                    <i class="pi pi-star-fill text-primary" style="font-size: 0.65rem"></i>
+                                                    <span class="text-xs font-semibold text-primary">{{ objective.points ?? 1 }} pts</span>
                                                 </div>
                                                 <div *ngIf="objective.createdByFirstName || objective.createdByLastName" class="text-xs text-surface-500 dark:text-surface-500 mb-2 flex items-center gap-1">
                                                     <i class="pi pi-user" style="font-size: 0.65rem"></i>
@@ -1154,11 +1201,13 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                             <!-- Moderator Information -->
                             <div class="border-t border-surface-200 dark:border-surface-700 pt-3 pb-3">
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-shield text-primary"></i>
-                                    <span class="font-semibold text-primary">Moderator:</span>
-                                    <span *ngIf="selectedProject.moderatorFirstName" class="text-surface-900 dark:text-surface-0">{{ selectedProject.moderatorFirstName }} {{ selectedProject.moderatorLastName }}</span>
-                                    <span *ngIf="!selectedProject.moderatorFirstName" class="text-muted-color text-sm italic">None assigned</span>
+                                <div class="flex items-start gap-2">
+                                    <i class="pi pi-shield text-primary mt-1"></i>
+                                    <div class="flex flex-col gap-1">
+                                        <span class="font-semibold text-primary">Moderators:</span>
+                                        <span *ngIf="!selectedProject.moderators?.length" class="text-muted-color text-sm italic">None assigned</span>
+                                        <span *ngFor="let mod of selectedProject.moderators" class="text-surface-900 dark:text-surface-0 text-sm">{{ mod.firstName }} {{ mod.lastName }}</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1203,11 +1252,16 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <div *ngFor="let resource of selectedProject.resources" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="flex-1">
-                                            <a *ngIf="resource.url" [href]="resource.url" target="_blank" class="font-semibold text-primary hover:underline flex items-center gap-2">
-                                                {{ resource.title }}
-                                                <i class="pi pi-external-link text-xs"></i>
-                                            </a>
-                                            <span *ngIf="!resource.url" class="font-semibold text-surface-900 dark:text-surface-0">{{ resource.title }}</span>
+                                            <div class="font-semibold text-surface-900 dark:text-surface-0">{{ resource.title }}</div>
+                                            @if (resource.urls && resource.urls.length > 0) {
+                                                <div class="flex flex-col gap-1 mt-1">
+                                                    @for (url of resource.urls; track url) {
+                                                        <a [href]="url" target="_blank" class="text-primary hover:underline flex items-center gap-1 text-sm">
+                                                            <i class="pi pi-external-link text-xs"></i>{{ url }}
+                                                        </a>
+                                                    }
+                                                </div>
+                                            }
                                             <p class="text-xs text-muted-color m-0 mt-1">{{ resource.description }}</p>
                                         </div>
                                         <div class="flex gap-1" *ngIf="canEditResource(resource) && selectedProject?.status !== 'completed'">
@@ -1231,7 +1285,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                 </span>
                                                 <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
                                                 <div class="flex gap-1">
-                                                    <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
+                                                    <p-button *ngIf="!(file.originalFileName ?? '').toLowerCase().endsWith('.pptx')" icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
                                                     <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.originalFileName)" />
                                                 </div>
                                             </div>
@@ -1517,9 +1571,7 @@ export class Projects {
                 createdByUserId: p.createdByUserId,
                 createdByFirstName: p.createdByFirstName,
                 createdByLastName: p.createdByLastName,
-                moderatorUserId: p.moderatorUserId,
-                moderatorFirstName: p.moderatorFirstName,
-                moderatorLastName: p.moderatorLastName,
+                moderators: p.moderators || [],
                 bannerUrl: p.bannerUrl
                     ? (p.bannerUrl.startsWith('http') ? p.bannerUrl : `${environment.baseUrl}${p.bannerUrl}`)
                     : undefined
@@ -1641,7 +1693,33 @@ export class Projects {
     selectedObjectiveResourceFiles: File[] = [];
     filesToRemoveFromObjectiveResource: string[] = [];
     savingObjectiveResource = false;
-    
+    newResourceUrl: string = '';
+    newObjectiveResourceUrl: string = '';
+
+    addUrlToCurrentResource() {
+        const trimmed = this.newResourceUrl.trim();
+        if (trimmed) {
+            this.currentResource.urls = [...(this.currentResource.urls || []), trimmed];
+            this.newResourceUrl = '';
+        }
+    }
+
+    removeUrlFromCurrentResource(index: number) {
+        this.currentResource.urls = this.currentResource.urls.filter((_, i) => i !== index);
+    }
+
+    addUrlToCurrentObjectiveResource() {
+        const trimmed = this.newObjectiveResourceUrl.trim();
+        if (trimmed) {
+            this.currentObjectiveResource.urls = [...(this.currentObjectiveResource.urls || []), trimmed];
+            this.newObjectiveResourceUrl = '';
+        }
+    }
+
+    removeUrlFromCurrentObjectiveResource(index: number) {
+        this.currentObjectiveResource.urls = this.currentObjectiveResource.urls.filter((_, i) => i !== index);
+    }
+
     // Member assignment dialogs
     assignMembersToProjectDialogVisible = false;
     assignMembersToObjectiveDialogVisible = false;
@@ -1655,6 +1733,7 @@ export class Projects {
     assignModeratorDialogVisible = false;
     selectedModeratorUserId: string | null = null;
     savingModerator = false;
+    removingModeratorUserId: string | null = null;
     
     resourceDialogVisible = false;
     resourceDialogMode: 'add' | 'edit' = 'add';
@@ -2506,7 +2585,7 @@ export class Projects {
         return {
             id: 0,
             title: '',
-            url: null,
+            urls: [],
             description: '',
             type: '' as any,
             files: []
@@ -2519,6 +2598,7 @@ export class Projects {
         this.currentResource = this.getEmptyResource();
         this.selectedResourceFiles = [];
         this.filesToRemoveFromResource = [];
+        this.newResourceUrl = '';
         this.resourceDialogVisible = true;
     }
     
@@ -2527,6 +2607,7 @@ export class Projects {
         this.currentResource = { ...resource, files: [...(resource.files || [])] };
         this.selectedResourceFiles = [];
         this.filesToRemoveFromResource = [];
+        this.newResourceUrl = '';
         this.resourceDialogVisible = true;
     }
     
@@ -2578,7 +2659,7 @@ export class Projects {
             const payload = {
                 projectId: this.selectedProject.id,
                 title: this.currentResource.title,
-                url: this.currentResource.url || null,
+                urls: this.currentResource.urls || [],
                 description: this.currentResource.description,
                 type: this.currentResource.type,
                 fileIds: newFileIds
@@ -2610,7 +2691,7 @@ export class Projects {
         } else {
             const payload = {
                 title: this.currentResource.title,
-                url: this.currentResource.url || null,
+                urls: this.currentResource.urls || [],
                 description: this.currentResource.description,
                 type: this.currentResource.type,
                 fileIdsToAdd: newFileIds.length > 0 ? newFileIds : undefined,
@@ -2679,7 +2760,7 @@ export class Projects {
 
     isProjectModerator(project: Project | null): boolean {
         if (!project) return false;
-        return !!project.moderatorUserId && project.moderatorUserId === this.currentUser.userId;
+        return !!(project.moderators?.some(m => m.userId === this.currentUser.userId));
     }
 
     isAdminOrModerator(project: Project | null): boolean {
@@ -2691,36 +2772,57 @@ export class Projects {
         return role === 'admin' || role === 'administrator';
     }
 
+    getAvailableMembersForModerator(): any[] {
+        const existingIds = new Set((this.selectedProject?.moderators || []).map(m => m.userId));
+        return this.availableMembers.filter(m => m.userId && !existingIds.has(m.userId));
+    }
+
     openAssignModeratorDialog() {
         if (!this.selectedProject) return;
-        this.selectedModeratorUserId = this.selectedProject.moderatorUserId ?? null;
+        this.selectedModeratorUserId = null;
         this.assignModeratorDialogVisible = true;
     }
 
     saveProjectModerator() {
-        if (!this.selectedProject) return;
+        if (!this.selectedProject || !this.selectedModeratorUserId) return;
         this.savingModerator = true;
-        this.projectsService.assignModerator(this.selectedProject.id, this.selectedModeratorUserId).subscribe({
+        this.projectsService.addModerator(this.selectedProject.id, this.selectedModeratorUserId).subscribe({
             next: () => {
                 if (this.selectedProject) {
                     const member = this.availableMembers.find(m => m.userId === this.selectedModeratorUserId);
                     if (member) {
                         const [firstName, ...rest] = member.name.split(' ');
-                        this.selectedProject.moderatorUserId = this.selectedModeratorUserId ?? undefined;
-                        this.selectedProject.moderatorFirstName = firstName;
-                        this.selectedProject.moderatorLastName = rest.join(' ');
-                    } else {
-                        this.selectedProject.moderatorUserId = undefined;
-                        this.selectedProject.moderatorFirstName = undefined;
-                        this.selectedProject.moderatorLastName = undefined;
+                        if (!this.selectedProject.moderators) this.selectedProject.moderators = [];
+                        this.selectedProject.moderators.push({
+                            userId: this.selectedModeratorUserId!,
+                            firstName,
+                            lastName: rest.join(' ')
+                        });
                     }
                 }
-                this.assignModeratorDialogVisible = false;
+                this.selectedModeratorUserId = null;
                 this.savingModerator = false;
             },
             error: (err) => {
-                console.error('Error assigning moderator:', err);
+                console.error('Error adding moderator:', err);
                 this.savingModerator = false;
+            }
+        });
+    }
+
+    removeProjectModerator(moderatorUserId: string) {
+        if (!this.selectedProject) return;
+        this.removingModeratorUserId = moderatorUserId;
+        this.projectsService.removeModerator(this.selectedProject.id, moderatorUserId).subscribe({
+            next: () => {
+                if (this.selectedProject) {
+                    this.selectedProject.moderators = this.selectedProject.moderators?.filter(m => m.userId !== moderatorUserId) || [];
+                }
+                this.removingModeratorUserId = null;
+            },
+            error: (err) => {
+                console.error('Error removing moderator:', err);
+                this.removingModeratorUserId = null;
             }
         });
     }
@@ -2792,6 +2894,7 @@ export class Projects {
         this.currentObjectiveResource = this.getEmptyResource();
         this.selectedObjectiveResourceFiles = [];
         this.filesToRemoveFromObjectiveResource = [];
+        this.newObjectiveResourceUrl = '';
         this.objectiveResourceDialogVisible = true;
     }
     
@@ -2801,6 +2904,7 @@ export class Projects {
         this.currentObjectiveResource = { ...resource, files: [...(resource.files || [])] };
         this.selectedObjectiveResourceFiles = [];
         this.filesToRemoveFromObjectiveResource = [];
+        this.newObjectiveResourceUrl = '';
         this.objectiveResourceDialogVisible = true;
     }
     
@@ -2998,7 +3102,7 @@ export class Projects {
             const payload = {
                 objectiveId: this.viewingObjective.id,
                 title: this.currentObjectiveResource.title,
-                url: this.currentObjectiveResource.url || null,
+                urls: this.currentObjectiveResource.urls || [],
                 description: this.currentObjectiveResource.description,
                 type: this.currentObjectiveResource.type,
                 fileIds: newFileIds
@@ -3028,7 +3132,7 @@ export class Projects {
         } else {
             const payload = {
                 title: this.currentObjectiveResource.title,
-                url: this.currentObjectiveResource.url || null,
+                urls: this.currentObjectiveResource.urls || [],
                 description: this.currentObjectiveResource.description,
                 type: this.currentObjectiveResource.type,
                 fileIdsToAdd: newFileIds.length > 0 ? newFileIds : undefined,
@@ -3734,9 +3838,7 @@ export class Projects {
             createdByUserId: p.createdByUserId,
             createdByFirstName: p.createdByFirstName,
             createdByLastName: p.createdByLastName,
-            moderatorUserId: p.moderatorUserId,
-            moderatorFirstName: p.moderatorFirstName,
-            moderatorLastName: p.moderatorLastName,
+            moderators: p.moderators || [],
             bannerUrl: p.bannerUrl
                 ? (p.bannerUrl.startsWith('http') ? p.bannerUrl : `${environment.baseUrl}${p.bannerUrl}`)
                 : undefined

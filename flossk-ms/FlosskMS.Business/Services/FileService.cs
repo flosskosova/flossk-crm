@@ -208,9 +208,9 @@ public class FileService : IFileService
         }
 
         // Delete physical file
-        if (System.IO.File.Exists(file.FilePath))
+        if (File.Exists(file.FilePath))
         {
-            System.IO.File.Delete(file.FilePath);
+            File.Delete(file.FilePath);
         }
 
         // Delete database record

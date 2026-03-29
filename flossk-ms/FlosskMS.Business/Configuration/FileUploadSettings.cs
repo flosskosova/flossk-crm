@@ -4,7 +4,7 @@ public class FileUploadSettings
 {
     public string UploadPath { get; set; } = "uploads";
     public long MaxFileSizeBytes { get; set; } = 10 * 1024 * 1024; // 10 MB default
-    public string[] AllowedExtensions { get; set; } = [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt"];
+    public string[] AllowedExtensions { get; set; } = [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".pptx", ".txt"];
 }
 
 public class ClamAvSettings

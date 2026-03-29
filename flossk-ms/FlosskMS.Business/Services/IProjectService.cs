@@ -14,7 +14,8 @@ public interface IProjectService
     Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request, string? userId = null, bool isAdmin = false);
     Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status, string? userId = null, bool isAdmin = false);
     Task<IActionResult> DeleteProjectAsync(Guid id, string? userId = null, bool isAdmin = false);
-    Task<IActionResult> AssignModeratorAsync(Guid projectId, AssignModeratorDto request, string actingUserId);
+    Task<IActionResult> AddModeratorAsync(Guid projectId, AssignModeratorDto request, string actingUserId);
+    Task<IActionResult> RemoveModeratorAsync(Guid projectId, string moderatorUserId, string actingUserId);
 
     // Project team member operations
     Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request, string? addedByUserId = null);

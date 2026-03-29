@@ -82,7 +82,7 @@ export interface ResourceFile {
 export interface Resource {
     id: number;
     title: string;
-    url: string | null;
+    urls: string[];
     description: string;
     type: 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
     files?: ResourceFile[];
@@ -96,12 +96,19 @@ export interface Objective {
     description: string;
     status: 'todo' | 'in-progress' | 'completed';
     points?: number;
+    createdAt?: string;
     assignedTo: Member;
     members?: Member[];
     resources?: Resource[];
     createdByUserId?: string;
     createdByFirstName?: string;
     createdByLastName?: string;
+}
+
+export interface ModeratorInfo {
+    userId: string;
+    firstName: string;
+    lastName: string;
 }
 
 export interface Project {
@@ -121,9 +128,7 @@ export interface Project {
     createdByUserId?: string; // Project creator user ID
     createdByFirstName?: string; // Project creator first name
     createdByLastName?: string; // Project creator last name
-    moderatorUserId?: string; // Project moderator user ID
-    moderatorFirstName?: string; // Project moderator first name
-    moderatorLastName?: string; // Project moderator last name
+    moderators?: ModeratorInfo[]; // Project moderators
 }
 
 @Injectable({
@@ -214,11 +219,11 @@ export class ProjectsService {
         return this.http.get<UsersResponse>(`${this.AUTH_API_URL}/users?page=${page}&pageSize=${pageSize}`);
     }
 
-    createResource(payload: { projectId?: number; objectiveId?: number; title: string; url: string | null; description: string; type: string; fileIds?: string[] }): Observable<any> {
+    createResource(payload: { projectId?: number; objectiveId?: number; title: string; urls: string[]; description: string; type: string; fileIds?: string[] }): Observable<any> {
         return this.http.post<any>(`${this.API_URL}/resources`, payload);
     }
 
-    updateResource(id: number, payload: { title: string; url: string | null; description: string; type: string; fileIdsToAdd?: string[]; fileIdsToRemove?: string[] }): Observable<any> {
+    updateResource(id: number, payload: { title: string; urls: string[]; description: string; type: string; fileIdsToAdd?: string[]; fileIdsToRemove?: string[] }): Observable<any> {
         return this.http.put<any>(`${this.API_URL}/resources/${id}`, payload);
     }
 
@@ -226,8 +231,12 @@ export class ProjectsService {
         return this.http.delete<any>(`${this.API_URL}/resources/${id}`);
     }
 
-    assignModerator(projectId: number | string, moderatorUserId: string | null): Observable<any> {
-        return this.http.put<any>(`${this.API_URL}/${projectId}/moderator`, { moderatorUserId });
+    addModerator(projectId: number | string, moderatorUserId: string): Observable<any> {
+        return this.http.post<any>(`${this.API_URL}/${projectId}/moderators`, { moderatorUserId });
+    }
+
+    removeModerator(projectId: number | string, moderatorUserId: string): Observable<any> {
+        return this.http.delete<any>(`${this.API_URL}/${projectId}/moderators/${moderatorUserId}`);
     }
 
     uploadBanner(projectId: string, file: File): Observable<any> {

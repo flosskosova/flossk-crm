@@ -24,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Resource> Resources { get; set; }
     public DbSet<ResourceFile> ResourceFiles { get; set; }
     public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
+    public DbSet<ProjectModerator> ProjectModerators { get; set; }
     public DbSet<ObjectiveTeamMember> ObjectiveTeamMembers { get; set; }
     public DbSet<CalendarEvent> CalendarEvents { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
@@ -241,11 +242,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(e => e.ModeratorUser)
-                .WithMany()
-                .HasForeignKey(e => e.ModeratorUserId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .IsRequired(false);
+            entity.HasMany(e => e.Moderators)
+                .WithOne(m => m.Project)
+                .HasForeignKey(m => m.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.Ignore(e => e.ProgressPercentage); // Calculated property
 
@@ -285,7 +285,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.Url).HasMaxLength(2000).IsRequired(false);
+            entity.Property(e => e.Urls)
+                .HasColumnType("text[]")
+                .HasDefaultValueSql("'{}'");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Type)
                 .HasConversion<string>()
@@ -351,6 +353,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Ensure a user can only be added once per project
+            entity.HasIndex(e => new { e.ProjectId, e.UserId }).IsUnique();
+        });
+
+        // ProjectModerator (many-to-many join table)
+        builder.Entity<ProjectModerator>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Project)
+                .WithMany(p => p.Moderators)
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Ensure a user can only appear once per project (a user can moderate multiple projects)
             entity.HasIndex(e => new { e.ProjectId, e.UserId }).IsUnique();
         });
 
