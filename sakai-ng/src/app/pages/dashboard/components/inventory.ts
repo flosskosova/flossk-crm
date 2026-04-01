@@ -860,6 +860,7 @@ interface User {
                     <p-button
                         label="Check Out"
                         severity="success"
+                        [loading]="checkingOut"
                         (onClick)="submitCheckout()"
                     />
                 </div>
@@ -908,6 +909,7 @@ interface User {
                     <p-button
                         label="Check In"
                         severity="success"
+                        [loading]="checkingIn"
                         (onClick)="submitCheckin()"
                     />
                 </div>
@@ -1122,9 +1124,11 @@ export class Inventory implements OnInit {
     checkoutDialogVisible = false;
     checkoutItem: InventoryItem | null = null;
     checkoutQuantity = 1;
+    checkingOut = false;
     checkinDialogVisible = false;
     checkinItem: InventoryItem | null = null;
     checkinQuantity = 1;
+    checkingIn = false;
     checkoutsModalVisible = false;
     checkoutsModalItem: InventoryItem | null = null;
     activePopoverItem: InventoryItem | null = null;
@@ -1636,7 +1640,7 @@ export class Inventory implements OnInit {
     }
 
     submitCheckout() {
-        if (!this.checkoutItem) return;
+        if (!this.checkoutItem || this.checkingOut) return;
 
         // Validate quantity does not exceed available
         const availableQty = this.checkoutItem.quantityAvailable || 0;
@@ -1658,6 +1662,7 @@ export class Inventory implements OnInit {
             return;
         }
 
+        this.checkingOut = true;
         this.http.post(`${this.apiUrl}/${this.checkoutItem.id}/checkout`, {
             quantity: this.checkoutQuantity
         }).subscribe({
@@ -1668,10 +1673,11 @@ export class Inventory implements OnInit {
                     summary: 'Success',
                     detail: `${this.checkoutQuantity} unit(s) of ${this.checkoutItem!.name} checked out successfully`
                 });
+                this.checkingOut = false;
                 this.checkoutDialogVisible = false;
                 this.loadInventoryItems();
             },
-            error: () => {}
+            error: () => { this.checkingOut = false; }
         });
     }
 
@@ -1684,7 +1690,7 @@ export class Inventory implements OnInit {
     }
 
     submitCheckin() {
-        if (!this.checkinItem) return;
+        if (!this.checkinItem || this.checkingIn) return;
 
         // Validate quantity does not exceed user's checked out quantity
         const userCheckedOutQty = this.getUserCheckedOutQuantity(this.checkinItem);
@@ -1706,6 +1712,7 @@ export class Inventory implements OnInit {
             return;
         }
 
+        this.checkingIn = true;
         this.http.post(`${this.apiUrl}/${this.checkinItem.id}/checkin`, {
             quantity: this.checkinQuantity
         }).subscribe({
@@ -1716,10 +1723,11 @@ export class Inventory implements OnInit {
                     summary: 'Success',
                     detail: `${this.checkinQuantity} unit(s) of ${this.checkinItem!.name} checked in successfully`
                 });
+                this.checkingIn = false;
                 this.checkinDialogVisible = false;
                 this.loadInventoryItems();
             },
-            error: () => {}
+            error: () => { this.checkingIn = false; }
         });
     }
 
