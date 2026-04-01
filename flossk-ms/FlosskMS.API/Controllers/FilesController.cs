@@ -128,6 +128,23 @@ public class FilesController : ControllerBase
     }
 
     /// <summary>
+    /// View a file inline (used for embedded images/files in rich-text descriptions)
+    /// </summary>
+    [HttpGet("{id:guid}/view")]
+    public async Task<IActionResult> ViewFile(Guid id, CancellationToken cancellationToken)
+    {
+        var (stream, contentType, _) = await _fileService.DownloadFileAsync(id, cancellationToken);
+
+        if (stream == null)
+        {
+            return NotFound();
+        }
+
+        Response.Headers.Append("Content-Disposition", "inline");
+        return File(stream, contentType ?? "application/octet-stream");
+    }
+
+    /// <summary>
     /// Delete a file
     /// </summary>
     [HttpDelete("{id:guid}")]

@@ -94,7 +94,7 @@ interface User {
                             (onClick)="openAddDialog()"
                         />
                         <p-button
-                            label="Import"
+                            label="Import JSON"
                             icon="pi pi-file-import"
                             severity="secondary"
                             [loading]="importingJson"
@@ -120,6 +120,13 @@ interface User {
                             severity="secondary"
                             [loading]="exportingExcel"
                             (onClick)="exportExcel()"
+                        />
+                        <p-button
+                            label="Delete All"
+                            icon="pi pi-trash"
+                            severity="danger"
+                            [loading]="deletingAll"
+                            (onClick)="confirmDeleteAll()"
                         />
                     </div>
                 </ng-template>
@@ -1043,9 +1050,12 @@ export class Inventory implements OnInit {
             error: () => {} // keep existing options on failure
         });
 
+        this.loadUsageFilterOptions();
+    }
+
+    loadUsageFilterOptions() {
         this.inventoryService.getUsersWithCheckouts().subscribe({
             next: (users) => {
-                console.log('Users with checkouts:', users);
                 const loggedInUserId = this.authService.currentUser()?.id;
                 this.filterUsageOptions = users.map(u => ({
                     label: u.id === loggedInUserId ? 'Checked out by me' : u.fullName,
@@ -1457,6 +1467,34 @@ export class Inventory implements OnInit {
         });
     }
 
+    confirmDeleteAll() {
+        this.confirmationService.confirm({
+            message: 'Are you sure you want to delete ALL inventory items? This action cannot be undone.',
+            header: 'Delete All Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.deleteAllItems();
+            }
+        });
+    }
+
+    deleteAllItems() {
+        this.deletingAll = true;
+        this.http.delete(`${this.apiUrl}/all`).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: 'All inventory items deleted successfully'
+                });
+                this.deletingAll = false;
+                this.loadInventoryItems();
+            },
+            error: () => { this.deletingAll = false; }
+        });
+    }
+
     deleteItem(item: InventoryItem) {
         this.http.delete(`${this.apiUrl}/${item.id}`).subscribe({
             next: () => {
@@ -1551,6 +1589,7 @@ export class Inventory implements OnInit {
 
     exportingData = false;
     exportingExcel = false;
+    deletingAll = false;
 
     exportData() {
         this.exportingData = true;
@@ -1676,6 +1715,7 @@ export class Inventory implements OnInit {
                 this.checkingOut = false;
                 this.checkoutDialogVisible = false;
                 this.loadInventoryItems();
+                this.loadUsageFilterOptions();
             },
             error: () => { this.checkingOut = false; }
         });
@@ -1726,6 +1766,7 @@ export class Inventory implements OnInit {
                 this.checkingIn = false;
                 this.checkinDialogVisible = false;
                 this.loadInventoryItems();
+                this.loadUsageFilterOptions();
             },
             error: () => { this.checkingIn = false; }
         });

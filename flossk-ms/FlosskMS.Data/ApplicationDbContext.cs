@@ -232,7 +232,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Description).HasMaxLength(10000);
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20);
@@ -260,7 +260,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Description).HasMaxLength(10000);
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20);

@@ -33,7 +33,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
     providers: [ConfirmationService],
     template: `
         <p-confirmdialog></p-confirmdialog>
-        
+
         <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
@@ -46,33 +46,44 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         <label for="startDate" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Start Date</label>
                         <p-datepicker id="startDate" [(ngModel)]="startDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" appendTo="body" />
                     </div>
-                    
+
                     <div class="">
                         <label for="endDate" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">End Date</label>
                         <p-datepicker id="endDate" [(ngModel)]="endDate" dateFormat="M d, yy" [showIcon]="true" class="w-full" appendTo="body" />
                     </div>
                 </div>
-                
+
                 <div>
                     <label for="description" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <p-editor [(ngModel)]="currentProject.description" [style]="{'height': '150px'}"></p-editor>
+                    <p-editor [(ngModel)]="currentProject.description" [style]="{'height': '200px'}" (onInit)="onEditorInit($event, 'project')"></p-editor>
+                    <div class="flex items-center gap-1 mt-1">
+                        <input #projectFileInput type="file" style="display:none" (change)="onEditorFileSelected($event)" />
+                        <p-button
+                            label="Attach file"
+                            icon="pi pi-paperclip"
+                            [text]="true"
+                            size="small"
+                            severity="secondary"
+                            (onClick)="activeEditorKey = 'project'; projectFileInput.click()"
+                        />
+                    </div>
                 </div>
-                
+
                 <!-- <div>
                     <label for="teamMembers" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Team Members</label>
-                    <p-multiselect 
-                        id="teamMembers" 
-                        [(ngModel)]="selectedMemberNames" 
-                        [options]="availableMembers" 
-                        optionLabel="name" 
+                    <p-multiselect
+                        id="teamMembers"
+                        [(ngModel)]="selectedMemberNames"
+                        [options]="availableMembers"
+                        optionLabel="name"
                         optionValue="name"
-                        placeholder="Select Team Members" 
+                        placeholder="Select Team Members"
                         class="w-full"
                         [showClear]="true"
                         display="chip"
                     />
                 </div> -->
-                
+
                 <div>
                     <label for="status" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="status" [(ngModel)]="currentProject.status" [options]="statusOptions" placeholder="Select Status" class="w-full" appendTo="body" />
@@ -129,19 +140,30 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 </div>
             </ng-template>
         </p-dialog>
-        
+
         <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Task' : 'Edit Task'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objectiveTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
                     <input pInputText id="objectiveTitle" [(ngModel)]="currentObjective.title" class="w-full" />
                 </div>
-                
+
                 <div>
                     <label for="objectiveDescription" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <p-editor [(ngModel)]="currentObjective.description" [style]="{'height': '120px'}"></p-editor>
+                    <p-editor [(ngModel)]="currentObjective.description" [style]="{'height': '160px'}" (onInit)="onEditorInit($event, 'objective')"></p-editor>
+                    <div class="flex items-center gap-1 mt-1">
+                        <input #objectiveFileInput type="file" style="display:none" (change)="onEditorFileSelected($event)" />
+                        <p-button
+                            label="Attach file"
+                            icon="pi pi-paperclip"
+                            [text]="true"
+                            size="small"
+                            severity="secondary"
+                            (onClick)="activeEditorKey = 'objective'; objectiveFileInput.click()"
+                        />
+                    </div>
                 </div>
-                
+
                 <div>
                     <label for="objectiveStatus" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Status</label>
                     <p-select id="objectiveStatus" [(ngModel)]="currentObjective.status" [options]="objectiveStatusOptions" placeholder="Select Status" class="w-full" />
@@ -153,13 +175,13 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         (input)="clampObjectivePoints($event)" />
                 </div>
             </div>
-            
+
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveDialogVisible = false" />
                 <p-button [label]="objectiveDialogMode === 'add' ? 'Create' : 'Save'" (onClick)="saveObjective()" [disabled]="objectiveDialogMode === 'add' && !isObjectiveFormValid()" />
             </div>
-        </p-dialog> 
-        
+        </p-dialog>
+
         <!-- Resource Dialog -->
         <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource to Project' : 'Edit Project Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
@@ -167,7 +189,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
                     <input pInputText id="resourceTitle" [(ngModel)]="currentResource.title" class="w-full" />
                 </div>
-                
+
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URLs</label>
                     <div class="flex gap-2 mb-2">
@@ -186,18 +208,18 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     }
                     <small class="text-surface-500">Optional if files are attached</small>
                 </div>
-                
+
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Files</label>
-                    <p-fileupload 
-                        mode="basic" 
+                    <p-fileupload
+                        mode="basic"
                         [multiple]="true"
-                        chooseLabel="Choose Files" 
+                        chooseLabel="Choose Files"
                         (onSelect)="onResourceFilesSelect($event)"
                         [auto]="false"
                         chooseIcon="pi pi-upload"
                     ></p-fileupload>
-                    
+
                     <!-- Display selected files -->
                     @if (selectedResourceFiles.length > 0) {
                         <div class="mt-2 flex flex-col gap-1">
@@ -211,7 +233,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             }
                         </div>
                     }
-                    
+
                     <!-- Display existing files (edit mode) -->
                     @if (resourceDialogMode === 'edit' && currentResource.files && currentResource.files.length > 0) {
                         <div class="mt-2">
@@ -230,24 +252,24 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     }
                     <small class="text-surface-500">You can attach multiple files</small>
                 </div>
-                
+
                 <div>
                     <label for="resourceDescription" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
                     <textarea pInputTextarea id="resourceDescription" [(ngModel)]="currentResource.description" [rows]="2" class="w-full"></textarea>
                 </div>
-                
+
                 <div>
                     <label for="resourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type *</label>
                     <p-select id="resourceType" [(ngModel)]="currentResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" appendTo="body" />
                 </div>
             </div>
-            
+
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="resourceDialogVisible = false" />
                 <p-button [label]="resourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveResource()" [loading]="savingResource" />
             </div>
         </p-dialog>
-        
+
         <!-- Task Detail Dialog -->
         <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
             <div *ngIf="viewingObjective" class="flex flex-col gap-5">
@@ -267,8 +289,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                 <!-- Status & Points -->
                 <div class="flex items-center gap-4">
-                    <p-tag 
-                        [value]="viewingObjective.status === 'todo' ? 'To Do' : viewingObjective.status === 'in-progress' ? 'In Progress' : 'Completed'" 
+                    <p-tag
+                        [value]="viewingObjective.status === 'todo' ? 'To Do' : viewingObjective.status === 'in-progress' ? 'In Progress' : 'Completed'"
                         [severity]="getObjectiveStatusSeverity(viewingObjective.status)"
                         styleClass="text-sm"
                     ></p-tag>
@@ -283,9 +305,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <h6 class="text-sm font-semibold text-muted-color mb-2 tracking-wide">Description</h6>
                     <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0" [innerHTML]="viewingObjective.description || 'No description provided.'"></p>
                 </div>
-                
+
                 <p-divider></p-divider>
-                
+
                 <!-- Team Members -->
                 <div>
                     <div class="flex justify-between items-center mb-3">
@@ -308,9 +330,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         <p class="m-0">{{ viewingObjective.status === 'completed' ? 'No team members were added' : 'No team members assigned yet' }}</p>
                     </div>
                 </div>
-                
+
                 <p-divider></p-divider>
-                
+
                 <!-- Resources -->
                 <div>
                     <div class="flex justify-between items-center mb-3">
@@ -371,7 +393,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     </div>
                 </div>
             </div>
-            
+
             <div class="flex justify-between gap-2 mt-6">
                 <div class="flex gap-2">
                     @if (viewingObjective && viewingObjective.status !== 'completed' && !isUserInObjective(viewingObjective)) {
@@ -386,7 +408,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 </div>
             </div>
         </p-dialog>
-        
+
         <!-- Task Resource Dialog -->
         <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Task' : 'Edit Task Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
             <div class="flex flex-col gap-4">
@@ -394,7 +416,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <label for="objResourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
                     <input pInputText id="objResourceTitle" [(ngModel)]="currentObjectiveResource.title" class="w-full" />
                 </div>
-                
+
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">URLs</label>
                     <div class="flex gap-2 mb-2">
@@ -413,18 +435,18 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     }
                     <small class="text-surface-500">Optional if files are attached</small>
                 </div>
-                
+
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Files</label>
-                    <p-fileupload 
-                        mode="basic" 
+                    <p-fileupload
+                        mode="basic"
                         [multiple]="true"
-                        chooseLabel="Choose Files" 
+                        chooseLabel="Choose Files"
                         (onSelect)="onObjectiveResourceFilesSelect($event)"
                         [auto]="false"
                         chooseIcon="pi pi-upload"
                     ></p-fileupload>
-                    
+
                     <!-- Display selected files -->
                     @if (selectedObjectiveResourceFiles.length > 0) {
                         <div class="mt-2 flex flex-col gap-1">
@@ -438,7 +460,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             }
                         </div>
                     }
-                    
+
                     <!-- Display existing files (edit mode) -->
                     @if (objectiveResourceDialogMode === 'edit' && currentObjectiveResource.files && currentObjectiveResource.files.length > 0) {
                         <div class="mt-2">
@@ -457,35 +479,35 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     }
                     <small class="text-surface-500">You can attach multiple files</small>
                 </div>
-                
+
                 <div>
                     <label for="objResourceDescription" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
                     <textarea pInputTextarea id="objResourceDescription" [(ngModel)]="currentObjectiveResource.description" [rows]="2" class="w-full"></textarea>
                 </div>
-                
+
                 <div>
                     <label for="objResourceType" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Type *</label>
                     <p-select id="objResourceType" [(ngModel)]="currentObjectiveResource.type" [options]="resourceTypeOptions" optionLabel="label" optionValue="value" placeholder="Select Type" class="w-full" appendTo="body" />
                 </div>
             </div>
-            
+
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="objectiveResourceDialogVisible = false" />
                 <p-button [label]="objectiveResourceDialogMode === 'add' ? 'Add' : 'Save'" (onClick)="saveObjectiveResource()" [loading]="savingObjectiveResource" />
             </div>
         </p-dialog>
-        
+
         <!-- Assign Members to Project Dialog -->
         <p-dialog [(visible)]="assignMembersToProjectDialogVisible" [header]="'Assign Members to: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
-                    <p-multiselect 
+                    <p-multiselect
                         [(ngModel)]="tempSelectedProjectMembers"
-                        [options]="availableMembers" 
-                        optionLabel="name" 
+                        [options]="availableMembers"
+                        optionLabel="name"
                         optionValue="userId"
-                        placeholder="Select members to assign" 
+                        placeholder="Select members to assign"
                         class="w-full"
                         display="chip"
                         (onChange)="onProjectMembersChange($event)"
@@ -502,7 +524,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         </ng-template>
                     </p-multiselect>
                 </div>
-                
+
                 <div *ngIf="selectedProject?.participants?.length" class="mt-2">
                     <p class="text-sm text-muted-color mb-2">Current team members:</p>
                     <div class="flex flex-wrap gap-2">
@@ -515,24 +537,24 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     </div>
                 </div>
             </div>
-            
+
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToProjectDialogVisible = false" />
                 <p-button label="Save" (onClick)="assignProjectMembers()" />
             </div>
-        </p-dialog> 
-        
+        </p-dialog>
+
         <!-- Assign Members to Task Dialog -->
         <p-dialog [(visible)]="assignMembersToObjectiveDialogVisible" [header]="'Assign Members to: ' + (assigningObjective?.title || '')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
-                    <p-multiselect 
-                        [(ngModel)]="tempSelectedObjectiveMembers" 
-                        [options]="availableMembers" 
-                        optionLabel="name" 
+                    <p-multiselect
+                        [(ngModel)]="tempSelectedObjectiveMembers"
+                        [options]="availableMembers"
+                        optionLabel="name"
                         optionValue="userId"
-                        placeholder="Select members to assign" 
+                        placeholder="Select members to assign"
                         class="w-full"
                         [showClear]="false"
                         display="chip"
@@ -550,7 +572,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                         </ng-template>
                     </p-multiselect>
                 </div>
-                
+
                 <div *ngIf="assigningObjective?.members?.length" class="mt-2">
                     <p class="text-sm text-muted-color mb-2">Currently assigned:</p>
                     <div class="flex flex-wrap gap-2">
@@ -563,7 +585,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     </div>
                 </div>
             </div>
-            
+
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="assignMembersToObjectiveDialogVisible = false" />
                 <p-button label="Save" (onClick)="saveObjectiveMembers()" />
@@ -624,7 +646,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                 <p-button label="Close" severity="secondary" (onClick)="assignModeratorDialogVisible = false" />
             </div>
         </p-dialog>
-        
+
         <div class="card">
             <div class="flex justify-end items-center mb-6">
                 <p-button *ngIf="isAdmin()" label="New Project" icon="pi pi-plus" size="small" (onClick)="openAddDialog()"></p-button>
@@ -674,7 +696,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <div class="mb-3">
-                                    <p-button 
+                                    <p-button
                                         *ngIf="!isUserMember(project)"
                                         label="Join"
                                         icon="pi pi-user-plus"
@@ -683,7 +705,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         (onClick)="joinProject(project, $event)"
                                         styleClass="w-full"
                                     />
-                                    <p-button 
+                                    <p-button
                                         *ngIf="isUserMember(project)"
                                         label="Leave"
                                         icon="pi pi-user-minus"
@@ -700,17 +722,17 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <div class="mt-3">
                                     <p class="text-xs text-muted-color mb-2">Team</p>
                                     <p-avatargroup>
-                                        <p-avatar 
-                                            *ngFor="let member of project.participants.slice(0, 3)" 
+                                        <p-avatar
+                                            *ngFor="let member of project.participants.slice(0, 3)"
                                             [image]="hasProfilePicture(member) ? member.avatar : undefined"
                                             [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
                                             shape="circle"
                                             size="normal"
                                             [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                         ></p-avatar>
-                                        <p-avatar 
+                                        <p-avatar
                                             *ngIf="project.participants.length > 3"
-                                            [label]="'+' + (project.participants.length - 3)" 
+                                            [label]="'+' + (project.participants.length - 3)"
                                             shape="circle"
                                             size="normal"
                                             [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
@@ -773,7 +795,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
 
                                 <div class="mb-3">
-                                    <p-button 
+                                    <p-button
                                         *ngIf="!isUserMember(project)"
                                         label="Join"
                                         icon="pi pi-user-plus"
@@ -782,7 +804,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         (onClick)="joinProject(project, $event)"
                                         styleClass="w-full"
                                     />
-                                    <p-button 
+                                    <p-button
                                         *ngIf="isUserMember(project)"
                                         label="Leave"
                                         icon="pi pi-user-minus"
@@ -799,17 +821,17 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <div class="mt-3">
                                     <p class="text-xs text-muted-color mb-2">Team</p>
                                     <p-avatargroup>
-                                        <p-avatar 
-                                            *ngFor="let member of project.participants.slice(0, 3)" 
+                                        <p-avatar
+                                            *ngFor="let member of project.participants.slice(0, 3)"
                                             [image]="hasProfilePicture(member) ? member.avatar : undefined"
                                             [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
                                             shape="circle"
                                             size="normal"
                                             [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                         ></p-avatar>
-                                        <p-avatar 
+                                        <p-avatar
                                             *ngIf="project.participants.length > 3"
-                                            [label]="'+' + (project.participants.length - 3)" 
+                                            [label]="'+' + (project.participants.length - 3)"
                                             shape="circle"
                                             size="normal"
                                             [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
@@ -881,17 +903,17 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <div class="mt-3">
                                     <p class="text-xs text-muted-color mb-2">Team</p>
                                     <p-avatargroup>
-                                        <p-avatar 
-                                            *ngFor="let member of project.participants.slice(0, 3)" 
+                                        <p-avatar
+                                            *ngFor="let member of project.participants.slice(0, 3)"
                                             [image]="hasProfilePicture(member) ? member.avatar : undefined"
                                             [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
                                             shape="circle"
                                             size="normal"
                                             [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                         ></p-avatar>
-                                        <p-avatar 
+                                        <p-avatar
                                             *ngIf="project.participants.length > 3"
-                                            [label]="'+' + (project.participants.length - 3)" 
+                                            [label]="'+' + (project.participants.length - 3)"
                                             shape="circle"
                                             size="normal"
                                             [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
@@ -942,8 +964,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                     <div class="flex-1">
                         <div class="flex flex-col md:flex-row items-start md:items-center gap-2 mb-2">
                             <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ selectedProject.title }}</h2>
-                            <p-tag 
-                                [value]="selectedProject.status === 'in-progress' ? 'In Progress' : selectedProject.status === 'upcoming' ? 'Upcoming' : 'Completed'" 
+                            <p-tag
+                                [value]="selectedProject.status === 'in-progress' ? 'In Progress' : selectedProject.status === 'upcoming' ? 'Upcoming' : 'Completed'"
                                 [severity]="selectedProject.status === 'in-progress' ? 'info' : selectedProject.status === 'upcoming' ? 'warn' : 'success'"
                             ></p-tag>
                             <p-tag *ngFor="let type of selectedProject.types" [value]="type" severity="secondary"></p-tag>
@@ -965,7 +987,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <h3 class="text-lg font-semibold m-0">Tasks</h3>
                                 <p-button *ngIf="selectedProject.status !== 'completed'" label="Add Task" icon="pi pi-plus" size="small" (onClick)="openAddObjectiveDialog()" />
                             </div>
-                            
+
                             <!-- Kanban Board for Tasks -->
                             <div class="grid grid-cols-12 gap-4">
                                 <!-- Todo Column -->
@@ -976,9 +998,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                             <p-tag [value]="getObjectivesByStatus('todo').length.toString()" severity="secondary" styleClass="text-xs"></p-tag>
                                         </div>
                                         <div class="flex flex-col gap-2 min-h-24">
-                                            <div *ngFor="let objective of getObjectivesByStatus('todo')" 
-                                                pDraggable="objectives" 
-                                                (onDragStart)="dragStartObjective(objective)" 
+                                            <div *ngFor="let objective of getObjectivesByStatus('todo')"
+                                                pDraggable="objectives"
+                                                (onDragStart)="dragStartObjective(objective)"
                                                 (onDragEnd)="dragEndObjective()"
                                                 (click)="openObjectiveDetailDialog(objective)"
                                                 class="bg-surface-0 dark:bg-surface-900 border border-surface rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
@@ -1034,9 +1056,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                             <p-tag [value]="getObjectivesByStatus('in-progress').length.toString()" severity="info" styleClass="text-xs"></p-tag>
                                         </div>
                                         <div class="flex flex-col gap-2 min-h-24">
-                                            <div *ngFor="let objective of getObjectivesByStatus('in-progress')" 
-                                                pDraggable="objectives" 
-                                                (onDragStart)="dragStartObjective(objective)" 
+                                            <div *ngFor="let objective of getObjectivesByStatus('in-progress')"
+                                                pDraggable="objectives"
+                                                (onDragStart)="dragStartObjective(objective)"
                                                 (onDragEnd)="dragEndObjective()"
                                                 (click)="openObjectiveDetailDialog(objective)"
                                                 class="bg-surface-0 dark:bg-surface-900 border border-blue-200 dark:border-blue-800 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
@@ -1061,11 +1083,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         @if (objective.members && objective.members.length > 0) {
                                                             <p-avatarGroup>
                                                                 @for (member of objective.members.slice(0, 2); track member.name) {
-                                                                    <p-avatar 
+                                                                    <p-avatar
                                                                         [image]="hasProfilePicture(member) ? member.avatar : undefined"
                                                                         [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
-                                                                        shape="circle" 
-                                                                        size="normal" 
+                                                                        shape="circle"
+                                                                        size="normal"
                                                                         [pTooltip]="member.name"
                                                                         [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                                                     ></p-avatar>
@@ -1098,9 +1120,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                             <p-tag [value]="getObjectivesByStatus('completed').length.toString()" severity="success" styleClass="text-xs"></p-tag>
                                         </div>
                                         <div [ngClass]="selectedProject.status === 'completed' ? 'grid grid-cols-1 md:grid-cols-3 gap-2 min-h-24' : 'flex flex-col gap-2 min-h-24'">
-                                            <div *ngFor="let objective of getObjectivesByStatus('completed')" 
-                                                pDraggable="objectives" 
-                                                (onDragStart)="dragStartObjective(objective)" 
+                                            <div *ngFor="let objective of getObjectivesByStatus('completed')"
+                                                pDraggable="objectives"
+                                                (onDragStart)="dragStartObjective(objective)"
                                                 (onDragEnd)="dragEndObjective()"
                                                 (click)="openObjectiveDetailDialog(objective)"
                                                 class="bg-surface-0 dark:bg-surface-900 border border-green-200 dark:border-green-800 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
@@ -1122,11 +1144,11 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                                         @if (objective.members && objective.members.length > 0) {
                                                             <p-avatarGroup>
                                                                 @for (member of objective.members.slice(0, 2); track member.name) {
-                                                                    <p-avatar 
+                                                                    <p-avatar
                                                                         [image]="hasProfilePicture(member) ? member.avatar : undefined"
                                                                         [label]="!hasProfilePicture(member) ? getInitials(member.name) : undefined"
-                                                                        shape="circle" 
-                                                                        size="normal" 
+                                                                        shape="circle"
+                                                                        size="normal"
                                                                         [pTooltip]="member.name"
                                                                         [style]="!hasProfilePicture(member) ? {'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'} : {}"
                                                                     ></p-avatar>
@@ -1243,7 +1265,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold m-0">Resources</h3>
@@ -1312,19 +1334,19 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                     </span>
                                 </div>
                                 <div class="flex gap-2">
-                                    <p-button 
-                                        icon="pi pi-refresh" 
-                                        size="small" 
-                                        [text]="true" 
-                                        [rounded]="true" 
+                                    <p-button
+                                        icon="pi pi-refresh"
+                                        size="small"
+                                        [text]="true"
+                                        [rounded]="true"
                                         (onClick)="loadGithubCommits(selectedProject)"
                                         [loading]="isLoadingGithubCommits(selectedProject.id)"
                                     />
                                     <a [href]="getGithubRepoUrl(selectedProject.githubRepo)" target="_blank">
-                                        <p-button 
-                                            icon="pi pi-external-link" 
-                                            size="small" 
-                                            [text]="true" 
+                                        <p-button
+                                            icon="pi pi-external-link"
+                                            size="small"
+                                            [text]="true"
                                             [rounded]="true"
                                             severity="secondary"
                                         />
@@ -1345,21 +1367,21 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <div *ngIf="!isLoadingGithubCommits(selectedProject.id) && !getGithubError(selectedProject.id)">
                                     <!-- <div *ngFor="let commit of getGithubCommits(selectedProject.id)" class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                         <div class="flex items-start gap-3">
-                                            <p-avatar 
+                                            <p-avatar
                                                 *ngIf="commit.author?.avatar_url; else defaultAvatar"
-                                                [image]="commit.author!.avatar_url" 
-                                                shape="circle" 
+                                                [image]="commit.author!.avatar_url"
+                                                shape="circle"
                                                 size="normal"
                                             />
                                             <ng-template #defaultAvatar>
-                                                <p-avatar 
-                                                    icon="pi pi-user" 
-                                                    shape="circle" 
+                                                <p-avatar
+                                                    icon="pi pi-user"
+                                                    shape="circle"
                                                     size="normal"
                                                     styleClass="bg-surface-300"
                                                 />
                                             </ng-template>
-                                            
+
                                             <div class="flex-1 min-w-0">
                                                 <a [href]="commit.html_url" target="_blank" class="text-sm font-medium text-surface-900 dark:text-surface-0 hover:text-primary hover:underline line-clamp-2">
                                                     {{ truncateCommitMessage(commit.commit.message) }}
@@ -1378,9 +1400,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                                     <!-- Load More Button -->
                                     <!-- <div *ngIf="getGithubCommits(selectedProject.id).length > 0 && hasMoreCommits(selectedProject.id)" class="text-center py-3">
-                                        <p-button 
-                                            label="Load More Commits" 
-                                            icon="pi pi-chevron-down" 
+                                        <p-button
+                                            label="Load More Commits"
+                                            icon="pi pi-chevron-down"
                                             size="small"
                                             [outlined]="true"
                                             [loading]="isLoadingMoreCommits(selectedProject.id)"
@@ -1395,9 +1417,9 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                                     <!-- No commits found -->
                                     <!-- <div *ngIf="getGithubCommits(selectedProject.id).length === 0 && !isLoadingGithubCommits(selectedProject.id) && !getGithubError(selectedProject.id)" class="text-center text-muted-color text-sm py-4">
-                                        <p-button 
-                                            label="Load Commits" 
-                                            icon="pi pi-github" 
+                                        <p-button
+                                            label="Load Commits"
+                                            icon="pi pi-github"
                                             size="small"
                                             [outlined]="true"
                                             (onClick)="loadGithubCommits(selectedProject)"
@@ -1481,6 +1503,75 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
     `
 })
 export class Projects {
+    // ----------------- Rich Editor (Quill) -----------------
+    private activeEditorInstance: any = null;
+    activeEditorKey: 'project' | 'objective' = 'project';
+    private editorInstances: Record<string, any> = {};
+
+    onEditorInit(event: any, type: 'project' | 'objective') {
+        const quill = event.editor;
+        this.editorInstances[type] = quill;
+        const toolbar = quill.getModule('toolbar');
+
+        toolbar.addHandler('image', () => {
+            this.activeEditorInstance = quill;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e: Event) => this.onEditorImageSelected(e);
+            input.click();
+        });
+    }
+
+    private getAuthToken(): string {
+        return localStorage.getItem('auth_token') || '';
+    }
+
+    private onEditorImageSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || !input.files[0] || !this.activeEditorInstance) return;
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        this.http.post<any>(`${environment.apiUrl}/Files/upload`, formData).subscribe({
+            next: (result) => {
+                if (!result.success || !result.fileId) return;
+                const token = this.getAuthToken();
+                const url = `${environment.apiUrl}/Files/${result.fileId}/view?token=${encodeURIComponent(token)}`;
+                const quill = this.activeEditorInstance;
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'image', url);
+                quill.setSelection(range.index + 1);
+            },
+            error: (err) => console.error('Editor image upload failed', err)
+        });
+    }
+
+    onEditorFileSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || !input.files[0]) return;
+        const quill = this.editorInstances[this.activeEditorKey];
+        if (!quill) return;
+        const file = input.files[0];
+        const originalFileName = file.name;
+        const formData = new FormData();
+        formData.append('file', file);
+        this.http.post<any>(`${environment.apiUrl}/Files/upload`, formData).subscribe({
+            next: (result) => {
+                if (!result.success || !result.fileId) return;
+                const token = this.getAuthToken();
+                const downloadUrl = `${environment.apiUrl}/Files/${result.fileId}/download?token=${encodeURIComponent(token)}`;
+                const quill = this.editorInstances[this.activeEditorKey];
+                if (!quill) return;
+                const range = quill.getSelection(true);
+                quill.insertText(range.index, originalFileName, 'link', downloadUrl);
+                quill.setSelection(range.index + originalFileName.length + 1);
+            },
+            error: (err) => console.error('Editor file upload failed', err)
+        });
+    }
+    // ----------------------------------------------------------
+
     constructor(
         private confirmationService: ConfirmationService,
         private http: HttpClient,
@@ -1508,7 +1599,7 @@ export class Projects {
 
     loadProjectsByStatus() {
         this.isLoading = true;
-        
+
         // Load upcoming projects
         this.projectsService.getProjects('Upcoming').subscribe({
             next: (projects) => {
@@ -1591,10 +1682,10 @@ export class Projects {
                     ? tm.profilePictureUrl
                     : `${environment.baseUrl}${tm.profilePictureUrl}`;
             }
-            
+
             // Ensure userId is set and normalized to string - it could be tm.userId or tm.id
             const userId = String(tm.userId || tm.id || '');
-            
+
             return {
                 id: tm.id,
                 userId: userId,
@@ -1614,7 +1705,7 @@ export class Projects {
             default: return 'upcoming';
         }
     }
-    
+
     // Current logged-in user (loaded from auth service)
     currentUser: Member = {
         userId: '',
@@ -1629,14 +1720,14 @@ export class Projects {
             const firstName = (user as any).firstName || '';
             const lastName = (user as any).lastName || '';
             const fullName = `${firstName} ${lastName}`.trim() || (user as any).fullName || user.email || '';
-            
+
             let avatarUrl = '';
             if ((user as any).profilePictureUrl) {
                 avatarUrl = (user as any).profilePictureUrl.startsWith('http')
                     ? (user as any).profilePictureUrl
                     : `${environment.baseUrl}${(user as any).profilePictureUrl}`;
             }
-            
+
             this.currentUser = {
                 userId: (user as any).id || '',
                 name: fullName,
@@ -1646,7 +1737,7 @@ export class Projects {
             console.log('Current user loaded:', this.currentUser);
         }
     }
-    
+
     selectedProject: Project | null = null;
     draggedProject: Project | null = null;
 
@@ -1673,20 +1764,20 @@ export class Projects {
     pendingBannerFile: File | null = null;
     dialogBannerPreviewUrl: string | null = null;
     removeBannerInEdit = false;
-    
+
     objectiveDialogVisible = false;
     objectiveDialogMode: 'add' | 'edit' = 'add';
     currentObjective: Objective = this.getEmptyObjective();
     selectedMemberNames: string[] = [];
     selectedObjectiveMemberNames: string[] = [];
-    
+
     // Objective drag and drop
     draggedObjective: Objective | null = null;
-    
+
     // Objective detail dialog
     objectiveDetailDialogVisible = false;
     viewingObjective: Objective | null = null;
-    
+
     // Objective resource dialog
     objectiveResourceDialogVisible = false;
     objectiveResourceDialogMode: 'add' | 'edit' = 'add';
@@ -1735,7 +1826,7 @@ export class Projects {
     selectedModeratorUserId: string | null = null;
     savingModerator = false;
     removingModeratorUserId: string | null = null;
-    
+
     resourceDialogVisible = false;
     resourceDialogMode: 'add' | 'edit' = 'add';
     currentResource: Resource = this.getEmptyResource();
@@ -1752,9 +1843,9 @@ export class Projects {
     historyPageSize = 5;
     historyTotalCount = 0;
     get historyHasMore(): boolean { return this.historyLog.length < this.historyTotalCount; }
-    
+
     availableMembers: Member[] = [];
-    
+
     loadAvailableMembers() {
         this.projectsService.getAllUsers().subscribe({
             next: (response) => {
@@ -1766,7 +1857,7 @@ export class Projects {
                             ? user.profilePictureUrl
                             : `${environment.baseUrl}${user.profilePictureUrl}`;
                     }
-                    
+
                     return {
                         userId: user.id, // Already a GUID string
                         name: `${user.firstName} ${user.lastName}`.trim() || user.email,
@@ -1782,7 +1873,7 @@ export class Projects {
             }
         });
     }
-    
+
     projectTypeOptions = [
         { label: 'Software', value: 'Software' },
         { label: 'Hardware', value: 'Hardware' },
@@ -1794,13 +1885,13 @@ export class Projects {
         { label: 'In Progress', value: 'in-progress' },
         { label: 'Completed', value: 'completed' }
     ];
-    
+
     objectiveStatusOptions = [
         { label: 'To Do', value: 'todo' },
         { label: 'In Progress', value: 'in-progress' },
         { label: 'Completed', value: 'completed' }
     ];
-    
+
     resourceTypeOptions = [
         { label: 'Documentation', value: 'documentation' },
         { label: 'Tutorial', value: 'tutorial' },
@@ -1867,15 +1958,15 @@ export class Projects {
             const oldStatus = this.draggedObjective.status;
             const objectiveId = this.draggedObjective.id;
             const objective = this.draggedObjective;
-            
+
             // Map frontend status to backend status (PascalCase)
             const apiStatus = this.mapObjectiveStatusToApi(newStatus);
-            
+
             console.log(`Objective "${this.draggedObjective.title}" status changed: ${oldStatus} -> ${newStatus}`);
-            
+
             // Update status locally
             this.draggedObjective.status = newStatus;
-            
+
             // Update the objective in the selected project's objectives array
             const objectiveIndex = this.selectedProject.objectives?.findIndex(o => o.id === this.draggedObjective!.id);
             if (objectiveIndex !== undefined && objectiveIndex >= 0 && this.selectedProject.objectives) {
@@ -1892,10 +1983,10 @@ export class Projects {
                     listProject.objectives[listIdx].status = newStatus;
                 }
             }
-            
+
             // Recalculate project progress based on completed objectives
             this.updateProjectProgress();
-            
+
             // Send PATCH request to update status on backend
             this.projectsService.updateObjectiveStatus(objectiveId, apiStatus).subscribe({
                 next: (response) => {
@@ -1907,7 +1998,7 @@ export class Projects {
                     this.revertObjectiveStatus(objective, oldStatus, newStatus);
                 }
             });
-            
+
             this.draggedObjective = null;
         }
     }
@@ -1925,10 +2016,10 @@ export class Projects {
     // Revert objective status change on API error
     revertObjectiveStatus(objective: Objective, oldStatus: 'todo' | 'in-progress' | 'completed', newStatus: 'todo' | 'in-progress' | 'completed') {
         console.log(`Reverting objective "${objective.title}" status from ${newStatus} back to ${oldStatus}`);
-        
+
         // Restore old status
         objective.status = oldStatus;
-        
+
         // Update in the selected project's objectives array
         if (this.selectedProject?.objectives) {
             const objectiveIndex = this.selectedProject.objectives.findIndex(o => o.id === objective.id);
@@ -1946,7 +2037,7 @@ export class Projects {
                 listProject.objectives[listIdx].status = oldStatus;
             }
         }
-        
+
         // Recalculate project progress after revert
         this.updateProjectProgress();
     }
@@ -1956,21 +2047,21 @@ export class Projects {
         if (!this.selectedProject || !this.selectedProject.objectives || this.selectedProject.objectives.length === 0) {
             return;
         }
-        
+
         const totalObjectives = this.selectedProject.objectives.length;
         const completedObjectives = this.selectedProject.objectives.filter(o => o.status === 'completed').length;
         const newProgress = Math.round((completedObjectives / totalObjectives) * 100);
-        
+
         this.selectedProject.progress = newProgress;
-        
+
         // Also update the project in the appropriate status list
         const projectInList = [...this.upcomingProjects, ...this.inProgressProjects, ...this.completedProjects]
             .find(p => p.id === this.selectedProject!.id);
-        
+
         if (projectInList) {
             projectInList.progress = newProgress;
         }
-        
+
         console.log(`Project progress updated: ${completedObjectives}/${totalObjectives} = ${newProgress}%`);
     }
 
@@ -2006,21 +2097,21 @@ export class Projects {
                     return;
                 }
             }
-            
+
             const oldStatus = this.draggedProject.status;
             const projectId = this.draggedProject.id;
             const project = this.draggedProject;
-            
+
             // Map frontend status to backend status (PascalCase)
             const apiStatus = this.mapStatusToApi(newStatus);
-            
+
             console.log(`Project "${this.draggedProject.title}" status changed: ${oldStatus} -> ${newStatus}`);
-            
+
             // Remove from old list
             this.upcomingProjects = this.upcomingProjects.filter(p => p.id !== this.draggedProject!.id);
             this.inProgressProjects = this.inProgressProjects.filter(p => p.id !== this.draggedProject!.id);
             this.completedProjects = this.completedProjects.filter(p => p.id !== this.draggedProject!.id);
-            
+
             // Update project status locally
             this.draggedProject.status = newStatus;
 
@@ -2028,7 +2119,7 @@ export class Projects {
             if (this.selectedProject?.id === projectId) {
                 this.selectedProject.status = newStatus;
             }
-            
+
             // Add to new list
             switch (newStatus) {
                 case 'upcoming':
@@ -2041,7 +2132,7 @@ export class Projects {
                     this.completedProjects.push(this.draggedProject);
                     break;
             }
-            
+
             // Send PATCH request to update status on backend
             this.projectsService.updateProjectStatus(projectId, apiStatus).subscribe({
                 next: (response) => {
@@ -2053,7 +2144,7 @@ export class Projects {
                     this.revertProjectStatus(project, oldStatus, newStatus);
                 }
             });
-            
+
             this.draggedProject = null;
         }
     }
@@ -2061,7 +2152,7 @@ export class Projects {
     // Revert project status change on API error
     revertProjectStatus(project: Project, oldStatus: 'upcoming' | 'in-progress' | 'completed', newStatus: 'upcoming' | 'in-progress' | 'completed') {
         console.log(`Reverting project "${project.title}" status from ${newStatus} back to ${oldStatus}`);
-        
+
         // Remove from new list
         switch (newStatus) {
             case 'upcoming':
@@ -2074,7 +2165,7 @@ export class Projects {
                 this.completedProjects = this.completedProjects.filter(p => p.id !== project.id);
                 break;
         }
-        
+
         // Restore old status
         project.status = oldStatus;
 
@@ -2082,7 +2173,7 @@ export class Projects {
         if (this.selectedProject?.id === project.id) {
             this.selectedProject.status = oldStatus;
         }
-        
+
         // Add back to old list
         switch (oldStatus) {
             case 'upcoming':
@@ -2106,7 +2197,7 @@ export class Projects {
             default: return 'Upcoming';
         }
     }
-    
+
     getEmptyProject(): Project {
         return {
             id: 0,
@@ -2121,12 +2212,12 @@ export class Projects {
             objectives: []
         };
     }
-    
+
     formatDate(date: Date): string {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     }
-    
+
     openAddDialog() {
         this.dialogMode = 'add';
         this.currentProject = this.getEmptyProject();
@@ -2139,7 +2230,7 @@ export class Projects {
         this.removeBannerInEdit = false;
         this.dialogVisible = true;
     }
-    
+
     openEditDialog(project: Project) {
         this.dialogMode = 'edit';
         this.currentProject = { ...project, participants: [...project.participants], objectives: [...project.objectives] };
@@ -2171,7 +2262,7 @@ export class Projects {
             this.currentObjective.status
         );
     }
-    
+
     saveProject() {
         if (this.dialogMode === 'add') {
             if (!this.isProjectFormValid()) {
@@ -2333,7 +2424,7 @@ export class Projects {
         this.dialogBannerPreviewUrl = null;
         this.removeBannerInEdit = false;
     }
-    
+
     confirmDeleteProject(project: Project) {
         this.confirmationService.confirm({
             message: `Are you sure you want to delete "${project.title}"? This action cannot be undone.`,
@@ -2345,7 +2436,7 @@ export class Projects {
             }
         });
     }
-    
+
     deleteProject(project: Project) {
         this.projectsService.deleteProject(project.id.toString()).subscribe({
             next: () => {
@@ -2361,12 +2452,12 @@ export class Projects {
                         this.completedProjects = this.completedProjects.filter(p => p.id !== project.id);
                         break;
                 }
-                
+
                 // Clear selected project if it was deleted
                 if (this.selectedProject?.id === project.id) {
                     this.selectedProject = null;
                 }
-                
+
                 console.log('Project deleted successfully');
             },
             error: (err) => {
@@ -2374,7 +2465,7 @@ export class Projects {
             }
         });
     }
-    
+
     getEmptyObjective(): Objective {
         return {
             id: 0,
@@ -2395,7 +2486,7 @@ export class Projects {
         this.currentObjective.points = val;
         input.value = String(val);
     }
-    
+
     openAddObjectiveDialog() {
         if (!this.selectedProject) return;
         this.objectiveDialogMode = 'add';
@@ -2403,7 +2494,7 @@ export class Projects {
         this.selectedObjectiveMemberNames = [];
         this.objectiveDialogVisible = true;
     }
-    
+
     openEditObjectiveDialog(objective: Objective) {
         if (objective.status === 'completed') return;
         this.objectiveDialogMode = 'edit';
@@ -2411,7 +2502,7 @@ export class Projects {
         this.selectedObjectiveMemberNames = objective.members ? objective.members.map(m => m.name) : [];
         this.objectiveDialogVisible = true;
     }
-    
+
     saveObjective() {
         if (!this.selectedProject) {
             return;
@@ -2433,7 +2524,7 @@ export class Projects {
             this.projectsService.createObjective(payload).subscribe({
                 next: (createdObjective) => {
                     console.log('Objective created successfully:', createdObjective);
-                    
+
                     // Map the response to frontend format and add to selected project
                     const newObjective: Objective = {
                         id: createdObjective.id,
@@ -2447,7 +2538,7 @@ export class Projects {
                         createdByFirstName: createdObjective.createdByFirstName,
                         createdByLastName: createdObjective.createdByLastName
                     };
-                    
+
                     if (this.selectedProject) {
                         this.selectedProject.objectives.push(newObjective);
                         // Sync new objective into the kanban-list project item
@@ -2456,7 +2547,7 @@ export class Projects {
                         listProject?.objectives?.push(newObjective);
                         this.updateProjectProgress();
                     }
-                    
+
                     this.objectiveDialogVisible = false;
                     this.currentObjective = this.getEmptyObjective();
                     this.selectedObjectiveMemberNames = [];
@@ -2470,7 +2561,7 @@ export class Projects {
             this.projectsService.updateObjective(this.currentObjective.id, payload).subscribe({
                 next: (updatedObjective) => {
                     console.log('Objective updated successfully:', updatedObjective);
-                    
+
                     // Update the objective in the selected project
                     if (this.selectedProject) {
                         const index = this.selectedProject.objectives.findIndex(obj => obj.id === this.currentObjective.id);
@@ -2498,7 +2589,7 @@ export class Projects {
                         }
                         this.updateProjectProgress();
                     }
-                    
+
                     this.objectiveDialogVisible = false;
                     this.currentObjective = this.getEmptyObjective();
                     this.selectedObjectiveMemberNames = [];
@@ -2509,7 +2600,7 @@ export class Projects {
             });
         }
     }
-    
+
     confirmDeleteObjective(objective: Objective) {
         if (objective.status === 'completed') return;
         this.confirmationService.confirm({
@@ -2522,12 +2613,12 @@ export class Projects {
             }
         });
     }
-    
+
     deleteObjective(objective: Objective) {
         this.projectsService.deleteObjective(objective.id).subscribe({
             next: (response) => {
                 console.log('Objective deleted successfully:', response);
-                
+
                 // Remove objective from selected project
                 if (this.selectedProject) {
                     this.selectedProject.objectives = this.selectedProject.objectives.filter(o => o.id !== objective.id);
@@ -2539,11 +2630,11 @@ export class Projects {
             }
         });
     }
-    
+
     isUserMember(project: Project): boolean {
         return project.participants.some(p => p.userId === this.currentUser.userId);
     }
-    
+
     joinProject(project: Project, event: Event) {
         event.stopPropagation();
         if (!this.isUserMember(project)) {
@@ -2563,7 +2654,7 @@ export class Projects {
             });
         }
     }
-    
+
     leaveProject(project: Project, event: Event) {
         event.stopPropagation();
         this.projectsService.leaveProject(project.id).subscribe({
@@ -2581,7 +2672,7 @@ export class Projects {
             }
         });
     }
-    
+
     getEmptyResource(): Resource {
         return {
             id: 0,
@@ -2592,7 +2683,7 @@ export class Projects {
             files: []
         };
     }
-    
+
     openAddResourceDialog() {
         if (!this.selectedProject) return;
         this.resourceDialogMode = 'add';
@@ -2602,7 +2693,7 @@ export class Projects {
         this.newResourceUrl = '';
         this.resourceDialogVisible = true;
     }
-    
+
     openEditResourceDialog(resource: Resource) {
         this.resourceDialogMode = 'edit';
         this.currentResource = { ...resource, files: [...(resource.files || [])] };
@@ -2611,28 +2702,28 @@ export class Projects {
         this.newResourceUrl = '';
         this.resourceDialogVisible = true;
     }
-    
+
     onResourceFilesSelect(event: any) {
         const files = event.files as File[];
         this.selectedResourceFiles = [...this.selectedResourceFiles, ...files];
     }
-    
+
     removeSelectedResourceFile(file: File) {
         this.selectedResourceFiles = this.selectedResourceFiles.filter(f => f !== file);
     }
-    
+
     removeExistingResourceFile(file: ResourceFile) {
         this.filesToRemoveFromResource.push(file.id);
         if (this.currentResource.files) {
             this.currentResource.files = this.currentResource.files.filter(f => f.id !== file.id);
         }
     }
-    
+
     saveResource() {
         if (!this.selectedProject) return;
-        
+
         this.savingResource = true;
-        
+
         // If there are files to upload, upload them first
         if (this.selectedResourceFiles.length > 0) {
             this.projectsService.uploadFiles(this.selectedResourceFiles).subscribe({
@@ -2652,7 +2743,7 @@ export class Projects {
             this.saveResourceWithFiles([]);
         }
     }
-    
+
     private saveResourceWithFiles(newFileIds: string[]) {
         if (!this.selectedProject) return;
 
@@ -2665,7 +2756,7 @@ export class Projects {
                 type: this.currentResource.type,
                 fileIds: newFileIds
             };
-            
+
             this.projectsService.createResource(payload).subscribe({
                 next: (createdResource) => {
                     if (this.selectedProject) {
@@ -2698,7 +2789,7 @@ export class Projects {
                 fileIdsToAdd: newFileIds.length > 0 ? newFileIds : undefined,
                 fileIdsToRemove: this.filesToRemoveFromResource.length > 0 ? this.filesToRemoveFromResource : undefined
             };
-            
+
             this.projectsService.updateResource(this.currentResource.id, payload).subscribe({
                 next: (updatedResource) => {
                     if (this.selectedProject && this.selectedProject.resources) {
@@ -2724,7 +2815,7 @@ export class Projects {
             });
         }
     }
-    
+
     confirmDeleteResource(resource: Resource) {
         this.confirmationService.confirm({
             message: `Are you sure you want to delete "${resource.title}"?`,
@@ -2736,7 +2827,7 @@ export class Projects {
             }
         });
     }
-    
+
     deleteResource(resource: Resource) {
         this.projectsService.deleteResource(resource.id).subscribe({
             next: () => {
@@ -2749,11 +2840,11 @@ export class Projects {
             }
         });
     }
-    
+
     isUserInObjective(objective: Objective): boolean {
         return objective.members ? objective.members.some(m => m.userId === this.currentUser.userId) : false;
     }
-    
+
     isProjectCreator(project: Project | null): boolean {
         if (!project) return false;
         return project.createdByUserId === this.currentUser.userId;
@@ -2767,7 +2858,7 @@ export class Projects {
     isAdminOrModerator(project: Project | null): boolean {
         return this.isAdmin() || this.isProjectModerator(project);
     }
-    
+
     isAdmin(): boolean {
         const role = this.currentUser.role?.toLowerCase();
         return role === 'admin' || role === 'administrator';
@@ -2830,12 +2921,12 @@ export class Projects {
 
     joinObjective(objective: Objective, event: Event) {
         event.stopPropagation();
-        
+
         // Prevent joining completed objectives
         if (objective.status === 'completed') {
             return;
         }
-        
+
         if (!this.isUserInObjective(objective)) {
             this.projectsService.joinObjective(objective.id).subscribe({
                 next: (response) => {
@@ -2851,15 +2942,15 @@ export class Projects {
             });
         }
     }
-    
+
     leaveObjective(objective: Objective, event: Event) {
         event.stopPropagation();
-        
+
         // Prevent leaving completed objectives
         if (objective.status === 'completed') {
             return;
         }
-        
+
         this.projectsService.leaveObjective(objective.id).subscribe({
             next: (response) => {
                 console.log('Successfully left objective:', response);
@@ -2872,13 +2963,13 @@ export class Projects {
             }
         });
     }
-    
+
     // Objective Detail Dialog Methods
     openObjectiveDetailDialog(objective: Objective) {
         this.viewingObjective = objective;
         this.objectiveDetailDialogVisible = true;
     }
-    
+
     getResourceIcon(type: string): string {
         switch (type) {
             case 'documentation': return 'pi pi-file';
@@ -2888,7 +2979,7 @@ export class Projects {
             default: return 'pi pi-link';
         }
     }
-    
+
     openAddObjectiveResourceDialog() {
         if (!this.viewingObjective || this.viewingObjective.status === 'completed') return;
         this.objectiveResourceDialogMode = 'add';
@@ -2898,7 +2989,7 @@ export class Projects {
         this.newObjectiveResourceUrl = '';
         this.objectiveResourceDialogVisible = true;
     }
-    
+
     openEditObjectiveResourceDialog(resource: Resource) {
         if (this.viewingObjective?.status === 'completed') return;
         this.objectiveResourceDialogMode = 'edit';
@@ -2908,23 +2999,23 @@ export class Projects {
         this.newObjectiveResourceUrl = '';
         this.objectiveResourceDialogVisible = true;
     }
-    
+
     onObjectiveResourceFilesSelect(event: any) {
         const files = event.files as File[];
         this.selectedObjectiveResourceFiles = [...this.selectedObjectiveResourceFiles, ...files];
     }
-    
+
     removeSelectedObjectiveFile(file: File) {
         this.selectedObjectiveResourceFiles = this.selectedObjectiveResourceFiles.filter(f => f !== file);
     }
-    
+
     removeExistingObjectiveFile(file: ResourceFile) {
         this.filesToRemoveFromObjectiveResource.push(file.id);
         if (this.currentObjectiveResource.files) {
             this.currentObjectiveResource.files = this.currentObjectiveResource.files.filter(f => f.id !== file.id);
         }
     }
-    
+
     stripHtml(html: string | null | undefined): string {
         if (!html) return '';
         return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -2940,7 +3031,7 @@ export class Projects {
 
     viewFile(fileId: string, fileName: string): void {
         const downloadUrl = `${environment.apiUrl}/Files/${fileId}/download`;
-        
+
         this.http.get(downloadUrl, { responseType: 'blob' }).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
@@ -2956,7 +3047,7 @@ export class Projects {
 
     downloadFile(fileId: string, fileName: string): void {
         const downloadUrl = `${environment.apiUrl}/Files/${fileId}/download`;
-        
+
         this.http.get(downloadUrl, { responseType: 'blob' }).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
@@ -2973,12 +3064,12 @@ export class Projects {
             }
         });
     }
-    
+
     // Avatar helper methods
     getInitials(name: string): string {
         return getInitials(name);
     }
-    
+
     hasProfilePicture(member: Member): boolean {
         return !isDefaultAvatar(member.avatar);
     }
@@ -3078,9 +3169,9 @@ export class Projects {
 
     saveObjectiveResource() {
         if (!this.viewingObjective) return;
-        
+
         this.savingObjectiveResource = true;
-        
+
         // If there are files to upload, upload them first
         if (this.selectedObjectiveResourceFiles.length > 0) {
             this.projectsService.uploadFiles(this.selectedObjectiveResourceFiles).subscribe({
@@ -3100,10 +3191,10 @@ export class Projects {
             this.saveObjectiveResourceWithFiles([]);
         }
     }
-    
+
     private saveObjectiveResourceWithFiles(newFileIds: string[]) {
         if (!this.viewingObjective) return;
-        
+
         if (this.objectiveResourceDialogMode === 'add') {
             const payload = {
                 objectiveId: this.viewingObjective.id,
@@ -3113,7 +3204,7 @@ export class Projects {
                 type: this.currentObjectiveResource.type,
                 fileIds: newFileIds
             };
-            
+
             this.projectsService.createResource(payload).subscribe({
                 next: (response) => {
                     console.log('Resource created successfully:', response);
@@ -3144,7 +3235,7 @@ export class Projects {
                 fileIdsToAdd: newFileIds.length > 0 ? newFileIds : undefined,
                 fileIdsToRemove: this.filesToRemoveFromObjectiveResource.length > 0 ? this.filesToRemoveFromObjectiveResource : undefined
             };
-            
+
             this.projectsService.updateResource(this.currentObjectiveResource.id, payload).subscribe({
                 next: (response) => {
                     console.log('Resource updated successfully:', response);
@@ -3170,7 +3261,7 @@ export class Projects {
             });
         }
     }
-    
+
     confirmDeleteObjectiveResource(resource: Resource) {
         if (this.viewingObjective?.status === 'completed') return;
         this.confirmationService.confirm({
@@ -3183,7 +3274,7 @@ export class Projects {
             }
         });
     }
-    
+
     deleteObjectiveResource(resource: Resource) {
         this.projectsService.deleteResource(resource.id).subscribe({
             next: (response) => {
@@ -3197,15 +3288,15 @@ export class Projects {
             }
         });
     }
-    
+
     joinObjectiveFromDetail() {
         if (!this.viewingObjective) return;
-        
+
         // Prevent joining completed objectives
         if (this.viewingObjective.status === 'completed') {
             return;
         }
-        
+
         if (!this.isUserInObjective(this.viewingObjective)) {
             this.projectsService.joinObjective(this.viewingObjective.id).subscribe({
                 next: (response) => {
@@ -3222,15 +3313,15 @@ export class Projects {
             });
         }
     }
-    
+
     leaveObjectiveFromDetail() {
         if (!this.viewingObjective || !this.viewingObjective.members) return;
-        
+
         // Prevent leaving completed objectives
         if (this.viewingObjective.status === 'completed') {
             return;
         }
-        
+
         this.projectsService.leaveObjective(this.viewingObjective.id).subscribe({
             next: (response) => {
                 console.log('Successfully left objective:', response);
@@ -3242,13 +3333,13 @@ export class Projects {
             }
         });
     }
-    
+
     editObjectiveFromDetail() {
         if (!this.viewingObjective || this.viewingObjective.status === 'completed') return;
         this.objectiveDetailDialogVisible = false;
         this.openEditObjectiveDialog(this.viewingObjective);
     }
-    
+
     updateObjectiveInProject() {
        return;
     }
@@ -3256,49 +3347,49 @@ export class Projects {
     // Member Assignment Methods
     getProjectParticipantsForObjective(): Member[] {
         if (!this.selectedProject) return this.availableMembers;
-        return this.selectedProject.participants.length > 0 
-            ? this.selectedProject.participants 
+        return this.selectedProject.participants.length > 0
+            ? this.selectedProject.participants
             : this.availableMembers;
     }
-    
+
     openAssignMembersToProjectDialog() {
         if (!this.selectedProject) return;
-        
+
         // Ensure all current participants are in availableMembers
         this.selectedProject.participants.forEach(participant => {
             if (participant.userId && !this.availableMembers.some(m => m.userId === participant.userId)) {
                 this.availableMembers.push(participant);
             }
         });
-        
+
         this.tempSelectedProjectMembers = this.selectedProject.participants
             .map(p => p.userId)
             .filter((id): id is string => !!id);
-        
+
         // Store initial members to prevent removal
         this.initialProjectMembers = [...this.tempSelectedProjectMembers];
-        
+
         this.assignMembersToProjectDialogVisible = true;
     }
-    
+
     assignProjectMembers() {
         if (!this.selectedProject) return;
-        
+
         const projectId = this.selectedProject.id;
         const currentMemberIds = this.selectedProject.participants
             .map(p => p.userId)
             .filter((id): id is string => !!id);
         const newMemberIds = this.tempSelectedProjectMembers.filter(id => !currentMemberIds.includes(id));
-        
+
         if (newMemberIds.length === 0) {
             this.assignMembersToProjectDialogVisible = false;
             return;
         }
-        
+
         // Send POST request for each new member
         let completed = 0;
         const total = newMemberIds.length;
-        
+
         newMemberIds.forEach(memberId => {
             const member = this.availableMembers.find(m => m.userId === memberId);
             if (!member || !member.userId) {
@@ -3306,24 +3397,24 @@ export class Projects {
                 completed++;
                 return;
             }
-            
+
             const payload = {
                 userId: member.userId,
                 role: member.role || 'Member'
             };
-            
+
             // POST /Projects/{projectId}/team-members
             this.http.post(`${environment.apiUrl}/Projects/${projectId}/team-members`, payload)
                 .subscribe({
                     next: (response) => {
                         console.log('Member added successfully:', response);
-                        
+
                         // Add member to local project participants
                         if (this.selectedProject && !this.selectedProject.participants.some(p => p.userId === member.userId)) {
                             this.selectedProject.participants.push(member);
                             this.syncProjectInBoardArrays(this.selectedProject);
                         }
-                        
+
                         completed++;
                         if (completed === total) {
                             this.assignMembersToProjectDialogVisible = false;
@@ -3357,20 +3448,20 @@ export class Projects {
             this.tempSelectedObjectiveMembers = [...new Set([...this.tempSelectedObjectiveMembers, ...removedMembers])];
         }
     }
-    
+
     openAssignMembersToObjectiveDialog(objective: Objective, event: Event) {
         event.stopPropagation();
-        
+
         // Prevent opening dialog for completed objectives
         if (objective.status === 'completed') {
             return;
         }
-        
+
         this.assigningObjective = objective;
         console.log('Opening dialog for objective:', objective.title);
         console.log('Objective members:', objective.members);
         console.log('Available members:', this.availableMembers);
-        
+
         // Ensure all objective members exist in availableMembers
         // This handles cases where a user joined but isn't in the availableMembers list yet
         if (objective.members) {
@@ -3386,32 +3477,32 @@ export class Projects {
                 }
             });
         }
-        
+
         // Extract userIds from objective members - they're already GUIDs (strings)
-        this.tempSelectedObjectiveMembers = objective.members 
+        this.tempSelectedObjectiveMembers = objective.members
             ? objective.members
                 .map(m => m.userId)
-                .filter((id): id is string => !!id) 
+                .filter((id): id is string => !!id)
             : [];
-        
+
         // Store initial members to prevent removal
         this.initialObjectiveMembers = [...this.tempSelectedObjectiveMembers];
-        
+
         console.log('Selected member IDs for multiselect:', this.tempSelectedObjectiveMembers);
         console.log('Updated available members:', this.availableMembers);
         this.assignMembersToObjectiveDialogVisible = true;
     }
-    
+
     openAssignMembersToObjectiveFromDetail() {
         if (!this.viewingObjective) return;
-        
+
         // Prevent opening dialog for completed objectives
         if (this.viewingObjective.status === 'completed') {
             return;
         }
-        
+
         this.assigningObjective = this.viewingObjective;
-        
+
         // Ensure all objective members exist in availableMembers
         if (this.viewingObjective.members) {
             this.viewingObjective.members.forEach(member => {
@@ -3426,39 +3517,39 @@ export class Projects {
                 }
             });
         }
-        
+
         // Extract userIds from objective members - they're already GUIDs (strings)
-        this.tempSelectedObjectiveMembers = this.viewingObjective.members 
+        this.tempSelectedObjectiveMembers = this.viewingObjective.members
             ? this.viewingObjective.members
                 .map(m => m.userId)
-                .filter((id): id is string => !!id) 
+                .filter((id): id is string => !!id)
             : [];
-        
+
         // Store initial members to prevent removal
         this.initialObjectiveMembers = [...this.tempSelectedObjectiveMembers];
-        
+
         this.assignMembersToObjectiveDialogVisible = true;
     }
-    
+
     saveObjectiveMembers() {
         if (!this.assigningObjective) return;
-        
+
         const objectiveId = this.assigningObjective.id;
         const currentMemberIds = this.assigningObjective.members?.map(m => m.userId).filter((id): id is string => !!id) || [];
-        
+
         // Find newly selected members (in tempSelectedObjectiveMembers but not in current members)
         const newMemberIds = this.tempSelectedObjectiveMembers.filter(userId => !currentMemberIds.includes(userId));
-        
+
         // Find members to add by matching userIds to availableMembers
         const membersToAdd = newMemberIds
             .map(userId => this.availableMembers.find(m => m.userId === userId))
             .filter((m): m is Member => m !== undefined && m.userId !== undefined);
-        
+
         if (membersToAdd.length === 0) {
             this.assignMembersToObjectiveDialogVisible = false;
             return;
         }
-        
+
         // Call API for each member to add
         let completedCount = 0;
         membersToAdd.forEach(member => {
@@ -3469,7 +3560,7 @@ export class Projects {
                         this.assigningObjective!.members = [];
                     }
                     this.assigningObjective!.members.push(member);
-                    
+
                     completedCount++;
                     if (completedCount === membersToAdd.length) {
                         this.assignMembersToObjectiveDialogVisible = false;
@@ -3504,7 +3595,7 @@ export class Projects {
             console.error('Cannot remove member: missing project or userId');
             return;
         }
-        
+
         this.confirmationService.confirm({
             message: `Are you sure you want to remove "${member.name}" from this project? This will also remove them from all objectives in this project.`,
             header: 'Remove Team Member',
@@ -3512,16 +3603,16 @@ export class Projects {
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
                 if (!this.selectedProject || !member.userId) return;
-                
+
                 const projectId = this.selectedProject.id;
                 const userId = member.userId;
-                
+
                 this.projectsService.removeTeamMember(projectId, userId).subscribe({
                     next: (response) => {
                         console.log('Team member removed successfully:', response);
                         if (this.selectedProject?.participants) {
                             this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
-                            
+
                             // Also remove member from all objectives in this project
                             this.selectedProject.objectives.forEach(objective => {
                                 if (objective.members) {
@@ -3539,18 +3630,18 @@ export class Projects {
             }
         });
     }
-    
+
     removeMemberFromObjectiveDetail(member: Member) {
         if (!this.viewingObjective || !this.selectedProject || !member.userId) return;
-        
+
         // Prevent removing members from completed objectives
         if (this.viewingObjective.status === 'completed') {
             return;
         }
-        
+
         const objectiveId = this.viewingObjective.id;
         const userId = member.userId;
-        
+
         this.confirmationService.confirm({
             message: `Are you sure you want to remove "${member.name}" from this objective?`,
             header: 'Remove Member',
@@ -3572,13 +3663,13 @@ export class Projects {
             }
         });
     }
-    
+
     removeProjectMemberFromDialog(member: Member) {
         if (!this.selectedProject || !member.userId) {
             console.error('Cannot remove member: missing project or userId');
             return;
         }
-        
+
         this.confirmationService.confirm({
             message: `Are you sure you want to remove "${member.name}" from this project? This will also remove them from all objectives in this project.`,
             header: 'Remove Team Member',
@@ -3586,23 +3677,23 @@ export class Projects {
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
                 if (!this.selectedProject || !member.userId) return;
-                
+
                 const projectId = this.selectedProject.id;
                 const userId = member.userId;
-                
+
                 this.projectsService.removeTeamMember(projectId, userId).subscribe({
                     next: (response) => {
                         console.log('Team member removed successfully:', response);
                         if (this.selectedProject?.participants) {
                             this.selectedProject.participants = this.selectedProject.participants.filter(p => p.userId !== userId);
-                            
+
                             // Also remove member from all objectives in this project
                             this.selectedProject.objectives.forEach(objective => {
                                 if (objective.members) {
                                     objective.members = objective.members.filter(m => m.userId !== userId);
                                 }
                             });
-                            
+
                             // Update temp selection
                             this.tempSelectedProjectMembers = this.tempSelectedProjectMembers.filter(id => id !== member.userId);
                         }
@@ -3614,12 +3705,12 @@ export class Projects {
             }
         });
     }
-    
+
     removeObjectiveMemberFromDialog(member: Member) {
         if (!this.assigningObjective || !member.userId) return;
-        
+
         const objectiveId = this.assigningObjective.id;
-        
+
         this.projectsService.removeTeamMemberFromObjective(objectiveId, member.userId).subscribe({
             next: (response) => {
                 console.log('Successfully removed member from objective:', response);
@@ -3660,7 +3751,7 @@ export class Projects {
 
         // Extract owner and repo from the githubRepo format (owner/repo)
         const [owner, repo] = project.githubRepo.split('/');
-        
+
         if (!owner || !repo) {
             this.githubError.set(project.id, 'Invalid GitHub repository format');
             this.loadingGithubCommits.delete(project.id);
@@ -3671,7 +3762,7 @@ export class Projects {
         const paginationInfo = this.githubPagination.get(project.id) || { currentPage: 1, hasMore: true, totalCommits: 0 };
         const page = loadMore ? paginationInfo.currentPage : 1;
         const perPage = 10; // Load more commits per page
-        
+
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits?per_page=${perPage}&page=${page}`;
 
         this.http.get<GitHubCommit[]>(apiUrl, { observe: 'response' })
@@ -3692,7 +3783,7 @@ export class Projects {
                 next: (response) => {
                     if (response && response.body) {
                         const commits = response.body;
-                        
+
                         if (loadMore) {
                             // Append new commits to existing ones
                             const existingCommits = this.githubCommits.get(project.id) || [];
@@ -3705,14 +3796,14 @@ export class Projects {
                         // Update pagination info
                         const linkHeader = response.headers.get('Link');
                         const hasNextPage = linkHeader ? linkHeader.includes('rel="next"') : commits.length === perPage;
-                        
+
                         this.githubPagination.set(project.id, {
                             currentPage: page + 1,
                             hasMore: hasNextPage,
                             totalCommits: (this.githubCommits.get(project.id) || []).length
                         });
                     }
-                    
+
                     this.loadingGithubCommits.delete(project.id);
                     this.loadingMoreCommits.delete(project.id);
                 },
@@ -3865,7 +3956,7 @@ export class Projects {
     canEditResource(resource: Resource): boolean {
         const currentUser = this.authService.currentUser();
         if (!currentUser) return false;
-        
+
         // Users can edit their own resources
         return resource.createdByUserId === currentUser.id;
     }

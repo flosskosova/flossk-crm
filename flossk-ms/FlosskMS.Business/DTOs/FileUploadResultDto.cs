@@ -12,6 +12,7 @@ public class FileUploadResultDto
     public string? Error { get; set; }
     public bool? IsSafe { get; set; }
     public string? ScanResult { get; set; }
+    public string? FilePath { get; set; }
 }
 
 public class MultipleFileUploadResultDto

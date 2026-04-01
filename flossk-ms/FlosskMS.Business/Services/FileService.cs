@@ -105,6 +105,7 @@ public class FileService : IFileService
             result.FileSize = uploadedFile.FileSize;
             result.ContentType = uploadedFile.ContentType;
             result.UploadedAt = uploadedFile.UploadedAt;
+            result.FilePath = uploadedFile.FilePath;
             result.IsSafe = true;
             result.ScanResult = "Clean";
 

@@ -98,6 +98,22 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
     };
+    // Allow token via query string for file view/download endpoints (browser navigation)
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var path = context.HttpContext.Request.Path;
+            if (path.StartsWithSegments("/api/Files") &&
+                (path.Value?.Contains("/view") == true || path.Value?.Contains("/download") == true))
+            {
+                var token = context.Request.Query["token"];
+                if (!string.IsNullOrEmpty(token))
+                    context.Token = token;
+            }
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
