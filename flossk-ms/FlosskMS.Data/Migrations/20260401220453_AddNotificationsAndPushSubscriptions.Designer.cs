@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using FlosskMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlosskMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401220453_AddNotificationsAndPushSubscriptions")]
+    partial class AddNotificationsAndPushSubscriptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,7 +77,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Importance");
 
-                    b.ToTable("Announcements", (string)null);
+                    b.ToTable("Announcements");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.AnnouncementReaction", b =>
@@ -105,7 +108,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("AnnouncementId", "UserId", "Emoji")
                         .IsUnique();
 
-                    b.ToTable("AnnouncementReactions", (string)null);
+                    b.ToTable("AnnouncementReactions");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.AnnouncementView", b =>
@@ -133,7 +136,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("AnnouncementId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("AnnouncementViews", (string)null);
+                    b.ToTable("AnnouncementViews");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ApplicationUser", b =>
@@ -261,7 +264,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("ApprovedEmails", (string)null);
+                    b.ToTable("ApprovedEmails");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.CalendarEvent", b =>
@@ -290,7 +293,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.ToTable("CalendarEvents", (string)null);
+                    b.ToTable("CalendarEvents");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Certificate", b =>
@@ -363,7 +366,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("Certificates", (string)null);
+                    b.ToTable("Certificates");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.CertificateTemplate", b =>
@@ -408,7 +411,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UploadedAt");
 
-                    b.ToTable("CertificateTemplates", (string)null);
+                    b.ToTable("CertificateTemplates");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.CertificateTemplateField", b =>
@@ -441,7 +444,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("CertificateTemplateFields", (string)null);
+                    b.ToTable("CertificateTemplateFields");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.CollaborationPad", b =>
@@ -482,7 +485,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Name");
 
-                    b.ToTable("CollaborationPads", (string)null);
+                    b.ToTable("CollaborationPads");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Election", b =>
@@ -541,7 +544,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Elections", (string)null);
+                    b.ToTable("Elections");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ElectionCandidate", b =>
@@ -564,7 +567,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ElectionId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("ElectionCandidates", (string)null);
+                    b.ToTable("ElectionCandidates");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ElectionCategory", b =>
@@ -604,7 +607,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("VotingRule");
 
-                    b.ToTable("ElectionCategories", (string)null);
+                    b.ToTable("ElectionCategories");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ElectionVote", b =>
@@ -636,7 +639,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ElectionId", "VoterUserId", "CandidateUserId")
                         .IsUnique();
 
-                    b.ToTable("ElectionVotes", (string)null);
+                    b.ToTable("ElectionVotes");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.InventoryItem", b =>
@@ -715,7 +718,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("InventoryItems", (string)null);
+                    b.ToTable("InventoryItems");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.InventoryItemCheckout", b =>
@@ -743,7 +746,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("InventoryItemCheckouts", (string)null);
+                    b.ToTable("InventoryItemCheckouts");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.InventoryItemImage", b =>
@@ -770,7 +773,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("InventoryItemId", "UploadedFileId")
                         .IsUnique();
 
-                    b.ToTable("InventoryItemImages", (string)null);
+                    b.ToTable("InventoryItemImages");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Log", b =>
@@ -820,7 +823,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Logs", (string)null);
+                    b.ToTable("Logs");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.MembershipRequest", b =>
@@ -911,7 +914,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("MembershipRequests", (string)null);
+                    b.ToTable("MembershipRequests");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Notification", b =>
@@ -965,7 +968,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UserId", "IsRead");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Objective", b =>
@@ -1015,7 +1018,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Title");
 
-                    b.ToTable("Objectives", (string)null);
+                    b.ToTable("Objectives");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ObjectiveTeamMember", b =>
@@ -1041,7 +1044,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ObjectiveId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("ObjectiveTeamMembers", (string)null);
+                    b.ToTable("ObjectiveTeamMembers");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Project", b =>
@@ -1099,7 +1102,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Title");
 
-                    b.ToTable("Projects", (string)null);
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ProjectModerator", b =>
@@ -1125,7 +1128,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ProjectId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("ProjectModerators", (string)null);
+                    b.ToTable("ProjectModerators");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ProjectTeamMember", b =>
@@ -1155,7 +1158,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ProjectId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("ProjectTeamMembers", (string)null);
+                    b.ToTable("ProjectTeamMembers");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.PushSubscription", b =>
@@ -1197,7 +1200,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PushSubscriptions", (string)null);
+                    b.ToTable("PushSubscriptions");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Resource", b =>
@@ -1251,7 +1254,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("Type");
 
-                    b.ToTable("Resources", (string)null);
+                    b.ToTable("Resources");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.ResourceFile", b =>
@@ -1278,7 +1281,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ResourceId", "FileId")
                         .IsUnique();
 
-                    b.ToTable("ResourceFiles", (string)null);
+                    b.ToTable("ResourceFiles");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.UploadedFile", b =>
@@ -1338,7 +1341,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UploadedFiles", (string)null);
+                    b.ToTable("UploadedFiles");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.UserContribution", b =>
@@ -1378,7 +1381,7 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("ProjectId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("UserContributions", (string)null);
+                    b.ToTable("UserContributions");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.UserRfidCard", b =>
@@ -1440,7 +1443,7 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserRfidCards", (string)null);
+                    b.ToTable("UserRfidCards");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

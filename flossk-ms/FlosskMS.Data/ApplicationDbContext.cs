@@ -39,6 +39,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Certificate> Certificates { get; set; }
     public DbSet<CertificateTemplate> CertificateTemplates { get; set; }
     public DbSet<CertificateTemplateField> CertificateTemplateFields { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<PushSubscription> PushSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -624,6 +626,44 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.TemplateId);
+        });
+
+        // Notification
+        builder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Body).HasMaxLength(2000);
+            entity.Property(e => e.Metadata).HasMaxLength(4000);
+            entity.Property(e => e.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+            entity.Property(e => e.Priority)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+        });
+
+        // PushSubscription
+        builder.Entity<PushSubscription>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Endpoint).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.P256dh).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Auth).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Endpoint).IsUnique();
         });
     }
 }

@@ -17,6 +17,7 @@ public class ProjectService : IProjectService
     private readonly IContributionService _contributionService;
     private readonly ILogService _logService;
     private readonly IFileService _fileService;
+    private readonly INotificationService _notificationService;
 
     public ProjectService(
         ApplicationDbContext dbContext,
@@ -24,7 +25,8 @@ public class ProjectService : IProjectService
         ILogger<ProjectService> logger,
         IContributionService contributionService,
         ILogService logService,
-        IFileService fileService)
+        IFileService fileService,
+        INotificationService notificationService)
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -32,6 +34,7 @@ public class ProjectService : IProjectService
         _contributionService = contributionService;
         _logService = logService;
         _fileService = fileService;
+        _notificationService = notificationService;
     }
 
     #region Project Operations
@@ -565,6 +568,12 @@ public class ProjectService : IProjectService
         teamMember.User = user;
 
         _logger.LogInformation("User {UserId} added to project {ProjectId}", request.UserId, projectId);
+
+        await _notificationService.SendAsync(
+            request.UserId,
+            NotificationType.ProjectInvite,
+            "Added to project",
+            $"You have been added to the project \"{project.Title}\" as {request.Role}.");
 
         if (addedByUserId != null)
         {

@@ -12,6 +12,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FlosskMS.API.Middleware;
 
+using FlosskMS.API.Hubs;
+using FlosskMS.API.Services;
+
 var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 if (File.Exists(envFile))
     Env.Load(envFile);
@@ -98,12 +101,21 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
     };
-    // Allow token via query string for file view/download endpoints (browser navigation)
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
             var path = context.HttpContext.Request.Path;
+
+            // Allow token via query string for SignalR hub connections
+            if (path.StartsWithSegments("/hubs/notifications"))
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken))
+                    context.Token = accessToken;
+            }
+
+            // Allow token via query string for file view/download endpoints
             if (path.StartsWithSegments("/api/Files") &&
                 (path.Value?.Contains("/view") == true || path.Value?.Contains("/download") == true))
             {
@@ -125,6 +137,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:4200",
+                "http://localhost:4000",
                 "http://frontend:80",
                 "http://localhost"
               )
@@ -133,6 +146,11 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
+builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
+builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IClamAvService, ClamAvService>();
@@ -149,9 +167,11 @@ builder.Services.AddScoped<IElectionService, ElectionService>();
 builder.Services.AddScoped<IElectionCategoryService, ElectionCategoryService>();
 builder.Services.AddScoped<IContributionService, ContributionService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
+builder.Services.Configure<VapidSettings>(builder.Configuration.GetSection("VapidSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
@@ -202,5 +222,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
