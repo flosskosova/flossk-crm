@@ -55,6 +55,3 @@ publish/
 
 # Uploaded files
 **/uploads/
-
-# Development settings (contains local secrets)
-**/appsettings.Development.json
