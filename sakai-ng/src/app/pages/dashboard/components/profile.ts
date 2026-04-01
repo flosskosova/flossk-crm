@@ -327,6 +327,7 @@ import { environment } from '@environments/environment.prod';
                                     
                                     <div class="flex gap-2" *ngIf="isOwnProfile">
                                         <p-button label="Edit" icon="pi pi-pencil" outlined (onClick)="openEditDialog()"></p-button>
+                                        <p-button label="Reset Password" icon="pi pi-lock" [loading]="resettingPassword" (onClick)="onForgotPassword()"></p-button>
                                     </div>
                                 </div>
                             </div>
@@ -700,7 +701,7 @@ export class Profile implements OnInit {
     ngOnInit() {
         this.route.paramMap.subscribe(params => {
             const userId = params.get('userId');
-            
+
             if (userId) {
                 // Viewing another user's profile
                 this.isOwnProfile = false;
@@ -773,6 +774,29 @@ export class Profile implements OnInit {
         };
     }
 
+    onForgotPassword() {
+        if (!this.userProfile.email) return;
+        this.resettingPassword = true;
+        this.authService.forgotPassword(this.userProfile.email).subscribe({
+            next: () => {
+                this.resettingPassword = false;
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Email Sent',
+                    detail: 'Check your inbox for a password reset link.'
+                });
+            },
+            error: () => {
+                this.resettingPassword = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to send reset link. Please try again later.'
+                });
+            }
+        });
+    }
+
     loadUserProfile() {
         const user = this.authService.currentUser() as User | null;
         console.log('Logged in user data:', user);
@@ -839,9 +863,9 @@ export class Profile implements OnInit {
                     // Map team members with proper avatar URLs
                     const team = (project.teamMembers || []).map((tm: any) => ({
                         name: `${tm.firstName} ${tm.lastName}`,
-                        avatar: tm.profilePictureUrl 
-                            ? (tm.profilePictureUrl.startsWith('http') 
-                                ? tm.profilePictureUrl 
+                        avatar: tm.profilePictureUrl
+                            ? (tm.profilePictureUrl.startsWith('http')
+                                ? tm.profilePictureUrl
                                 : `${environment.baseUrl}${tm.profilePictureUrl}`)
                             : ''
                     }));
@@ -866,11 +890,11 @@ export class Profile implements OnInit {
 
     loadCheckedOutItems() {
         if (!this.profileUserId) return;
-        
-        const observable = this.isOwnProfile 
+
+        const observable = this.isOwnProfile
             ? this.inventoryService.getMyInventoryItems()
             : this.inventoryService.getInventoryItemsByUser(this.profileUserId);
-        
+
         observable.subscribe({
             next: (items) => {
                 this.checkedOutItems = items;
@@ -887,6 +911,7 @@ export class Profile implements OnInit {
     profileCheckinItem: InventoryItem | null = null;
     profileCheckinQuantity = 1;
     profileCheckinMaxQuantity = 1;
+    resettingPassword = false;
 
     checkInInventoryItem(item: InventoryItem) {
         this.profileCheckinItem = item;
@@ -1056,7 +1081,7 @@ export class Profile implements OnInit {
                 this.editProfile.picture = '';
                 this.userProfile.picture = '';
                 this.selectedFile = null;
-                
+
                 // Update auth service
                 const currentUser = this.authService.currentUser() as User | null;
                 if (currentUser) {
@@ -1181,7 +1206,7 @@ export class Profile implements OnInit {
 
     downloadCV() {
         if (!this.profileUserId) return;
-        
+
         this.http.get(`${environment.apiUrl}/Auth/users/${this.profileUserId}/cv/download`, { responseType: 'blob' }).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
