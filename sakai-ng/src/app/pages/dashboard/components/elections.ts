@@ -42,9 +42,8 @@ import { environment } from '@environments/environment.prod';
         TooltipModule,
         SelectModule
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     template: `
-        <p-toast />
         <p-confirmDialog />
 
         <div class="flex flex-col">

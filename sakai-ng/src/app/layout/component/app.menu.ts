@@ -47,7 +47,7 @@ export class AppMenu {
                 { label: 'Integrations', icon: 'pi pi-fw pi-th-large', routerLink: ['/dashboard/integrations'] },
                 { label: 'Plugins (Frontend only)', icon: 'pi pi-fw pi-objects-column', routerLink: ['/dashboard/plugins'] },
                 { label: 'Certificate Builder', icon: 'pi pi-fw pi-sparkles', routerLink: ['/dashboard/cert-builder'] },
-                { label: 'Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/settings'] },
+                { label: 'Administration Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/admin-settings'] },
                 ]
             },
             {

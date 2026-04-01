@@ -22,9 +22,8 @@ import { AuthService } from '@/pages/service/auth.service';
         ConfirmDialogModule,
         ToastModule
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     template: `
-        <p-toast></p-toast>
         <p-confirmdialog></p-confirmdialog>
         
         <div class="card">

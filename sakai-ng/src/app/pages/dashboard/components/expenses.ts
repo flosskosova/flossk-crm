@@ -74,7 +74,7 @@ interface DonorEntry {
         DividerModule,
         TooltipModule
     ],
-    providers: [MessageService],
+    providers: [],
     styles: [`
         .stat-card {
             transition: transform 0.2s, box-shadow 0.2s;
@@ -106,7 +106,6 @@ interface DonorEntry {
         }
     `],
     template: `
-    <p-toast />
 
     <div class="min-h-screen p-0">
 

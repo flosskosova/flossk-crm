@@ -31,9 +31,8 @@ import { environment } from '@environments/environment.prod';
 @Component({
     selector: 'app-profile',
     imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, InputNumberModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule, ToastModule],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     template: `
-        <p-toast />
         <p-confirmdialog></p-confirmdialog>
         <!-- Loading Skeleton -->
         <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">

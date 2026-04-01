@@ -46,9 +46,8 @@ interface AuthenticationResult {
         DividerModule,
         AvatarModule
     ],
-    providers: [MessageService],
+    providers: [],
     template: `
-        <p-toast></p-toast>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Enrollment Section -->

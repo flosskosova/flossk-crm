@@ -59,7 +59,7 @@ interface NotificationRule {
         AccordionModule,
         TooltipModule
     ],
-    providers: [MessageService],
+    providers: [],
     styles: [`
         .plugin-hero {
             background: linear-gradient(135deg, #165eab11 0%, #0f3460 0%);
@@ -126,7 +126,6 @@ interface NotificationRule {
         }
     `],
     template: `
-    <p-toast />
 
     <div class="min-h-screen p-0 flex flex-col gap-6">
 

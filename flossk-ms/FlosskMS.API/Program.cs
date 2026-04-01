@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using FlosskMS.API.Middleware;
 
 var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 if (File.Exists(envFile))
@@ -150,6 +151,8 @@ using (var scope = app.Services.CreateScope())
 
     await DbSeeder.SeedAsync(roleManager, userManager, dbContext, seederLogger);
 }
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
 {

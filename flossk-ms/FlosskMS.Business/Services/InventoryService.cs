@@ -380,11 +380,6 @@ public class InventoryService : IInventoryService
             return new NotFoundObjectResult(new { Message = "Inventory item not found." });
         }
 
-        if (item.Status == InventoryStatus.InUse)
-        {
-            return new BadRequestObjectResult(new { Message = "Cannot delete an inventory item that is currently in use. Please check it in first." });
-        }
-
         var itemName = item.Name;
         var itemId = item.Id.ToString();
         _context.InventoryItems.Remove(item);

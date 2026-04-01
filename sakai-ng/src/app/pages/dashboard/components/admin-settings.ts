@@ -10,7 +10,7 @@ import { SelectModule } from 'primeng/select';
 import { AuthService } from '@/pages/service/auth.service';
 
 @Component({
-    selector: 'app-settings',
+    selector: 'app-admin-settings',
     standalone: true,
     imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, PasswordModule, MessageModule, DividerModule, SelectModule],
     template: `
@@ -65,7 +65,7 @@ import { AuthService } from '@/pages/service/auth.service';
         </div>
     `
 })
-export class Settings {
+export class AdminSettings {
     form = {
         firstName: '',
         lastName: '',

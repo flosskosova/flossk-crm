@@ -63,7 +63,7 @@ interface User {
         PopoverModule,
         DividerModule
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     styles: `
         .p-galleria-thumbnail-next-icon {
             display: none !important;
@@ -73,7 +73,6 @@ interface User {
         }`,
 
     template: `
-        <p-toast />
         <p-confirmDialog />
         
         <div class="card">
@@ -87,7 +86,7 @@ interface User {
                     </div>
                 </ng-template>
                 <ng-template #end>
-                    <div class="flex gap-2">
+                    <div class="grid grid-cols-2 gap-2 sm:flex">
                         <p-button
                             label="New Item"
                             icon="pi pi-plus"
@@ -1089,14 +1088,7 @@ export class Inventory implements OnInit {
                     }
                 });
             },
-            error: (error) => {
-                console.error('Error loading inventory:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load inventory items'
-                });
-            }
+            error: () => {}
         });
     }
 
@@ -1385,14 +1377,7 @@ export class Inventory implements OnInit {
                     this.inventoryItems[listIdx].images = [...this.existingImages];
                 }
             },
-            error: (error) => {
-                console.error('Error removing image:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to remove image'
-                });
-            }
+            error: () => {}
         });
     }
 
@@ -1437,14 +1422,7 @@ export class Inventory implements OnInit {
                     this.dialogVisible = false;
                     this.loadInventoryItems();
                 },
-                error: (error) => {
-                    console.error('Error creating item:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: error.error?.Errors?.[0] || 'Failed to create item'
-                    });
-                }
+                error: () => {}
             });
         } else {
             this.http.put(`${this.apiUrl}/${this.currentItem.id}`, formData).subscribe({
@@ -1458,14 +1436,7 @@ export class Inventory implements OnInit {
                     this.dialogVisible = false;
                     this.loadInventoryItems();
                 },
-                error: (error) => {
-                    console.error('Error updating item:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: error.error?.Errors?.[0] || 'Failed to update item'
-                    });
-                }
+                error: () => {}
             });
         }
     }
@@ -1493,14 +1464,7 @@ export class Inventory implements OnInit {
                 });
                 this.loadInventoryItems();
             },
-            error: (error) => {
-                console.error('Error deleting item:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.Errors?.[0] || 'Failed to delete item'
-                });
-            }
+            error: () => {}
         });
     }
 
@@ -1542,13 +1506,7 @@ export class Inventory implements OnInit {
                 this.damageReportVisible = false;
                 this.loadInventoryItems();
             },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.message || 'Failed to submit damage report'
-                });
-            }
+            error: () => {}
         });
     }
 
@@ -1575,13 +1533,7 @@ export class Inventory implements OnInit {
                 this.repairReportVisible = false;
                 this.loadInventoryItems();
             },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.message || 'Failed to submit repair report'
-                });
-            }
+            error: () => {}
         });
     }
 
@@ -1618,11 +1570,6 @@ export class Inventory implements OnInit {
             },
             error: () => {
                 this.exportingData = false;
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to export inventory'
-                });
             }
         });
     }
@@ -1646,11 +1593,6 @@ export class Inventory implements OnInit {
             },
             error: () => {
                 this.exportingExcel = false;
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to export inventory as Excel'
-                });
             }
         });
     }
@@ -1680,11 +1622,9 @@ export class Inventory implements OnInit {
                 }
                 this.loadInventoryItems();
             },
-            error: (err) => {
+            error: () => {
                 this.importingJson = false;
                 input.value = '';
-                const detail = err.error?.message || 'Failed to import inventory items.';
-                this.messageService.add({ severity: 'error', summary: 'Import Failed', detail });
             }
         });
     }
@@ -1731,14 +1671,7 @@ export class Inventory implements OnInit {
                 this.checkoutDialogVisible = false;
                 this.loadInventoryItems();
             },
-            error: (error) => {
-                console.error('Error checking out item:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.Message || error.error?.message || 'Failed to check out item'
-                });
-            }
+            error: () => {}
         });
     }
 
@@ -1786,14 +1719,7 @@ export class Inventory implements OnInit {
                 this.checkinDialogVisible = false;
                 this.loadInventoryItems();
             },
-            error: (error) => {
-                console.error('Error checking in item:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.Message || error.error?.message || 'Failed to check in item'
-                });
-            }
+            error: () => {}
         });
     }
 

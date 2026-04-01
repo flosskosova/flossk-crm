@@ -7,7 +7,7 @@ import { Notfound } from './app/pages/notfound/notfound';
 import { Users } from '@/pages/dashboard/components/users';
 import { Inventory } from '@/pages/dashboard/components/inventory';
 import { HackerspacePresence } from '@/pages/dashboard/components/hackerspace-presence';
-import { Settings } from '@/pages/dashboard/components/settings';
+import { AdminSettings } from '@/pages/dashboard/components/admin-settings';
 import { Events } from '@/pages/dashboard/components/events';
 import { Announcements } from '@/pages/dashboard/components/announcements';
 import { Profile } from '@/pages/dashboard/components/profile';
@@ -44,7 +44,7 @@ export const appRoutes: Routes = [
             { path: 'inventory', component: Inventory },
             { path: 'integrations', component: Integrations },
             { path: 'cert-builder', component: CertBuilder },
-            { path: 'hackerspace-presence', component: HackerspacePresence },
+            // { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },
             { path: 'projects', component: Projects },
@@ -53,7 +53,7 @@ export const appRoutes: Routes = [
             { path: 'leaderboard', component: Leaderboard },
             { path: 'external-messages', component: ExternalMessages },
             { path: 'expenses', component: Expenses },
-            { path: 'settings', component: Settings, canActivate: [roleGuard(['Admin'])] },
+            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
