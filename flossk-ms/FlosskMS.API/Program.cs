@@ -1,6 +1,7 @@
 using System.Text;
 using DotNetEnv;
 using FlosskMS.Business.Configuration;
+using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -168,6 +169,9 @@ builder.Services.AddScoped<IElectionCategoryService, ElectionCategoryService>();
 builder.Services.AddScoped<IContributionService, ContributionService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<TeamMemberAssignedToObjectiveEvent>, TeamMemberAssignedToObjectiveNotificationHandler>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));

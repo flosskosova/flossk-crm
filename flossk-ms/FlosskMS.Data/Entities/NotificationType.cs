@@ -12,5 +12,6 @@ public enum NotificationType
     ElectionEnded,
     ContributionApproved,
     CertificateIssued,
-    InventoryCheckoutReminder
+    InventoryCheckoutReminder,
+    ObjectiveAssigned
 }

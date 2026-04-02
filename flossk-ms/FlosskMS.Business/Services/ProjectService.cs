@@ -1,4 +1,5 @@
 using AutoMapper;
+using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -17,7 +18,7 @@ public class ProjectService : IProjectService
     private readonly IContributionService _contributionService;
     private readonly ILogService _logService;
     private readonly IFileService _fileService;
-    private readonly INotificationService _notificationService;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
 
     public ProjectService(
         ApplicationDbContext dbContext,
@@ -26,7 +27,7 @@ public class ProjectService : IProjectService
         IContributionService contributionService,
         ILogService logService,
         IFileService fileService,
-        INotificationService notificationService)
+        IDomainEventDispatcher domainEventDispatcher)
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -34,7 +35,7 @@ public class ProjectService : IProjectService
         _contributionService = contributionService;
         _logService = logService;
         _fileService = fileService;
-        _notificationService = notificationService;
+        _domainEventDispatcher = domainEventDispatcher;
     }
 
     #region Project Operations
@@ -569,11 +570,19 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} added to project {ProjectId}", request.UserId, projectId);
 
-        await _notificationService.SendAsync(
-            request.UserId,
-            NotificationType.ProjectInvite,
-            "Added to project",
-            $"You have been added to the project \"{project.Title}\" as {request.Role}.");
+        string? addedByName = null;
+        if (addedByUserId != null)
+        {
+            var addedByUser = await _dbContext.Users.FindAsync(addedByUserId);
+            if (addedByUser != null)
+                addedByName = $"{addedByUser.FirstName} {addedByUser.LastName}".Trim();
+        }
+
+        await _domainEventDispatcher.PublishAsync(
+            new TeamMemberAddedToProjectEvent(
+                request.UserId,
+                project.Title,
+                addedByName));
 
         if (addedByUserId != null)
         {
@@ -1180,6 +1189,18 @@ public class ProjectService : IProjectService
         teamMember.User = user;
 
         _logger.LogInformation("User {UserId} assigned to objective {ObjectiveId}", request.UserId, objectiveId);
+
+        var assignedByUser = await _dbContext.Users.FindAsync(currentUserId);
+        var assignedByName = assignedByUser != null
+            ? $"{assignedByUser.FirstName} {assignedByUser.LastName}".Trim()
+            : null;
+
+        await _domainEventDispatcher.PublishAsync(
+            new TeamMemberAssignedToObjectiveEvent(
+                request.UserId,
+                objective.Title,
+                objective.Project?.Title ?? "Unknown",
+                assignedByName));
 
         await _logService.CreateAsync(new CreateLogDto
         {

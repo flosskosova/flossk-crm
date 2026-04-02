@@ -128,6 +128,7 @@ export class NotificationsWidget implements OnInit {
             ContributionApproved: 'pi-star',
             CertificateIssued: 'pi-id-card',
             InventoryCheckoutReminder: 'pi-box',
+            ObjectiveAssigned: 'pi-flag',
         };
         return icons[type] || 'pi-bell';
     }
@@ -145,6 +146,7 @@ export class NotificationsWidget implements OnInit {
             ContributionApproved: 'bg-green-100 dark:bg-green-400/10 text-green-500',
             CertificateIssued: 'bg-indigo-100 dark:bg-indigo-400/10 text-indigo-500',
             InventoryCheckoutReminder: 'bg-orange-100 dark:bg-orange-400/10 text-orange-500',
+            ObjectiveAssigned: 'bg-teal-100 dark:bg-teal-400/10 text-teal-500',
         };
         return bgs[type] || 'bg-blue-100 dark:bg-blue-400/10 text-blue-500';
     }
