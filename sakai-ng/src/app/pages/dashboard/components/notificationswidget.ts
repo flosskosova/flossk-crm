@@ -77,8 +77,8 @@ export class NotificationsWidget implements OnInit {
     loadPage() {
         this.notificationService.loadAll(this.page, this.pageSize).subscribe({
             next: data => {
-                this.allNotifications = [...this.allNotifications, ...data];
-                this.hasMore = data.length === this.pageSize;
+                this.allNotifications = [...this.allNotifications, ...data.items];
+                this.hasMore = this.allNotifications.length < data.totalCount;
                 this.loading = false;
                 this.loadingMore = false;
             },

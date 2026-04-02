@@ -77,8 +77,8 @@ export class NotificationService implements OnDestroy {
         });
     }
 
-    loadAll(page = 1, pageSize = 20): Observable<AppNotification[]> {
-        return this.http.get<AppNotification[]>(`${this.API_URL}?page=${page}&pageSize=${pageSize}`);
+    loadAll(page = 1, pageSize = 20): Observable<{ items: AppNotification[]; totalCount: number; page: number; pageSize: number }> {
+        return this.http.get<{ items: AppNotification[]; totalCount: number; page: number; pageSize: number }>(`${this.API_URL}?page=${page}&pageSize=${pageSize}`);
     }
 
     refreshUnreadCount(): void {
