@@ -33,9 +33,9 @@ export class NotificationService implements OnDestroy {
 
     // ── SignalR Connection ──────────────────────────────────────────
 
-    startConnection(): void {
+    startConnection(): Promise<void> {
         const token = this.authService.getToken();
-        if (!token || this.hubConnection) return;
+        if (!token || this.hubConnection) return Promise.resolve();
 
         this.hubConnection = new signalR.HubConnectionBuilder()
             .withUrl(`${environment.baseUrl}/hubs/notifications`, {
@@ -52,7 +52,7 @@ export class NotificationService implements OnDestroy {
             });
         });
 
-        this.hubConnection.start()
+        return this.hubConnection.start()
             .then(() => console.log('SignalR connected'))
             .catch(err => console.error('SignalR connection error:', err));
     }

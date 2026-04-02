@@ -14,6 +14,7 @@ import { PresenceService } from '@/pages/service/presence.service';
             [class.user-status-dot--sm]="size === 'sm'"
             [class.user-status-dot--md]="size === 'md'"
             [class.user-status-dot--lg]="size === 'lg'"
+            [class.user-status-dot--xl]="size === 'xl'"
             [pTooltip]="tooltipText()"
             tooltipPosition="top"
         ></span>
@@ -42,6 +43,12 @@ import { PresenceService } from '@/pages/service/presence.service';
             height: 18px;
         }
 
+        .user-status-dot--xl {
+            width: 40px;
+            height: 40px;
+            border-width: 3px;
+        }
+
         .status-online {
             background-color: #22c55e;
         }
@@ -57,7 +64,7 @@ import { PresenceService } from '@/pages/service/presence.service';
 })
 export class UserStatusIndicator {
     @Input({ required: true }) userId!: string;
-    @Input() size: 'sm' | 'md' | 'lg' = 'sm';
+    @Input() size: 'sm' | 'md' | 'lg' | 'xl' = 'sm';
 
     private presenceService = inject(PresenceService);
 

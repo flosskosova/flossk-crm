@@ -266,8 +266,8 @@ import { environment } from '@environments/environment.prod';
                                     <user-status-indicator
                                         *ngIf="profileUserId"
                                         [userId]="profileUserId"
-                                        size="lg"
-                                        class="absolute bottom-2 right-2"
+                                        size="xl"
+                                        class="absolute bottom-4 right-4"
                                     />
                                 </div>
                             </div>

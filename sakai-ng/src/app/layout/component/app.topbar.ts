@@ -161,11 +161,11 @@ export class AppTopbar implements OnInit, OnDestroy {
         effect(() => {
             const user = this.authService.currentUser();
             if (user) {
-                this.notificationService.startConnection();
+                this.notificationService.startConnection().then(() => {
+                    this.presenceService.start(user.id);
+                });
                 this.notificationService.loadUnread();
                 this.notificationService.refreshUnreadCount();
-                // Start presence tracking after a short delay to let SignalR connect
-                setTimeout(() => this.presenceService.start(), 1000);
             } else {
                 this.presenceService.stop();
                 this.notificationService.stopConnection();

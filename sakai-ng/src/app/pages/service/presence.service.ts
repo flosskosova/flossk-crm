@@ -33,10 +33,19 @@ export class PresenceService implements OnDestroy {
     ) {}
 
     /** Call once after SignalR is connected (from topbar effect) */
-    start(): void {
+    start(currentUserId?: string): void {
         this.listenForPresenceChanges();
         this.startActivityTracking();
         this.startHeartbeat();
+
+        // Immediately mark current user as Online locally
+        // (UserStatusChanged is only sent to Others, so we'd never see our own)
+        if (currentUserId) {
+            this.presences.update((current) => ({
+                ...current,
+                [currentUserId]: { status: 'Online', lastActivityAt: null }
+            }));
+        }
     }
 
     stop(): void {
