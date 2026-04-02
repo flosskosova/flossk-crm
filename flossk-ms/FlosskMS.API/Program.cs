@@ -154,6 +154,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
+builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
 builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
 

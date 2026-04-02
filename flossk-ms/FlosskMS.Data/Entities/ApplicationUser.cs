@@ -15,6 +15,7 @@ public class ApplicationUser : IdentityUser
     public bool DarkTheme { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public DateTime? LastActivityAt { get; set; }
     public ICollection<UploadedFile> UploadedFiles { get; set; } = [];
     public ICollection<UserRfidCard> RfidCards { get; set; } = [];
 }

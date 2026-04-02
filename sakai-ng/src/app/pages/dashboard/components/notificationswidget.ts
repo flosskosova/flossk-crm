@@ -31,7 +31,7 @@ import { NotificationService, AppNotification } from '@/pages/service/notificati
 
         <ul class="p-0 mx-0 mt-0 mb-4 list-none">
             @for (notification of allNotifications; track notification.id) {
-                <li class="flex items-center justify-between py-3 border-b border-surface"
+                <li class="flex items-start justify-between py-3 border-b border-surface"
                     [class.bg-primary-50]="!notification.isRead"
                     [class.dark:bg-primary-900/10]="!notification.isRead">
                     <div class="flex items-start flex-1 cursor-pointer" (click)="markRead(notification)">

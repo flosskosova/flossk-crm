@@ -25,12 +25,14 @@ import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.
 import { ProjectsService } from '@/pages/service/projects.service';
 import { InventoryService, InventoryItem } from '@/pages/service/inventory.service';
 import { ProfileService, User } from '@/pages/service/profile.service';
+import { PresenceService } from '@/pages/service/presence.service';
+import { UserStatusIndicator } from './user-status-indicator';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
 
 @Component({
     selector: 'app-profile',
-    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, InputNumberModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule, ToastModule],
+    imports: [CommonModule, FormsModule, AvatarModule, ButtonModule, TagModule, ChipModule, BadgeModule, DividerModule, PanelModule, ProgressBarModule, AvatarGroupModule, DialogModule, InputTextModule, InputNumberModule, TextareaModule, FileUploadModule, SelectModule, SkeletonModule, ConfirmDialogModule, ToastModule, UserStatusIndicator],
     providers: [ConfirmationService],
     template: `
         <p-confirmdialog></p-confirmdialog>
@@ -260,6 +262,12 @@ import { environment } from '@environments/environment.prod';
                                         size="xlarge"
                                         [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)', 'width': '16rem', 'height': '16rem', 'font-size': '5rem'}"
                                         class="border-4 border-surface-0 dark:border-surface-900 shadow-lg"
+                                    />
+                                    <user-status-indicator
+                                        *ngIf="profileUserId"
+                                        [userId]="profileUserId"
+                                        size="lg"
+                                        class="absolute bottom-2 right-2"
                                     />
                                 </div>
                             </div>
@@ -620,6 +628,7 @@ export class Profile implements OnInit {
     private route = inject(ActivatedRoute);
     private projectsService = inject(ProjectsService);
     private inventoryService = inject(InventoryService);
+    private presenceService = inject(PresenceService);
 
     constructor(private authService: AuthService, private http: HttpClient, private confirmationService: ConfirmationService, private messageService: MessageService) {
         // Use effect to reactively update when currentUser signal changes (only for own profile)
@@ -718,6 +727,7 @@ export class Profile implements OnInit {
     loadUserById(userId: string) {
         this.isLoading = true;
         this.profileUserId = userId;
+        this.presenceService.fetchStatuses([userId]);
         this.http.get<User>(`${environment.apiUrl}/Auth/users/${userId}`).subscribe({
             next: (user) => {
                 console.log('Fetched user data:', user);
@@ -802,6 +812,7 @@ export class Profile implements OnInit {
         console.log('Logged in user data:', user);
         if (user) {
             this.profileUserId = user.id;
+            this.presenceService.fetchStatuses([user.id]);
             // Construct full picture URL if it's a relative path
             let pictureUrl = '';
             if (user.profilePictureUrl) {

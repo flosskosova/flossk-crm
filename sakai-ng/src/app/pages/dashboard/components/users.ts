@@ -14,6 +14,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@environments/environment.prod';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
+import { PresenceService } from '@/pages/service/presence.service';
+import { UserStatusIndicator } from './user-status-indicator';
 
 interface User {
     id: string;
@@ -27,7 +29,7 @@ interface User {
 
 @Component({
     selector: 'app-users',
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, AvatarModule, ConfirmDialogModule, CheckboxModule, SkeletonModule, TagModule, TooltipModule],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, AvatarModule, ConfirmDialogModule, CheckboxModule, SkeletonModule, TagModule, TooltipModule, UserStatusIndicator],
     providers: [ConfirmationService],
     template: `
     <p-confirmdialog></p-confirmdialog>
@@ -63,17 +65,24 @@ interface User {
                 <ng-template #body let-user>
                     <tr class="cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors" (click)="viewUserProfile(user)">
                         <td>
-                            <p-avatar 
-                                *ngIf="hasProfilePicture(user.profilePictureUrl)"
-                                [image]="getProfilePictureUrl(user.profilePictureUrl)" 
-                                shape="circle">
-                            </p-avatar>
-                            <p-avatar
-                                *ngIf="!hasProfilePicture(user.profilePictureUrl)"
-                                [label]="getUserInitials(user)"
-                                shape="circle"
-                                [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}">
-                            </p-avatar>
+                            <div class="relative inline-block">
+                                <p-avatar 
+                                    *ngIf="hasProfilePicture(user.profilePictureUrl)"
+                                    [image]="getProfilePictureUrl(user.profilePictureUrl)" 
+                                    shape="circle">
+                                </p-avatar>
+                                <p-avatar
+                                    *ngIf="!hasProfilePicture(user.profilePictureUrl)"
+                                    [label]="getUserInitials(user)"
+                                    shape="circle"
+                                    [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}">
+                                </p-avatar>
+                                <user-status-indicator
+                                    [userId]="user.id"
+                                    size="sm"
+                                    class="absolute -bottom-0.5 -right-0.5"
+                                />
+                            </div>
                         </td>
                         <td>{{ user.firstName }} {{ user.lastName }}</td>
                         <td>{{ user.email }}</td>
@@ -146,6 +155,7 @@ export class Users implements OnInit {
     private http = inject(HttpClient);
     private router = inject(Router);
     private authService = inject(AuthService);
+    private presenceService = inject(PresenceService);
     
     users: User[] = [];
     loading = true;
@@ -172,6 +182,11 @@ export class Users implements OnInit {
                 console.log('Users response:', response);
                 this.users = response.users;
                 this.loading = false;
+                // Fetch presence statuses for all loaded users
+                const userIds = this.users.map(u => u.id);
+                if (userIds.length > 0) {
+                    this.presenceService.fetchStatuses(userIds);
+                }
             },
             error: (err) => {
                 console.error('Error loading users:', err);

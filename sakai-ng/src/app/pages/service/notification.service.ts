@@ -24,7 +24,7 @@ const VAPID_PUBLIC_KEY = 'BB8NnwQMo5myzAh82O_ZIpL8kPHjc2iG4LD7NqTEe56njtgrAOttPY
 })
 export class NotificationService implements OnDestroy {
     private readonly API_URL = `${environment.apiUrl}/Notifications`;
-    private hubConnection: signalR.HubConnection | null = null;
+    hubConnection: signalR.HubConnection | null = null;
 
     notifications = signal<AppNotification[]>([]);
     unreadCount = signal<number>(0);

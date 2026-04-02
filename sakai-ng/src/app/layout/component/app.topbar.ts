@@ -12,12 +12,14 @@ import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { LayoutService } from '../service/layout.service';
 import { AuthService, getInitials, isDefaultAvatar } from '@/pages/service/auth.service';
 import { NotificationService, AppNotification } from '@/pages/service/notification.service';
+import { PresenceService } from '@/pages/service/presence.service';
+import { UserStatusIndicator } from '@/pages/dashboard/components/user-status-indicator';
 import { environment } from '@environments/environment.prod';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, PopoverModule, ButtonModule, AvatarModule, DividerModule, BadgeModule, OverlayBadgeModule],
+    imports: [RouterModule, CommonModule, StyleClassModule, PopoverModule, ButtonModule, AvatarModule, DividerModule, BadgeModule, OverlayBadgeModule, UserStatusIndicator],
     template: ` 
     <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
@@ -83,6 +85,7 @@ import { environment } from '@environments/environment.prod';
                     </p-popover>
                 }
                 <button type="button" class="layout-topbar-action" style="width: auto; height: auto; border-radius: 0; background: none;" (click)="profilePopover.toggle($event)">
+                    <div class="relative inline-block">
                     @if (hasProfilePicture()) {
                         <p-avatar
                             [image]="getProfilePictureUrl()"
@@ -97,6 +100,14 @@ import { environment } from '@environments/environment.prod';
                             [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"
                         ></p-avatar>
                     }
+                    @if (authService.currentUser()?.id) {
+                        <user-status-indicator
+                            [userId]="authService.currentUser()!.id!"
+                            size="sm"
+                            class="absolute -bottom-0.5 -right-0.5"
+                        />
+                    }
+                    </div>
                 </button>
                 <p-popover #profilePopover>
                     <div class="flex flex-col w-72">
@@ -143,7 +154,8 @@ export class AppTopbar implements OnInit, OnDestroy {
     constructor(
         public layoutService: LayoutService,
         public authService: AuthService,
-        public notificationService: NotificationService
+        public notificationService: NotificationService,
+        public presenceService: PresenceService
     ) {
         // Start SignalR and load notifications when user becomes authenticated
         effect(() => {
@@ -152,7 +164,10 @@ export class AppTopbar implements OnInit, OnDestroy {
                 this.notificationService.startConnection();
                 this.notificationService.loadUnread();
                 this.notificationService.refreshUnreadCount();
+                // Start presence tracking after a short delay to let SignalR connect
+                setTimeout(() => this.presenceService.start(), 1000);
             } else {
+                this.presenceService.stop();
                 this.notificationService.stopConnection();
             }
         });
@@ -164,6 +179,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
+        this.presenceService.stop();
         this.notificationService.stopConnection();
     }
 
