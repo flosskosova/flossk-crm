@@ -1,5 +1,6 @@
 using AutoMapper;
 using FlosskMS.Business.DomainEvents;
+using FlosskMS.Business.DomainEvents.Projects.Events;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;

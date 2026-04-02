@@ -2,6 +2,10 @@ using System.Text;
 using DotNetEnv;
 using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DomainEvents;
+using FlosskMS.Business.DomainEvents.Announcements.Events;
+using FlosskMS.Business.DomainEvents.Announcements.Notifications;
+using FlosskMS.Business.DomainEvents.Projects.Events;
+using FlosskMS.Business.DomainEvents.Projects.Notifications;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -102,7 +106,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
     };
-    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
@@ -124,7 +128,7 @@ builder.Services.AddAuthentication(options =>
                 if (!string.IsNullOrEmpty(token))
                     context.Token = token;
             }
-            return System.Threading.Tasks.Task.CompletedTask;
+            return Task.CompletedTask;
         }
     };
 });
@@ -172,6 +176,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAssignedToObjectiveEvent>, TeamMemberAssignedToObjectiveNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AnnouncementCreatedEvent>, AnnouncementCreatedNotificationHandler>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));

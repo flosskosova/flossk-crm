@@ -1,4 +1,6 @@
 using AutoMapper;
+using FlosskMS.Business.DomainEvents;
+using FlosskMS.Business.DomainEvents.Announcements.Events;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -13,15 +15,18 @@ public class AnnouncementService : IAnnouncementService
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<AnnouncementService> _logger;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
 
     public AnnouncementService(
         ApplicationDbContext dbContext,
         IMapper mapper,
-        ILogger<AnnouncementService> logger)
+        ILogger<AnnouncementService> logger,
+        IDomainEventDispatcher domainEventDispatcher)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+        _domainEventDispatcher = domainEventDispatcher;
     }
 
     public async Task<IActionResult> CreateAnnouncementAsync(CreateAnnouncementDto request, string userId)
@@ -66,6 +71,12 @@ public class AnnouncementService : IAnnouncementService
         announcement.Reactions = new List<AnnouncementReaction>();
 
         _logger.LogInformation("Announcement {AnnouncementId} created by user {UserId}", announcement.Id, userId);
+
+        await _domainEventDispatcher.PublishAsync(
+            new AnnouncementCreatedEvent(
+                announcement.Title,
+                $"{user.FirstName} {user.LastName}".Trim(),
+                userId));
 
         return new OkObjectResult(MapToAnnouncementDto(announcement, userId));
     }

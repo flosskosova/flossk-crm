@@ -34,7 +34,7 @@ import { NotificationService, AppNotification } from '@/pages/service/notificati
                 <li class="flex items-center justify-between py-3 border-b border-surface"
                     [class.bg-primary-50]="!notification.isRead"
                     [class.dark:bg-primary-900/10]="!notification.isRead">
-                    <div class="flex items-center flex-1 cursor-pointer" (click)="markRead(notification)">
+                    <div class="flex items-start flex-1 cursor-pointer" (click)="markRead(notification)">
                         <div [class]="'w-12 h-12 flex items-center justify-center rounded-full mr-4 shrink-0 ' + getIconBg(notification.type)">
                             <i [class]="'pi ' + getIcon(notification.type) + ' text-xl!'"></i>
                         </div>

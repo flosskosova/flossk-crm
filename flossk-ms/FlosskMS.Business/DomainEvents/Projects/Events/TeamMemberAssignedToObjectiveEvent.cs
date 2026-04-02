@@ -1,4 +1,4 @@
-namespace FlosskMS.Business.DomainEvents;
+namespace FlosskMS.Business.DomainEvents.Projects.Events;
 
 public sealed record TeamMemberAssignedToObjectiveEvent(
     string UserId,

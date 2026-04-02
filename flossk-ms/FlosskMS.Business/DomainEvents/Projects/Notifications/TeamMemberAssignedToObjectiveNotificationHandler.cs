@@ -1,7 +1,8 @@
+using FlosskMS.Business.DomainEvents.Projects.Events;
 using FlosskMS.Business.Services;
 using FlosskMS.Data.Entities;
 
-namespace FlosskMS.Business.DomainEvents;
+namespace FlosskMS.Business.DomainEvents.Projects.Notifications;
 
 public sealed class TeamMemberAssignedToObjectiveNotificationHandler(INotificationService notificationService)
     : IDomainEventHandler<TeamMemberAssignedToObjectiveEvent>
