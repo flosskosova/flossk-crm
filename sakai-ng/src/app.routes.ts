@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Dashboard } from './app/pages/dashboard/dashboard';
-import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { Users } from '@/pages/dashboard/components/users';
@@ -40,10 +39,8 @@ export const appRoutes: Routes = [
             { path: 'notifications', component: Notifications },
             { path: 'announcements', component: Announcements },
             { path: 'users', component: Users },
-            { path: 'elections', component: Elections, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'inventory', component: Inventory },
             { path: 'integrations', component: Integrations },
-            { path: 'cert-builder', component: CertBuilder },
             // { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },
@@ -52,11 +49,10 @@ export const appRoutes: Routes = [
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
             { path: 'external-messages', component: ExternalMessages },
-            { path: 'expenses', component: Expenses },
-            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
-            { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
-            { path: 'documentation', component: Documentation },
-            { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
+            { path: 'elections', component: Elections },
+            { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
+            { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
+            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] }
         ]
     },
     { path: 'onboarding', component: Onboarding },

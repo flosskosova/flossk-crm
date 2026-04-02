@@ -1,8 +1,7 @@
-import { Component, ElementRef, ViewChild, OnInit, effect } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { StatsWidget } from './components/statswidget';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -15,6 +14,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { SkeletonModule } from 'primeng/skeleton';
 import SignaturePad from 'signature_pad';
+import { AuthService } from '@/pages/service/auth.service';
 import { CollaborationPadsService, CollaborationPad } from '@/pages/service/collaboration-pads.service';
 import { MembershipRequestsService } from '@/pages/service/membership-requests.service';
 import { ProjectsService } from '@/pages/service/projects.service';
@@ -301,6 +301,7 @@ interface ProjectDeadline {
             </div>
             
             <!-- Join Requests Section -->
+            <ng-template *ngIf="isAdmin()">
             <div class="col-span-12">
                 <div class="card">
                     <div class="flex justify-between items-center mb-6">
@@ -368,6 +369,7 @@ interface ProjectDeadline {
                     </p-table>
                 </div>
             </div>
+            </ng-template>
             
         </div>        </ng-container>        
         <!-- Add/Edit Pad Dialog -->
@@ -626,7 +628,12 @@ export class Dashboard implements OnInit {
 
     viewDialogVisible = false;
     selectedRequest: JoinRequest | null = null;
-    
+
+    isAdmin = computed(() => {
+        const currentUser = this.authService.currentUser();
+        return currentUser?.role === 'Admin' || currentUser?.roles?.includes('Admin') || false;
+    });
+
     eventDialogVisible = false;
     selectedEvent: {
         title: string;
@@ -640,10 +647,11 @@ export class Dashboard implements OnInit {
     constructor(
         private sanitizer: DomSanitizer,
         private confirmationService: ConfirmationService,
+        public authService: AuthService,
         private collaborationPadsService: CollaborationPadsService,
         private membershipRequestsService: MembershipRequestsService,
         private projectsService: ProjectsService
-    ) {}
+    ) { }
 
     ngOnInit() {
         this.loadPads();
@@ -778,7 +786,7 @@ export class Dashboard implements OnInit {
         }
 
         const signatureDataUrl = this.boardMemberSignaturePad.toDataURL('image/png');
-        
+
         // Convert base64 to blob
         fetch(signatureDataUrl)
             .then(res => res.blob())
@@ -973,7 +981,7 @@ export class Dashboard implements OnInit {
     generateProjectDeadlines() {
         const deadlines: ProjectDeadline[] = [];
         const events: EventInput[] = [];
-        
+
         this.projects.forEach(project => {
             // Add start date as a deadline event
             if (project.startDate) {
@@ -986,7 +994,7 @@ export class Dashboard implements OnInit {
                     type: 'start' as const
                 };
                 deadlines.push(startDeadline);
-                
+
                 // Add to calendar events
                 events.push({
                     id: `start-${project.id}`,
@@ -1002,7 +1010,7 @@ export class Dashboard implements OnInit {
                     }
                 });
             }
-            
+
             // Add end date as a deadline event
             if (project.endDate) {
                 const endDeadline = {
@@ -1014,12 +1022,12 @@ export class Dashboard implements OnInit {
                     type: 'end' as const
                 };
                 deadlines.push(endDeadline);
-                
+
                 // Determine color based on whether deadline has passed
                 const today = new Date();
                 const endDate = new Date(project.endDate);
                 const isOverdue = endDate < today && project.status.toLowerCase() !== 'completed';
-                
+
                 // Add to calendar events
                 events.push({
                     id: `end-${project.id}`,
@@ -1036,10 +1044,10 @@ export class Dashboard implements OnInit {
                 });
             }
         });
-        
+
         // Sort deadlines by date (ascending)
         this.projectDeadlines = deadlines.sort((a, b) => a.date.getTime() - b.date.getTime());
-        
+
         // Update calendar events
         this.calendarEvents = events;
         this.calendarOptions = {
@@ -1051,12 +1059,12 @@ export class Dashboard implements OnInit {
     getDeadlineMarkerClass(event: ProjectDeadline): string {
         const today = new Date();
         const eventDate = new Date(event.date);
-        
+
         // Check if deadline has passed
         if (eventDate < today && event.type === 'end') {
             return 'bg-red-500';
         }
-        
+
         // Color based on event type
         if (event.type === 'start') {
             return 'bg-blue-500';
@@ -1077,10 +1085,10 @@ export class Dashboard implements OnInit {
     handleEventClick(clickInfo: any) {
         const event = clickInfo.event;
         const props = event.extendedProps;
-        
+
         // Remove emoji from title
         const cleanTitle = event.title.replace(/^[\u{1F3C1}\u{25B6}]\s*/u, '');
-        
+
         this.selectedEvent = {
             title: cleanTitle,
             date: event.start || new Date(),
@@ -1089,7 +1097,7 @@ export class Dashboard implements OnInit {
             description: props.description || 'No description provided',
             projectId: props.projectId
         };
-        
+
         this.eventDialogVisible = true;
     }
 }

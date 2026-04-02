@@ -15,7 +15,7 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     /// <summary>
     /// Create a new collaboration pad (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateCollaborationPad([FromBody] CreateCollaborationPadDto request)
     {
@@ -30,7 +30,7 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     /// <summary>
     /// Get all collaboration pads with optional filtering and pagination
     /// </summary>
-    [Authorize(Roles = "User, Admin")]
+    [Authorize]
     [HttpGet]
     public async Task<IActionResult> GetCollaborationPads(
         [FromQuery] int page = 1,
@@ -43,7 +43,7 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     /// <summary>
     /// Get a specific collaboration pad by ID
     /// </summary>
-    [Authorize(Roles = "User")]
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetCollaborationPadById(Guid id)
     {
@@ -51,9 +51,9 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     }
 
     /// <summary>
-    /// Delete a collaboration pad (Admin only)
+    /// Delete a collaboration pad
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteCollaborationPad(Guid id)
     {
@@ -66,9 +66,9 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     }
 
     /// <summary>
-    /// Update a collaboration pad (Admin only)
+    /// Update a collaboration pad
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateCollaborationPad(Guid id, [FromBody] UpdateCollaborationPadDto request)
     {

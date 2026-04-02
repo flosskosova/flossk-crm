@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -94,6 +94,7 @@ interface User {
                             (onClick)="openAddDialog()"
                         />
                         <p-button
+                            *ngIf="isAdmin()"
                             label="Import JSON"
                             icon="pi pi-file-import"
                             severity="secondary"
@@ -122,6 +123,7 @@ interface User {
                             (onClick)="exportExcel()"
                         />
                         <p-button
+                            *ngIf="isAdmin()"
                             label="Delete All"
                             icon="pi pi-trash"
                             severity="danger"
@@ -1031,7 +1033,7 @@ interface User {
 })
 export class Inventory implements OnInit {
     private http = inject(HttpClient);
-    private authService = inject(AuthService);
+    public authService = inject(AuthService);
     private inventoryService = inject(InventoryService);
     private apiUrl = `${environment.apiUrl}/Inventory`;
     importingJson = false;
@@ -1047,11 +1049,16 @@ export class Inventory implements OnInit {
                 console.log('Inventory categories:', cats);
                 this.filterCategoryOptions = cats.map(c => ({ label: c, value: c }));
             },
-            error: () => {} // keep existing options on failure
+            error: () => { } // keep existing options on failure
         });
 
         this.loadUsageFilterOptions();
     }
+
+    isAdmin = computed(() => {
+        const currentUser = this.authService.currentUser();
+        return currentUser?.role === 'Admin' || currentUser?.roles?.includes('Admin') || false;
+    });
 
     loadUsageFilterOptions() {
         this.inventoryService.getUsersWithCheckouts().subscribe({
@@ -1100,7 +1107,7 @@ export class Inventory implements OnInit {
                     }
                 });
             },
-            error: () => {}
+            error: () => { }
         });
     }
 
@@ -1391,7 +1398,7 @@ export class Inventory implements OnInit {
                     this.inventoryItems[listIdx].images = [...this.existingImages];
                 }
             },
-            error: () => {}
+            error: () => { }
         });
     }
 
@@ -1436,7 +1443,7 @@ export class Inventory implements OnInit {
                     this.dialogVisible = false;
                     this.loadInventoryItems();
                 },
-                error: () => {}
+                error: () => { }
             });
         } else {
             this.http.put(`${this.apiUrl}/${this.currentItem.id}`, formData).subscribe({
@@ -1450,7 +1457,7 @@ export class Inventory implements OnInit {
                     this.dialogVisible = false;
                     this.loadInventoryItems();
                 },
-                error: () => {}
+                error: () => { }
             });
         }
     }
@@ -1506,7 +1513,7 @@ export class Inventory implements OnInit {
                 });
                 this.loadInventoryItems();
             },
-            error: () => {}
+            error: () => { }
         });
     }
 
@@ -1548,7 +1555,7 @@ export class Inventory implements OnInit {
                 this.damageReportVisible = false;
                 this.loadInventoryItems();
             },
-            error: () => {}
+            error: () => { }
         });
     }
 
@@ -1575,7 +1582,7 @@ export class Inventory implements OnInit {
                 this.repairReportVisible = false;
                 this.loadInventoryItems();
             },
-            error: () => {}
+            error: () => { }
         });
     }
 
@@ -1624,7 +1631,7 @@ export class Inventory implements OnInit {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `inventory_export_${new Date().toISOString().slice(0,10)}.xlsx`;
+                link.download = `inventory_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
                 link.click();
                 URL.revokeObjectURL(url);
                 this.exportingExcel = false;

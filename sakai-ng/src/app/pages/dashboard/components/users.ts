@@ -56,6 +56,7 @@ interface User {
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Last Active</th>
                         <th>RFID</th>
                         @if (isAdmin()) {
                             <th></th>
@@ -87,6 +88,15 @@ interface User {
                         <td>{{ user.firstName }} {{ user.lastName }}</td>
                         <td>{{ user.email }}</td>
                         <td>{{ user.roles[0] || 'User' }}</td>
+                        <td>
+                            @if (getPresenceStatus(user.id) === 'Online') {
+                                <span class="text-green-500 font-medium">Online</span>
+                            } @else if (getPresenceStatus(user.id) === 'Idle') {
+                                <span class="text-yellow-500 font-medium">Idle</span>
+                            } @else {
+                                <span class="text-muted-color">{{ getLastActiveText(user.id) }}</span>
+                            }
+                        </td>
                         <td>
                             @if (isAdmin()) {
                                 <div class="flex align-items-center gap-3">
@@ -291,5 +301,19 @@ export class Users implements OnInit {
 
     hasProfilePicture(profilePictureUrl: string | null): boolean {
         return !!profilePictureUrl && !isDefaultAvatar(profilePictureUrl);
+    }
+
+    getPresenceStatus(userId: string): string {
+        return this.presenceService.getPresence(userId).status;
+    }
+
+    getLastActiveText(userId: string): string {
+        const p = this.presenceService.getPresence(userId);
+        if (p.lastActivityAt) {
+            const date = new Date(p.lastActivityAt);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+                ' at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        return 'Offline';
     }
 }

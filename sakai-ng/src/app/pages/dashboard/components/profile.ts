@@ -331,6 +331,14 @@ import { environment } from '@environments/environment.prod';
                                             <span class="text-muted-color">Role: </span>
                                             <span class="font-semibold">{{ userProfile.role }}</span>
                                         </div>
+                                        <div class="flex items-center gap-2" *ngIf="profileUserId">
+                                            <i class="pi pi-clock text-muted-color"></i>
+                                            <span class="text-muted-color">Last Active: </span>
+                                            <span class="font-semibold" [ngClass]="{
+                                                'text-green-500': getPresenceStatus() === 'Online',
+                                                'text-yellow-500': getPresenceStatus() === 'Idle'
+                                            }">{{ getLastActiveText() }}</span>
+                                        </div>
                                     </div>
                                     
                                     <div class="flex gap-2" *ngIf="isOwnProfile">
@@ -1272,5 +1280,23 @@ export class Profile implements OnInit {
         } else {
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
+    }
+
+    getPresenceStatus(): string {
+        if (!this.profileUserId) return 'Offline';
+        return this.presenceService.getPresence(this.profileUserId).status;
+    }
+
+    getLastActiveText(): string {
+        if (!this.profileUserId) return 'Offline';
+        const p = this.presenceService.getPresence(this.profileUserId);
+        if (p.status === 'Online') return 'Online';
+        if (p.status === 'Idle') return 'Idle';
+        if (p.lastActivityAt) {
+            const date = new Date(p.lastActivityAt);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+                ' at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        return 'Offline';
     }
 }

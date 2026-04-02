@@ -31,9 +31,11 @@ import { NotificationService, AppNotification } from '@/pages/service/notificati
 
         <ul class="p-0 mx-0 mt-0 mb-4 list-none">
             @for (notification of allNotifications; track notification.id) {
-                <li class="flex items-start justify-between py-3 border-b border-surface"
+                <li class="flex items-start justify-between p-3 border-b border-surface rounded-lg"
                     [class.bg-primary-50]="!notification.isRead"
-                    [class.dark:bg-primary-900/10]="!notification.isRead">
+                    [class.dark:bg-primary-900/10]="!notification.isRead"
+                    [class.border-l-4]="!notification.isRead"
+                    [class.border-l-primary]="!notification.isRead">
                     <div class="flex items-start flex-1 cursor-pointer" (click)="markRead(notification)">
                         <div [class]="'w-12 h-12 flex items-center justify-center rounded-full mr-4 shrink-0 ' + getIconBg(notification.type)">
                             <i [class]="'pi ' + getIcon(notification.type) + ' text-xl!'"></i>
@@ -43,9 +45,6 @@ import { NotificationService, AppNotification } from '@/pages/service/notificati
                             <div class="text-sm text-muted-color mt-1">{{ notification.body }}</div>
                             <div class="text-xs text-muted-color mt-1">{{ getTimeAgo(notification.createdAt) }}</div>
                         </div>
-                        @if (!notification.isRead) {
-                            <div class="w-2.5 h-2.5 rounded-full bg-primary shrink-0 ml-3"></div>
-                        }
                     </div>
                     <p-button icon="pi pi-trash" [text]="true" [rounded]="true" severity="danger" (onClick)="deleteNotification(notification.id)"></p-button>
                 </li>

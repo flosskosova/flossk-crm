@@ -275,16 +275,13 @@ export class Announcements implements OnInit {
     };
     selectedAnnouncement: AnnouncementDisplay | null = null;
 
-    // Computed admin check - reactive to auth state changes
     isAdmin = computed(() => {
         const currentUser = this.authService.currentUser();
         return currentUser?.role === 'Admin' || currentUser?.roles?.includes('Admin') || false;
     });
 
-    // Available emoji reactions
     availableEmojis = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 
-    // Long-press state
     reactorPopup: { emoji: string; users: string[]; x: number; bottom: number } | null = null;
     private longPressTimer: any = null;
     private longPressActive = false;
