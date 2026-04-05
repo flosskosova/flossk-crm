@@ -42,6 +42,10 @@ public class CertificatesController(ICertificateService certificateService) : Co
         return await _certificateService.DownloadCertificateAsync(id);
     }
 
+    [HttpGet("{id:guid}/image")]
+    public async Task<IActionResult> GetCertificateImage(Guid id)
+        => await _certificateService.GetCertificateImageAsync(id);
+
     [AllowAnonymous]
     [HttpGet("verify/{token}")]
     public async Task<IActionResult> VerifyCertificate(string token)

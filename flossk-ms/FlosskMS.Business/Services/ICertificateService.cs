@@ -9,6 +9,7 @@ public interface ICertificateService
     Task<IActionResult> GetCertificatesAsync(int page = 1, int pageSize = 10);
     Task<IActionResult> GetCertificateByIdAsync(Guid id);
     Task<IActionResult> DownloadCertificateAsync(Guid id);
+    Task<IActionResult> GetCertificateImageAsync(Guid id);
     Task<IActionResult> RevokeCertificateAsync(Guid id, string userId);
     Task<IActionResult> DeleteCertificateAsync(Guid id, string userId);
     Task<IActionResult> DeleteAllCertificatesAsync();

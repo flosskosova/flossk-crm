@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, computed, ElementRef, ViewChild, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import SignaturePad from 'signature_pad';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -230,6 +231,11 @@ interface FieldBox {
                     </div>
                 </div>
             </ng-template>
+        </p-dialog>
+
+        <!-- Certificate Viewer Dialog -->
+        <p-dialog [(visible)]="certViewDialogVisible" header="" [modal]="true" [style]="{'width': '95vw', 'max-width': '1200px'}" [contentStyle]="{'padding': '0.5rem', 'max-height': '90vh', 'overflow-y': 'auto'}" appendTo="body">
+            <img *ngIf="certViewUrl" [src]="certViewUrl" style="display:block;width:100%;height:auto;border-radius:4px;" />
         </p-dialog>
 
         <!-- Members Grid -->
@@ -563,6 +569,10 @@ export class CertBuilder implements OnInit, OnDestroy {
     private authService = inject(AuthService);
     private cdr = inject(ChangeDetectorRef);
     private confirmationService = inject(ConfirmationService);
+    private sanitizer = inject(DomSanitizer);
+
+    certViewDialogVisible = false;
+    certViewUrl: SafeUrl | null = null;
 
     @ViewChild('templateFileInput') templateFileInput!: ElementRef<HTMLInputElement>;
     @ViewChild('editorCanvas') editorCanvas!: ElementRef<HTMLDivElement>;
@@ -890,10 +900,11 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     viewCertificate(cert: CertificateRecord) {
-        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/download`, { responseType: 'blob' }).subscribe({
+        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/image`, { responseType: 'blob' }).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
-                window.open(url, '_blank');
+                this.certViewUrl = this.sanitizer.bypassSecurityTrustUrl(url);
+                this.certViewDialogVisible = true;
             },
             error: (err) => {
                 console.error('Error viewing certificate:', err);

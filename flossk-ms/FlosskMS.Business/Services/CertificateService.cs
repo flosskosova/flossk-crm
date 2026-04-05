@@ -206,6 +206,37 @@ public class CertificateService(
         return new OkObjectResult(MapToDto(certificate));
     }
 
+    public async Task<IActionResult> GetCertificateImageAsync(Guid id)
+    {
+        var certificate = await _dbContext.Certificates
+            .Include(c => c.RecipientUser)
+            .Include(c => c.IssuedByUser)
+            .Include(c => c.Template)
+                .ThenInclude(t => t!.Fields)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (certificate == null)
+            return new NotFoundObjectResult(new { Error = "Certificate not found." });
+
+        var qrCodeUrl = !string.IsNullOrEmpty(certificate.VerificationToken)
+            ? GetVerifyUrl(certificate.VerificationToken)
+            : null;
+
+        if (certificate.Template != null)
+        {
+            var templatePath = Path.Combine(_env.ContentRootPath, "uploads", "cert-templates", Path.GetFileName(certificate.Template.FilePath));
+            if (File.Exists(templatePath) && !templatePath.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+            {
+                var templateImageBytes = await File.ReadAllBytesAsync(templatePath);
+                var pngBytes = RenderCertificateWithSkia(certificate, templateImageBytes, certificate.Template.Fields.ToList(), qrCodeUrl);
+                return new FileContentResult(pngBytes, "image/png");
+            }
+        }
+
+        // Fallback: return stored PDF if no image renderable template
+        return await DownloadCertificateAsync(id);
+    }
+
     public async Task<IActionResult> DownloadCertificateAsync(Guid id)
     {
         var certificate = await _dbContext.Certificates
