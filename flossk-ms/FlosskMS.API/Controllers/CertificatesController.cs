@@ -30,6 +30,20 @@ public class CertificatesController(ICertificateService certificateService) : Co
         return await _certificateService.GetCertificatesAsync(page, pageSize);
     }
 
+    [HttpGet("my")]
+    public async Task<IActionResult> GetMyCertificates()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _certificateService.GetUserCertificatesAsync(userId);
+    }
+
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetUserCertificates(string userId)
+    {
+        return await _certificateService.GetUserCertificatesAsync(userId);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetCertificateById(Guid id)
     {

@@ -432,6 +432,61 @@ import { environment } from '@environments/environment.prod';
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Certificates Card -->
+                        <div class="card mt-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <i style="font-size: 1.5rem;" class="pi pi-verified text-primary text-xl"></i>
+                                <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ isOwnProfile ? 'My Certificates' : userProfile.firstName + "'s Certificates" }}</h3>
+                            </div>
+
+                            <div class="flex flex-col gap-4">
+                                <div *ngFor="let cert of userCertificates" class="border border-surface-200 dark:border-surface-700 rounded-border p-4 hover:shadow-md transition-shadow">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex-1">
+                                            <h4 class="text-xl font-bold text-surface-900 dark:text-surface-0 mb-1">{{ cert.eventName }}</h4>
+                                            <p *ngIf="cert.description" class="text-surface-700 dark:text-surface-300 text-sm mb-2">{{ cert.description }}</p>
+                                        </div>
+                                        <p-tag 
+                                            [value]="cert.status" 
+                                            [severity]="cert.status === 'Issued' ? 'success' : cert.status === 'Revoked' ? 'danger' : 'warn'"
+                                        ></p-tag>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-4 text-sm text-muted-color">
+                                        <span class="flex items-center gap-1">
+                                            <i class="pi pi-calendar"></i>
+                                            {{ cert.issuedDate | date:'MMM d, y' }}
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i class="pi pi-user"></i>
+                                            Issued by {{ cert.issuedByName }}
+                                        </span>
+                                    </div>
+                                    <div class="flex gap-2 mt-3">
+                                        <p-button 
+                                            icon="pi pi-eye" 
+                                            label="View" 
+                                            size="small" 
+                                            [outlined]="true"
+                                            (onClick)="viewCertificateImage(cert)"
+                                        ></p-button>
+                                        <p-button 
+                                            icon="pi pi-download" 
+                                            label="Download" 
+                                            size="small" 
+                                            severity="secondary"
+                                            [outlined]="true"
+                                            (onClick)="downloadCertificate(cert)"
+                                        ></p-button>
+                                    </div>
+                                </div>
+
+                                <div *ngIf="!userCertificates || userCertificates.length === 0" class="text-center py-8 text-muted-color">
+                                    <i class="pi pi-verified text-6xl mb-4"></i>
+                                    <p class="text-lg">No certificates yet</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Right Sidebar -->
@@ -626,6 +681,11 @@ import { environment } from '@environments/environment.prod';
             </div>
         </div>
         </ng-container>
+
+        <!-- Certificate View Dialog -->
+        <p-dialog [(visible)]="certViewDialogVisible" header="Certificate" [modal]="true" [style]="{width: '50rem'}" [breakpoints]="{'960px': '90vw'}" appendTo="body">
+            <img *ngIf="certViewUrl" [src]="certViewUrl" alt="Certificate" style="display:block;width:100%;height:auto;border-radius:4px;" />
+        </p-dialog>
     `
 })
 export class Profile implements OnInit {
@@ -741,6 +801,7 @@ export class Profile implements OnInit {
                 console.log('Fetched user data:', user);
                 this.mapUserToProfile(user);
                 this.loadUserProjects(userId);
+                this.loadUserCertificates(userId);
                 this.loadCheckedOutItems();
                 this.isLoading = false;
             },
@@ -864,12 +925,16 @@ export class Profile implements OnInit {
             // Load user's projects
             if (user.id) {
                 this.loadUserProjects(user.id);
+                this.loadUserCertificates(user.id);
                 this.loadCheckedOutItems();
             }
         }
     }
 
     userProjects: any[] = [];
+    userCertificates: any[] = [];
+    certViewDialogVisible = false;
+    certViewUrl = '';
 
     loadUserProjects(userId: string) {
         this.projectsService.getProjectsByUserId(userId).subscribe({
@@ -922,6 +987,48 @@ export class Profile implements OnInit {
             error: (err) => {
                 console.error('Error loading checked out items:', err);
                 this.checkedOutItems = [];
+            }
+        });
+    }
+
+    loadUserCertificates(userId: string) {
+        this.http.get<any[]>(`${environment.apiUrl}/Certificates/user/${userId}`).subscribe({
+            next: (certs) => {
+                this.userCertificates = certs;
+            },
+            error: (err) => {
+                console.error('Error loading certificates:', err);
+                this.userCertificates = [];
+            }
+        });
+    }
+
+    viewCertificateImage(cert: any) {
+        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/image`, { responseType: 'blob' }).subscribe({
+            next: (blob) => {
+                this.certViewUrl = URL.createObjectURL(blob);
+                this.certViewDialogVisible = true;
+            },
+            error: (err) => {
+                console.error('Error loading certificate image:', err);
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load certificate image' });
+            }
+        });
+    }
+
+    downloadCertificate(cert: any) {
+        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/download`, { responseType: 'blob' }).subscribe({
+            next: (blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${cert.eventName}-certificate.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+            error: (err) => {
+                console.error('Error downloading certificate:', err);
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download certificate' });
             }
         });
     }

@@ -146,6 +146,7 @@ public class ProjectService : IProjectService
             .Include(p => p.Resources)
             .Where(p => p.TeamMembers.Any(tm => tm.UserId == userId))
             .OrderByDescending(p => p.CreatedAt)
+            .AsSplitQuery()
             .ToListAsync();
 
         return new OkObjectResult(_mapper.Map<List<ProjectListDto>>(projects));
@@ -279,23 +280,20 @@ public class ProjectService : IProjectService
         // Write per-field audit logs
         if (userId != null)
         {
-            var fieldChanges = new List<(string Field, string OldValue, string NewValue)>();
-
-            if (!string.Equals(project.Title, oldTitle))
-                fieldChanges.Add(("Title", oldTitle, project.Title));
-            if (!string.Equals(project.Description, oldDescription))
-                fieldChanges.Add(("Description",
-                    string.IsNullOrWhiteSpace(oldDescription) ? "(empty)" : oldDescription,
-                    string.IsNullOrWhiteSpace(project.Description) ? "(empty)" : project.Description));
-            if (!string.Equals(project.Status.ToString(), oldStatus, StringComparison.OrdinalIgnoreCase))
-                fieldChanges.Add(("Status", oldStatus, project.Status.ToString()));
-            if (project.StartDate != oldStartDate)
-                fieldChanges.Add(("Start Date", oldStartDate.ToString("MMM d, yyyy"), project.StartDate.ToString("MMM d, yyyy")));
-            if (project.EndDate != oldEndDate)
-                fieldChanges.Add(("End Date", oldEndDate.ToString("MMM d, yyyy"), project.EndDate.ToString("MMM d, yyyy")));
             var newTypesStr = project.Types != ProjectType.None ? project.Types.ToString() : "(none)";
-            if (!string.Equals(newTypesStr, oldTypesStr))
-                fieldChanges.Add(("Types", oldTypesStr, newTypesStr));
+            var fieldChanges = new (string Field, string OldValue, string NewValue)[]
+            {
+                ("Title", oldTitle, project.Title),
+                ("Description",
+                    string.IsNullOrWhiteSpace(oldDescription) ? "(empty)" : oldDescription,
+                    string.IsNullOrWhiteSpace(project.Description) ? "(empty)" : project.Description),
+                ("Status", oldStatus, project.Status.ToString()),
+                ("Start Date", oldStartDate.ToString("MMM d, yyyy"), project.StartDate.ToString("MMM d, yyyy")),
+                ("End Date", oldEndDate.ToString("MMM d, yyyy"), project.EndDate.ToString("MMM d, yyyy")),
+                ("Types", oldTypesStr, newTypesStr)
+            }
+            .Where(c => !string.Equals(c.OldValue, c.NewValue, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
             if (fieldChanges.Count > 0)
             {

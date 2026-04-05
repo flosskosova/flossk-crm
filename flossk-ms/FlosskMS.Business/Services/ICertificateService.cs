@@ -7,6 +7,7 @@ public interface ICertificateService
 {
     Task<IActionResult> IssueCertificatesAsync(DTOs.IssueCertificateDto request, string issuedByUserId);
     Task<IActionResult> GetCertificatesAsync(int page = 1, int pageSize = 10);
+    Task<IActionResult> GetUserCertificatesAsync(string userId);
     Task<IActionResult> GetCertificateByIdAsync(Guid id);
     Task<IActionResult> DownloadCertificateAsync(Guid id);
     Task<IActionResult> GetCertificateImageAsync(Guid id);

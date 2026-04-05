@@ -186,6 +186,19 @@ public class CertificateService(
         return new OkObjectResult(result);
     }
 
+    public async Task<IActionResult> GetUserCertificatesAsync(string userId)
+    {
+        var certificates = await _dbContext.Certificates
+            .Include(c => c.RecipientUser)
+                .ThenInclude(u => u.UploadedFiles)
+            .Include(c => c.IssuedByUser)
+            .Where(c => c.RecipientUserId == userId)
+            .OrderByDescending(c => c.IssuedDate)
+            .ToListAsync();
+
+        return new OkObjectResult(certificates.Select(MapToDto).ToList());
+    }
+
     public async Task<IActionResult> GetCertificateByIdAsync(Guid id)
     {
         var certificate = await _dbContext.Certificates
