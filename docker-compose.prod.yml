@@ -43,6 +43,7 @@ services:
       # Docker-specific overrides (service hostnames differ from local)
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=FLOSSK;Username=postgres;Password=${POSTGRES_PASSWORD}"
       ClamAvSettings__Host: clamav
+      Certificates__BaseUrl: "https://${DOMAIN}"
     volumes:
       - uploads:/app/uploads
     depends_on:
