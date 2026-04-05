@@ -18,7 +18,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TooltipModule } from 'primeng/tooltip';
 import { FileUploadModule } from 'primeng/fileupload';
-import { EditorModule } from 'primeng/editor';
 import { ConfirmationService } from 'primeng/api';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
@@ -29,7 +28,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
 @Component({
     selector: 'app-projects',
-    imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule, FileUploadModule, EditorModule],
+    imports: [CommonModule, FormsModule, ButtonModule, TagModule, AvatarModule, AvatarGroupModule, DividerModule, ProgressBarModule, TabsModule, DragDropModule, DialogModule, InputTextModule, TextareaModule, SelectModule, DatePickerModule, ConfirmDialogModule, MultiSelectModule, TooltipModule, FileUploadModule],
     providers: [ConfirmationService],
     template: `
         <p-confirmdialog></p-confirmdialog>
@@ -55,18 +54,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                 <div>
                     <label for="description" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <p-editor [(ngModel)]="currentProject.description" [style]="{'height': '200px'}" (onInit)="onEditorInit($event, 'project')"></p-editor>
-                    <div class="flex items-center gap-1 mt-1">
-                        <input #projectFileInput type="file" style="display:none" (change)="onEditorFileSelected($event)" />
-                        <p-button
-                            label="Attach file"
-                            icon="pi pi-paperclip"
-                            [text]="true"
-                            size="small"
-                            severity="secondary"
-                            (onClick)="activeEditorKey = 'project'; projectFileInput.click()"
-                        />
-                    </div>
+                    <textarea pTextarea id="description" [(ngModel)]="currentProject.description" rows="6" class="w-full" maxlength="4000" style="resize:vertical"></textarea>
+                    <div class="text-right text-xs text-muted-color mt-1">{{ currentProject.description.length }}/4000</div>
                 </div>
 
                 <!-- <div>
@@ -150,18 +139,8 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
 
                 <div>
                     <label for="objectiveDescription" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Description</label>
-                    <p-editor [(ngModel)]="currentObjective.description" [style]="{'height': '160px'}" (onInit)="onEditorInit($event, 'objective')"></p-editor>
-                    <div class="flex items-center gap-1 mt-1">
-                        <input #objectiveFileInput type="file" style="display:none" (change)="onEditorFileSelected($event)" />
-                        <p-button
-                            label="Attach file"
-                            icon="pi pi-paperclip"
-                            [text]="true"
-                            size="small"
-                            severity="secondary"
-                            (onClick)="activeEditorKey = 'objective'; objectiveFileInput.click()"
-                        />
-                    </div>
+                    <textarea pTextarea id="objectiveDescription" [(ngModel)]="currentObjective.description" rows="5" class="w-full" maxlength="4000" style="resize:vertical"></textarea>
+                    <div class="text-right text-xs text-muted-color mt-1">{{ currentObjective.description.length }}/4000</div>
                 </div>
 
                 <div>
@@ -1503,75 +1482,6 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
     `
 })
 export class Projects {
-    // ----------------- Rich Editor (Quill) -----------------
-    private activeEditorInstance: any = null;
-    activeEditorKey: 'project' | 'objective' = 'project';
-    private editorInstances: Record<string, any> = {};
-
-    onEditorInit(event: any, type: 'project' | 'objective') {
-        const quill = event.editor;
-        this.editorInstances[type] = quill;
-        const toolbar = quill.getModule('toolbar');
-
-        toolbar.addHandler('image', () => {
-            this.activeEditorInstance = quill;
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e: Event) => this.onEditorImageSelected(e);
-            input.click();
-        });
-    }
-
-    private getAuthToken(): string {
-        return localStorage.getItem('auth_token') || '';
-    }
-
-    private onEditorImageSelected(event: Event) {
-        const input = event.target as HTMLInputElement;
-        if (!input.files || !input.files[0] || !this.activeEditorInstance) return;
-        const file = input.files[0];
-        const formData = new FormData();
-        formData.append('file', file);
-        this.http.post<any>(`${environment.apiUrl}/Files/upload`, formData).subscribe({
-            next: (result) => {
-                if (!result.success || !result.fileId) return;
-                const token = this.getAuthToken();
-                const url = `${environment.apiUrl}/Files/${result.fileId}/view?token=${encodeURIComponent(token)}`;
-                const quill = this.activeEditorInstance;
-                const range = quill.getSelection(true);
-                quill.insertEmbed(range.index, 'image', url);
-                quill.setSelection(range.index + 1);
-            },
-            error: (err) => console.error('Editor image upload failed', err)
-        });
-    }
-
-    onEditorFileSelected(event: Event) {
-        const input = event.target as HTMLInputElement;
-        if (!input.files || !input.files[0]) return;
-        const quill = this.editorInstances[this.activeEditorKey];
-        if (!quill) return;
-        const file = input.files[0];
-        const originalFileName = file.name;
-        const formData = new FormData();
-        formData.append('file', file);
-        this.http.post<any>(`${environment.apiUrl}/Files/upload`, formData).subscribe({
-            next: (result) => {
-                if (!result.success || !result.fileId) return;
-                const token = this.getAuthToken();
-                const downloadUrl = `${environment.apiUrl}/Files/${result.fileId}/download?token=${encodeURIComponent(token)}`;
-                const quill = this.editorInstances[this.activeEditorKey];
-                if (!quill) return;
-                const range = quill.getSelection(true);
-                quill.insertText(range.index, originalFileName, 'link', downloadUrl);
-                quill.setSelection(range.index + originalFileName.length + 1);
-            },
-            error: (err) => console.error('Editor file upload failed', err)
-        });
-    }
-    // ----------------------------------------------------------
-
     constructor(
         private confirmationService: ConfirmationService,
         private http: HttpClient,

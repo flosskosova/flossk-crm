@@ -18,36 +18,36 @@ using SkiaSharp;
 
 namespace FlosskMS.Business.Services;
 
-public class CertificateService : ICertificateService
+public class CertificateService(
+    ApplicationDbContext dbContext,
+    IHostEnvironment env,
+    IMapper mapper,
+    IConfiguration config) : ICertificateService
 {
-    private readonly ApplicationDbContext _dbContext;
-    private readonly IHostEnvironment _env;
-    private readonly IMapper _mapper;
-    private readonly IConfiguration _config;
-
-    public CertificateService(
-        ApplicationDbContext dbContext,
-        IHostEnvironment env,
-        IMapper mapper,
-        IConfiguration config)
-    {
-        _dbContext = dbContext;
-        _env = env;
-        _mapper = mapper;
-        _config = config;
-    }
+    private readonly ApplicationDbContext _dbContext = dbContext;
+    private readonly IHostEnvironment _env = env;
+    private readonly IMapper _mapper = mapper;
+    private readonly IConfiguration _config = config;
 
     // ── Verification helpers ──────────────────────────────────────────────────
 
     private string GetVerifyUrl(string token)
     {
-        var baseUrl = (_config["Certificates:BaseUrl"] ?? "https://flossk.org").TrimEnd('/');
-        return $"{baseUrl}/api/certificates/verify/{token}";
+        if (_env.IsDevelopment())
+        {
+            var baseUrl = _config["Certificates:BaseUrl"] ?? "http://localhost:5267";
+            return $"{baseUrl}/api/certificates/verify/{token}";
+        }
+
+        var domain = _config["DOMAIN"]
+            ?? throw new InvalidOperationException("Cannot load DOMAIN. Ensure 'DOMAIN' is set in the .env file.");
+        return $"https://{domain}/api/certificates/verify/{token}";
     }
 
     private string ComputeHmac(Guid certId, string recipientUserId, DateTime issuedDate)
     {
-        var secret = _config["Certificates:HmacSecret"] ?? "default-secret-change-in-production";
+        var secret = _config["Certificates:HmacSecret"]
+            ?? throw new InvalidOperationException("Cannot load HMAC secret. Ensure 'Certificates__HmacSecret' is set in the .env file.");
         var message = $"{certId}|{recipientUserId}|{issuedDate:O}";
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(message))).ToLowerInvariant();
@@ -140,8 +140,8 @@ public class CertificateService : ICertificateService
                 : null;
 
             byte[]? templateImageBytes = null;
-            if (templateFilePath != null && System.IO.File.Exists(templateFilePath))
-                templateImageBytes = await System.IO.File.ReadAllBytesAsync(templateFilePath);
+            if (templateFilePath != null && File.Exists(templateFilePath))
+                templateImageBytes = await File.ReadAllBytesAsync(templateFilePath);
 
             byte[] pdfBytes;
             if (templateImageBytes != null && cert.Template?.Fields.Count > 0)
@@ -156,7 +156,7 @@ public class CertificateService : ICertificateService
 
             var fileName = $"{cert.Id}.pdf";
             var filePath = Path.Combine(pdfDir, fileName);
-            await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+            await File.WriteAllBytesAsync(filePath, pdfBytes);
             cert.GeneratedPdfPath = Path.Combine("uploads", "certificates", fileName);
         }
 
@@ -220,12 +220,12 @@ public class CertificateService : ICertificateService
 
         var recipientName = $"{certificate.RecipientUser.FirstName}_{certificate.RecipientUser.LastName}";
 
-        if (!string.IsNullOrEmpty(certificate.GeneratedPdfPath))
+        if (!_env.IsDevelopment() && !string.IsNullOrEmpty(certificate.GeneratedPdfPath))
         {
             var storedPath = Path.Combine(_env.ContentRootPath, certificate.GeneratedPdfPath);
             if (File.Exists(storedPath))
             {
-                var storedBytes = await System.IO.File.ReadAllBytesAsync(storedPath);
+                var storedBytes = await File.ReadAllBytesAsync(storedPath);
                 bool storedIsPptx = storedPath.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase);
                 var mimeType  = storedIsPptx ? "application/vnd.openxmlformats-officedocument.presentationml.presentation" : "application/pdf";
                 var extension = storedIsPptx ? ".pptx" : ".pdf";
