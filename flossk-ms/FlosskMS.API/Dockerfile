@@ -25,6 +25,13 @@ RUN dotnet publish FlosskMS.API/FlosskMS.API.csproj -c Release -o /app/publish /
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
 WORKDIR /app
 
+# Install fonts for SkiaSharp text rendering
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fontconfig \
+    fonts-dejavu-core \
+    && fc-cache -fv \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create uploads directory
 RUN mkdir -p /app/uploads
 

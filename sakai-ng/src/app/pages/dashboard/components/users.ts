@@ -141,6 +141,26 @@ interface User {
                                         (onClick)="confirmPromote(user)">
                                     </p-button>
                                 }
+                                @if (!user.roles.includes('Admin')) {
+                                    <p-button
+                                        icon="pi pi-shield"
+                                        [text]="true"
+                                        severity="info"
+                                        pTooltip="Promote to Admin"
+                                        tooltipPosition="top"
+                                        (onClick)="confirmPromoteToAdmin(user)">
+                                    </p-button>
+                                }
+                                @if (user.roles.includes('Admin')) {
+                                    <p-button
+                                        icon="pi pi-shield"
+                                        [text]="true"
+                                        severity="warn"
+                                        pTooltip="Remove Admin role"
+                                        tooltipPosition="top"
+                                        (onClick)="confirmDemoteFromAdmin(user)">
+                                    </p-button>
+                                }
                                 @if (user.roles.includes('Full Member')) {
                                     <p-button
                                         icon="pi pi-arrow-down"
@@ -202,6 +222,46 @@ export class Users implements OnInit {
                 console.error('Error loading users:', err);
                 this.loading = false;
             }
+        });
+    }
+
+    confirmPromoteToAdmin(user: User) {
+        this.confirmationService.confirm({
+            message: `Promote ${user.firstName} ${user.lastName} to Admin?`,
+            header: 'Promote to Admin',
+            icon: 'pi pi-shield',
+            acceptButtonStyleClass: 'p-button-info',
+            accept: () => this.promoteToAdmin(user)
+        });
+    }
+
+    promoteToAdmin(user: User) {
+        this.http.post(`${environment.apiUrl}/Auth/users/${user.id}/promote-admin`, {}).subscribe({
+            next: () => {
+                if (!user.roles.includes('Admin')) {
+                    user.roles = [...user.roles, 'Admin'];
+                }
+            },
+            error: (err) => console.error('Error promoting user to admin:', err)
+        });
+    }
+
+    confirmDemoteFromAdmin(user: User) {
+        this.confirmationService.confirm({
+            message: `Remove Admin role from ${user.firstName} ${user.lastName}?`,
+            header: 'Remove Admin Role',
+            icon: 'pi pi-shield',
+            acceptButtonStyleClass: 'p-button-warning',
+            accept: () => this.demoteFromAdmin(user)
+        });
+    }
+
+    demoteFromAdmin(user: User) {
+        this.http.post(`${environment.apiUrl}/Auth/users/${user.id}/demote-admin`, {}).subscribe({
+            next: () => {
+                user.roles = user.roles.filter(r => r !== 'Admin');
+            },
+            error: (err) => console.error('Error removing admin role:', err)
         });
     }
 

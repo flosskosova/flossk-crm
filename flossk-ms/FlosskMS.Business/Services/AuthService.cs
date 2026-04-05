@@ -584,6 +584,77 @@ public class AuthService(
         });
     }
 
+    public async Task<IActionResult> PromoteToAdminAsync(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new BadRequestObjectResult(new { Error = "User ID is required." });
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (userRoles.Contains("Admin"))
+        {
+            return new BadRequestObjectResult(new { Error = "User is already an Admin." });
+        }
+
+        if (!await _roleManager.RoleExistsAsync("Admin"))
+        {
+            await _roleManager.CreateAsync(new IdentityRole("Admin"));
+        }
+
+        var result = await _userManager.AddToRoleAsync(user, "Admin");
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new { Errors = result.Errors.Select(e => e.Description) });
+        }
+
+        return new OkObjectResult(new
+        {
+            Success = true,
+            Message = $"User {user.Email} has been promoted to Admin.",
+            User = await MapToUserDtoAsync(user)
+        });
+    }
+
+    public async Task<IActionResult> DemoteFromAdminAsync(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new BadRequestObjectResult(new { Error = "User ID is required." });
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return new NotFoundObjectResult(new { Error = "User not found." });
+        }
+
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (!userRoles.Contains("Admin"))
+        {
+            return new BadRequestObjectResult(new { Error = "User is not an Admin." });
+        }
+
+        var result = await _userManager.RemoveFromRoleAsync(user, "Admin");
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new { Errors = result.Errors.Select(e => e.Description) });
+        }
+
+        return new OkObjectResult(new
+        {
+            Success = true,
+            Message = $"Admin role removed from {user.Email}.",
+            User = await MapToUserDtoAsync(user)
+        });
+    }
+
     public async Task<IActionResult> DemoteFromFullMemberAsync(string userId)
     {
         if (string.IsNullOrEmpty(userId))

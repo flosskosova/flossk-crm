@@ -301,8 +301,7 @@ interface ProjectDeadline {
             </div>
             
             <!-- Join Requests Section -->
-            <ng-template *ngIf="isAdmin()">
-            <div class="col-span-12">
+            <div *ngIf="isAdmin()" class="col-span-12">
                 <div class="card">
                     <div class="flex justify-between items-center mb-6">
                         <div>
@@ -369,7 +368,7 @@ interface ProjectDeadline {
                     </p-table>
                 </div>
             </div>
-            </ng-template>
+            
             
         </div>        </ng-container>        
         <!-- Add/Edit Pad Dialog -->
