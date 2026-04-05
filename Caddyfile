@@ -1,4 +1,7 @@
 {$DOMAIN} {
+    @certVerify path_regexp certverify ^/api/certificates/verify/(.+)$
+    redir @certVerify /verify/{re.certverify.1} 302
+
     reverse_proxy /api/* api:8080
     reverse_proxy frontend:80
 }

@@ -25,6 +25,7 @@ import { Elections } from '@/pages/dashboard/components/elections';
 import { Integrations } from '@/pages/dashboard/components/integrations';
 import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
+import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -58,6 +59,7 @@ export const appRoutes: Routes = [
     { path: 'onboarding', component: Onboarding },
     { path: 'rent', component: Rent },
     { path: 'donate', component: Donate },
+    { path: 'verify/:token', component: VerifyCertificate },
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
     { path: 'notfound', component: Notfound },

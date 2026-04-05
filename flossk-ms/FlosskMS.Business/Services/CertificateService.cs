@@ -33,15 +33,9 @@ public class CertificateService(
 
     private string GetVerifyUrl(string token)
     {
-        if (_env.IsDevelopment())
-        {
-            var baseUrl = _config["Certificates:BaseUrl"] ?? "http://localhost:5267";
-            return $"{baseUrl}/api/certificates/verify/{token}";
-        }
-
-        var domain = _config["DOMAIN"]
-            ?? throw new InvalidOperationException("Cannot load DOMAIN. Ensure 'DOMAIN' is set in the .env file.");
-        return $"https://{domain}/api/certificates/verify/{token}";
+        var baseUrl = _config["Certificates:BaseUrl"]
+            ?? throw new InvalidOperationException("Cannot load base URL. Ensure 'Certificates:BaseUrl' is set in appsettings.");
+        return $"{baseUrl}/verify/{token}";
     }
 
     private string ComputeHmac(Guid certId, string recipientUserId, DateTime issuedDate)
@@ -772,13 +766,24 @@ public class CertificateService(
     private static byte[] WrapImageInPdf(byte[] imageBytes)
     {
         QuestPDF.Settings.License = LicenseType.Community;
+
+        // Decode just enough to get the image dimensions
+        using var infoBitmap = SKBitmap.Decode(imageBytes);
+        float imgW = infoBitmap?.Width ?? 1190;
+        float imgH = infoBitmap?.Height ?? 842;
+
+        // Convert pixels to points at 96 dpi (1 pt = 96/72 px)
+        const float pxToPt = 72f / 96f;
+        float ptW = imgW * pxToPt;
+        float ptH = imgH * pxToPt;
+
         var doc = Document.Create(container =>
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4.Landscape());
+                page.Size(ptW, ptH, Unit.Point);
                 page.Margin(0);
-                page.Content().Image(imageBytes, ImageScaling.FitArea);
+                page.Content().Image(imageBytes, ImageScaling.FitWidth);
             });
         });
         return doc.GeneratePdf();
@@ -824,7 +829,7 @@ public class CertificateService(
                         : cert.IssuerSignatureDataUrl;
                     using var sigBitmap = SKBitmap.Decode(Convert.FromBase64String(base64));
                     if (sigBitmap != null)
-                        canvas.DrawBitmap(sigBitmap, new SKRect(fx, fy, fx + fw, fy + fh));
+                        canvas.DrawBitmap(sigBitmap, FitRect(fx, fy, fw, fh, sigBitmap.Width, sigBitmap.Height));
                 }
                 else
                 {
@@ -844,7 +849,7 @@ public class CertificateService(
                     var qrPng = GenerateQrCodePng(qrCodeUrl);
                     using var qrBitmap = SKBitmap.Decode(qrPng);
                     if (qrBitmap != null)
-                        canvas.DrawBitmap(qrBitmap, new SKRect(fx, fy, fx + fw, fy + fh));
+                        canvas.DrawBitmap(qrBitmap, FitRect(fx, fy, fw, fh, qrBitmap.Width, qrBitmap.Height));
                 }
                 continue;
             }
@@ -872,6 +877,18 @@ public class CertificateService(
 
         using var encoded = outBitmap.Encode(SKEncodedImageFormat.Png, 100);
         return encoded.ToArray();
+    }
+
+    /// Computes a centered, aspect-ratio-preserving (contain) destination rect
+    /// for an image of size (srcW x srcH) inside a box (bx, by, bw, bh).
+    private static SKRect FitRect(float bx, float by, float bw, float bh, float srcW, float srcH)
+    {
+        float scale = Math.Min(bw / srcW, bh / srcH);
+        float dw = srcW * scale;
+        float dh = srcH * scale;
+        float dx = bx + (bw - dw) / 2f;
+        float dy = by + (bh - dh) / 2f;
+        return new SKRect(dx, dy, dx + dw, dy + dh);
     }
 
     private static void DrawTextInBox(

@@ -900,9 +900,12 @@ export class CertBuilder implements OnInit, OnDestroy {
     }
 
     viewCertificate(cert: CertificateRecord) {
-        this.http.get(`${environment.apiUrl}/Certificates/${cert.id}/image`, { responseType: 'blob' }).subscribe({
+        const requestUrl = `${environment.apiUrl}/Certificates/${cert.id}/image`;
+        console.log('Certificate image URL:', requestUrl);
+        this.http.get(requestUrl, { responseType: 'blob' }).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
+                console.log('Certificate blob URL:', url);
                 this.certViewUrl = this.sanitizer.bypassSecurityTrustUrl(url);
                 this.certViewDialogVisible = true;
             },
