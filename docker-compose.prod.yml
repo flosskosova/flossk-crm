@@ -39,7 +39,7 @@ services:
     env_file:
       - .env
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_ENVIRONMENT: Production
       # Docker-specific overrides (service hostnames differ from local)
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=FLOSSK;Username=postgres;Password=${POSTGRES_PASSWORD}"
       ClamAvSettings__Host: clamav
