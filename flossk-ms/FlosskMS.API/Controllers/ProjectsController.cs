@@ -186,7 +186,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         {
             return Unauthorized();
         }
-        return await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId, currentUserId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId, currentUserId, isAdmin);
     }
 
     /// <summary>
@@ -201,7 +202,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         {
             return Unauthorized();
         }
-        return await _projectService.RemoveTeamMembersFromProjectAsync(projectId, request, currentUserId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.RemoveTeamMembersFromProjectAsync(projectId, request, currentUserId, isAdmin);
     }
 
     /// <summary>
@@ -332,7 +334,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(currentUserId))
             return Unauthorized();
-        return await _projectService.AssignTeamMemberToObjectiveAsync(objectiveId, request, currentUserId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.AssignTeamMemberToObjectiveAsync(objectiveId, request, currentUserId, isAdmin);
     }
 
     /// <summary>
@@ -345,7 +348,8 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(currentUserId))
             return Unauthorized();
-        return await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId, currentUserId);
+        var isAdmin = User.IsInRole("Admin");
+        return await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId, currentUserId, isAdmin);
     }
 
     /// <summary>

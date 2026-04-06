@@ -1,4 +1,3 @@
-using FlosskMS.Business.DomainEvents.Announcements.Events;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;

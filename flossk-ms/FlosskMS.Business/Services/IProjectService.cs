@@ -19,8 +19,8 @@ public interface IProjectService
 
     // Project team member operations
     Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request, string? addedByUserId = null);
-    Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId);
-    Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, string currentUserId);
+    Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId, bool isAdmin = false);
+    Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, string currentUserId, bool isAdmin = false);
     Task<IActionResult> GetProjectTeamMembersAsync(Guid projectId);
     Task<IActionResult> JoinProjectAsync(Guid projectId, string userId);
     Task<IActionResult> LeaveProjectAsync(Guid projectId, string userId);
@@ -34,8 +34,8 @@ public interface IProjectService
     Task<IActionResult> DeleteObjectiveAsync(Guid id, string? userId = null, bool isAdmin = false);
 
     // Objective team member operations
-    Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId);
-    Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, string currentUserId);
+    Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId, bool isAdmin = false);
+    Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, string currentUserId, bool isAdmin = false);
     Task<IActionResult> GetObjectiveTeamMembersAsync(Guid objectiveId);
     Task<IActionResult> JoinObjectiveAsync(Guid objectiveId, string userId);
     Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, string userId);

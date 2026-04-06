@@ -13,5 +13,9 @@ public enum NotificationType
     ContributionApproved,
     CertificateIssued,
     InventoryCheckoutReminder,
-    ObjectiveAssigned
+    ObjectiveAssigned,
+    ProjectRemoved,
+    ObjectiveRemoved,
+    ProjectModeratorPromoted,
+    ProjectModeratorDemoted
 }

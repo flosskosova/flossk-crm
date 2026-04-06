@@ -301,7 +301,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 <p class="font-semibold text-surface-900 dark:text-surface-0 m-0">{{ member.name }}</p>
                                 <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                             </div>
-                            <p-button *ngIf="viewingObjective.status !== 'completed' && (isProjectCreator(selectedProject) || isProjectModerator(selectedProject))" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
+                            <p-button *ngIf="viewingObjective.status !== 'completed' && isAdminOrModerator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromObjectiveDetail(member)" />
                         </div>
                     </div>
                     <div *ngIf="!viewingObjective.members || viewingObjective.members.length === 0" class="text-center text-muted-color py-4 bg-surface-50 dark:bg-surface-800 rounded-lg">
@@ -511,7 +511,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                             <p-avatar *ngIf="hasProfilePicture(member)" [image]="member.avatar" shape="circle" size="normal"></p-avatar>
                             <p-avatar *ngIf="!hasProfilePicture(member)" [label]="getInitials(member.name)" shape="circle" size="normal" [style]="{'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)'}"></p-avatar>
                             <span class="text-sm">{{ member.name }}</span>
-                            <p-button *ngIf="isProjectCreator(selectedProject) || isProjectModerator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
+                            <p-button *ngIf="isAdminOrModerator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" (onClick)="removeProjectMemberFromDialog(member)" />
                         </div>
                     </div>
                 </div>
@@ -1236,7 +1236,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                         <p class="font-semibold m-0">{{ member.name }}</p>
                                         <p class="text-sm text-muted-color m-0">{{ member.role }}</p>
                                     </div>
-                                    <p-button *ngIf="selectedProject.status !== 'completed' && (isProjectCreator(selectedProject) || isProjectModerator(selectedProject))" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
+                                    <p-button *ngIf="selectedProject.status !== 'completed' && isAdminOrModerator(selectedProject)" icon="pi pi-times" size="small" [text]="true" [rounded]="true" severity="danger" pTooltip="Remove Member" (onClick)="removeMemberFromProject(member)" />
                                 </div>
                                 <div *ngIf="!selectedProject.participants || selectedProject.participants.length === 0" class="text-center text-muted-color py-4">
                                     <i class="pi pi-users text-2xl mb-2"></i>

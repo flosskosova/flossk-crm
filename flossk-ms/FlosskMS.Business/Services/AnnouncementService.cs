@@ -1,6 +1,6 @@
 using AutoMapper;
 using FlosskMS.Business.DomainEvents;
-using FlosskMS.Business.DomainEvents.Announcements.Events;
+using FlosskMS.Business.DomainEvents.Announcements;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;

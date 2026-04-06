@@ -1,4 +1,4 @@
-namespace FlosskMS.Business.DomainEvents.Announcements.Events;
+namespace FlosskMS.Business.DomainEvents.Announcements;
 
 public sealed record AnnouncementCreatedEvent(
     string Title,

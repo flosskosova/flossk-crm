@@ -1,6 +1,6 @@
 using AutoMapper;
 using FlosskMS.Business.DomainEvents;
-using FlosskMS.Business.DomainEvents.Projects.Events;
+using FlosskMS.Business.DomainEvents.Projects;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -472,6 +472,12 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} added as moderator of project {ProjectId}", user.Id, projectId);
 
+        var actingUser = await _dbContext.Users.FindAsync(actingUserId);
+        var actingUserName = actingUser != null ? $"{actingUser.FirstName} {actingUser.LastName}".Trim() : null;
+
+        await _domainEventDispatcher.PublishAsync(
+            new TeamMemberPromotedToModeratorEvent(user.Id, project.Title, actingUserName));
+
         await _logService.CreateAsync(new CreateLogDto
         {
             EntityType = "Project",
@@ -508,6 +514,12 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} removed as moderator of project {ProjectId}", moderatorUserId, projectId);
+
+        var actingUser = await _dbContext.Users.FindAsync(actingUserId);
+        var actingUserName = actingUser != null ? $"{actingUser.FirstName} {actingUser.LastName}".Trim() : null;
+
+        await _domainEventDispatcher.PublishAsync(
+            new TeamMemberDemotedFromModeratorEvent(moderatorUserId, project.Title, actingUserName));
 
         await _logService.CreateAsync(new CreateLogDto
         {
@@ -599,9 +611,9 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
-    public async Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId)
+    public async Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, string currentUserId, bool isAdmin = false)
     {
-        // Check if the current user is the project creator, moderator, or admin (admin checked at controller level)
+        // Check if the current user is admin or project moderator
         var project = await _dbContext.Projects
             .Include(p => p.Moderators)
             .FirstOrDefaultAsync(p => p.Id == projectId);
@@ -610,7 +622,7 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
-        if (project.CreatedByUserId != currentUserId && !project.Moderators.Any(m => m.UserId == currentUserId))
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == currentUserId))
         {
             return new ForbidResult();
         }
@@ -638,6 +650,12 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} removed from project {ProjectId}", userId, projectId);
 
+        var currentUser = await _dbContext.Users.FindAsync(currentUserId);
+        var currentUserName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}".Trim() : null;
+
+        await _domainEventDispatcher.PublishAsync(
+            new TeamMemberRemovedFromProjectEvent(userId, project.Title, currentUserName));
+
         await _logService.CreateAsync(new CreateLogDto
         {
             EntityType = "Project",
@@ -651,7 +669,7 @@ public class ProjectService : IProjectService
         return new OkObjectResult(new { Message = "Team member removed from project successfully." });
     }
 
-    public async Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, string currentUserId)
+    public async Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, string currentUserId, bool isAdmin = false)
     {
         // Validate input
         if (request.UserIds == null || request.UserIds.Count == 0)
@@ -659,7 +677,7 @@ public class ProjectService : IProjectService
             return new BadRequestObjectResult(new { Error = "At least one user ID must be provided." });
         }
 
-        // Check if the current user is the project creator or moderator (admin bypasses this at controller level)
+        // Check if the current user is admin or project moderator
         var project = await _dbContext.Projects
             .Include(p => p.Moderators)
             .FirstOrDefaultAsync(p => p.Id == projectId);
@@ -668,7 +686,7 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Project not found." });
         }
 
-        if (project.CreatedByUserId != currentUserId && !project.Moderators.Any(m => m.UserId == currentUserId))
+        if (!isAdmin && !project.Moderators.Any(m => m.UserId == currentUserId))
         {
             return new ForbidResult();
         }
@@ -698,6 +716,15 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("Removed {Count} team members from project {ProjectId}", teamMembers.Count, projectId);
+
+        var currentUser = await _dbContext.Users.FindAsync(currentUserId);
+        var currentUserName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}".Trim() : null;
+
+        foreach (var tm in teamMembers)
+        {
+            await _domainEventDispatcher.PublishAsync(
+                new TeamMemberRemovedFromProjectEvent(tm.UserId, project.Title, currentUserName));
+        }
 
         var removedNames = teamMembers
             .Select(tm => $"{tm.User?.FirstName} {tm.User?.LastName}".Trim())
@@ -1119,7 +1146,7 @@ public class ProjectService : IProjectService
 
     #region Objective Team Member Operations
 
-    public async Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId)
+    public async Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, string currentUserId, bool isAdmin = false)
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
@@ -1130,10 +1157,10 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Objective not found." });
         }
 
-        // Check if current user is the project creator or moderator
-        if (objective.Project.CreatedByUserId != currentUserId && !objective.Project.Moderators.Any(m => m.UserId == currentUserId))
+        // Check if current user is admin or project moderator
+        if (!isAdmin && !objective.Project.Moderators.Any(m => m.UserId == currentUserId))
         {
-            return new ObjectResult(new { Error = "Only the project creator or moderator can assign members to objectives." }) { StatusCode = 401 };
+            return new ObjectResult(new { Error = "Only an admin or the project moderator can assign members to objectives." }) { StatusCode = 403 };
         }
 
         // Prevent assigning members to completed objectives
@@ -1214,7 +1241,7 @@ public class ProjectService : IProjectService
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
 
-    public async Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, string currentUserId)
+    public async Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, string currentUserId, bool isAdmin = false)
     {
         var objective = await _dbContext.Objectives
             .Include(o => o.Project)
@@ -1225,10 +1252,10 @@ public class ProjectService : IProjectService
             return new NotFoundObjectResult(new { Error = "Objective not found." });
         }
 
-        // Check if current user is the project creator or moderator
-        if (objective.Project.CreatedByUserId != currentUserId && !objective.Project.Moderators.Any(m => m.UserId == currentUserId))
+        // Check if current user is admin or project moderator
+        if (!isAdmin && !objective.Project.Moderators.Any(m => m.UserId == currentUserId))
         {
-            return new ObjectResult(new { Error = "Only the project creator or moderator can remove members from objectives." }) { StatusCode = 401 };
+            return new ObjectResult(new { Error = "Only an admin or the project moderator can remove members from objectives." }) { StatusCode = 403 };
         }
 
         // Prevent removing members from completed objectives
@@ -1249,6 +1276,12 @@ public class ProjectService : IProjectService
         await _dbContext.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} removed from objective {ObjectiveId}", userId, objectiveId);
+
+        var currentUser = await _dbContext.Users.FindAsync(currentUserId);
+        var currentUserName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}".Trim() : null;
+
+        await _domainEventDispatcher.PublishAsync(
+            new TeamMemberRemovedFromObjectiveEvent(userId, objective.Title, objective.Project.Title, currentUserName));
 
         await _logService.CreateAsync(new CreateLogDto
         {
