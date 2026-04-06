@@ -260,7 +260,7 @@ public class MembershipRequestService : IMembershipRequestService
         _logger.LogInformation("Membership request {RequestId} approved by user {UserId}", id, reviewerUserId);
 
         await _domainEventDispatcher.PublishAsync(
-            new MembershipRequestApprovedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId));
+            new MembershipRequestApprovedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId, $"{reviewer.FirstName} {reviewer.LastName}".Trim()));
 
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} approved successfully" });
     }
@@ -294,7 +294,7 @@ public class MembershipRequestService : IMembershipRequestService
         _logger.LogInformation("Membership request {RequestId} rejected by user {UserId}", id, reviewerUserId);
 
         await _domainEventDispatcher.PublishAsync(
-            new MembershipRequestRejectedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId));
+            new MembershipRequestRejectedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId, $"{reviewer.FirstName} {reviewer.LastName}".Trim()));
 
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} rejected successfully" });
     }

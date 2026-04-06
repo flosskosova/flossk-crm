@@ -3,13 +3,15 @@ namespace FlosskMS.Business.DomainEvents.Memberships;
 public sealed record MembershipRequestApprovedEvent(
     string ApplicantName,
     string Email,
-    string ReviewerUserId
+    string ReviewerUserId,
+    string ReviewerName
 ) : IDomainEvent;
 
 public sealed record MembershipRequestRejectedEvent(
     string ApplicantName,
     string Email,
-    string ReviewerUserId
+    string ReviewerUserId,
+    string ReviewerName
 ) : IDomainEvent;
 
 public sealed record MembershipApplicationSubmittedEvent(

@@ -44,7 +44,7 @@ public sealed class MembershipRequestApprovedNotificationHandler(
             adminIds,
             NotificationType.MembershipApprovedAdmin,
             "Membership approved",
-            $"The membership request from {domainEvent.ApplicantName} ({domainEvent.Email}) has been approved.");
+            $"{domainEvent.ReviewerName} approved the membership request from {domainEvent.ApplicantName} ({domainEvent.Email}).");
     }
 }
 
@@ -67,6 +67,6 @@ public sealed class MembershipRequestRejectedNotificationHandler(
             adminIds,
             NotificationType.MembershipRejectedAdmin,
             "Membership rejected",
-            $"The membership request from {domainEvent.ApplicantName} ({domainEvent.Email}) has been rejected.");
+            $"{domainEvent.ReviewerName} rejected the membership request from {domainEvent.ApplicantName} ({domainEvent.Email}).");
     }
 }
