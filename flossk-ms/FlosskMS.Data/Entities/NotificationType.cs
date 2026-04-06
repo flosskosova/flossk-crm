@@ -17,5 +17,8 @@ public enum NotificationType
     ProjectRemoved,
     ObjectiveRemoved,
     ProjectModeratorPromoted,
-    ProjectModeratorDemoted
+    ProjectModeratorDemoted,
+    MembershipApplicationReceived,
+    MembershipApprovedAdmin,
+    MembershipRejectedAdmin
 }

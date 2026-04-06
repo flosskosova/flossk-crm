@@ -4,6 +4,7 @@ using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.DomainEvents.Announcements;
 using FlosskMS.Business.DomainEvents.Announcements.Notifications;
+using FlosskMS.Business.DomainEvents.Memberships;
 using FlosskMS.Business.DomainEvents.Projects;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
@@ -182,6 +183,9 @@ builder.Services.AddScoped<IDomainEventHandler<TeamMemberRemovedFromObjectiveEve
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberPromotedToModeratorEvent>, TeamMemberPromotedToModeratorNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberDemotedFromModeratorEvent>, TeamMemberDemotedFromModeratorNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<AnnouncementCreatedEvent>, AnnouncementCreatedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<MembershipApplicationSubmittedEvent>, MembershipApplicationSubmittedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<MembershipRequestApprovedEvent>, MembershipRequestApprovedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<MembershipRequestRejectedEvent>, MembershipRequestRejectedNotificationHandler>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));

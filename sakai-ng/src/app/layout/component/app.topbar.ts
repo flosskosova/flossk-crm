@@ -123,6 +123,10 @@ import { environment } from '@environments/environment.prod';
                                     <i class="pi pi-user text-lg"></i>
                                     <span>View Profile</span>
                                 </a>
+                                <a [routerLink]="'/dashboard/user-settings/' + authService.currentUser()?.id" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer text-surface-700 dark:text-surface-200 no-underline" (click)="profilePopover.hide()">
+                                    <i class="pi pi-cog text-lg"></i>
+                                    <span>Settings</span>
+                                </a>
                                 <button (click)="toggleDarkMode()" class="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors cursor-pointer text-surface-700 dark:text-surface-200 border-none bg-transparent">
                                     <i [class]="layoutService.isDarkTheme() ? 'pi pi-sun text-lg' : 'pi pi-moon text-lg'"></i>
                                     <span>{{ layoutService.isDarkTheme() ? 'Light Mode' : 'Dark Mode' }}</span>

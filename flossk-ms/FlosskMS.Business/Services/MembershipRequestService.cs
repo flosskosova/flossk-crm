@@ -1,5 +1,7 @@
 using AutoMapper;
 using FlosskMS.Business.Configuration;
+using FlosskMS.Business.DomainEvents;
+using FlosskMS.Business.DomainEvents.Memberships;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
@@ -21,19 +23,22 @@ public class MembershipRequestService : IMembershipRequestService
     private readonly FileUploadSettings _fileSettings;
     private readonly IMapper _mapper;
     private readonly ILogger<MembershipRequestService> _logger;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
 
     public MembershipRequestService(
         ApplicationDbContext dbContext,
         IClamAvService clamAvService,
         IOptions<FileUploadSettings> fileSettings,
         IMapper mapper,
-        ILogger<MembershipRequestService> logger)
+        ILogger<MembershipRequestService> logger,
+        IDomainEventDispatcher domainEventDispatcher)
     {
         _dbContext = dbContext;
         _clamAvService = clamAvService;
         _fileSettings = fileSettings.Value;
         _mapper = mapper;
         _logger = logger;
+        _domainEventDispatcher = domainEventDispatcher;
     }
 
     public async Task<IActionResult> CreateMembershipRequestAsync(
@@ -136,6 +141,9 @@ public class MembershipRequestService : IMembershipRequestService
 
         _logger.LogInformation("Membership request {RequestId} created for email {Email}", 
             membershipRequest.Id, membershipRequest.Email);
+
+        await _domainEventDispatcher.PublishAsync(
+            new MembershipApplicationSubmittedEvent(membershipRequest.FullName, membershipRequest.Email));
 
         // Reload with related data
         var savedRequest = await _dbContext.MembershipRequests
@@ -251,6 +259,9 @@ public class MembershipRequestService : IMembershipRequestService
 
         _logger.LogInformation("Membership request {RequestId} approved by user {UserId}", id, reviewerUserId);
 
+        await _domainEventDispatcher.PublishAsync(
+            new MembershipRequestApprovedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId));
+
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} approved successfully" });
     }
 
@@ -281,6 +292,9 @@ public class MembershipRequestService : IMembershipRequestService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Membership request {RequestId} rejected by user {UserId}", id, reviewerUserId);
+
+        await _domainEventDispatcher.PublishAsync(
+            new MembershipRequestRejectedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId));
 
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} rejected successfully" });
     }

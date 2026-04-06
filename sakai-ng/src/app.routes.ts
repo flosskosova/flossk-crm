@@ -26,6 +26,7 @@ import { Integrations } from '@/pages/dashboard/components/integrations';
 import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
 import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
+import { UserSettings } from '@/pages/dashboard/components/user-settings';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -45,6 +46,7 @@ export const appRoutes: Routes = [
             // { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },
+            { path: 'user-settings/:userId', component: UserSettings },
             { path: 'projects', component: Projects },
             { path: 'plugins', component: Plugins },
             { path: 'statistics', component: Statistics },
