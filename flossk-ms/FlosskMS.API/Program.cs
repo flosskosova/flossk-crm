@@ -5,6 +5,7 @@ using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.DomainEvents.Announcements;
 using FlosskMS.Business.DomainEvents.Announcements.Notifications;
 using FlosskMS.Business.DomainEvents.Memberships;
+using FlosskMS.Business.DomainEvents.Inventory;
 using FlosskMS.Business.DomainEvents.Projects;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
@@ -183,6 +184,7 @@ builder.Services.AddScoped<IDomainEventHandler<TeamMemberRemovedFromObjectiveEve
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberPromotedToModeratorEvent>, TeamMemberPromotedToModeratorNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberDemotedFromModeratorEvent>, TeamMemberDemotedFromModeratorNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<ProjectLogEvent>, ProjectLogHandler>();
+builder.Services.AddScoped<IDomainEventHandler<InventoryLogEvent>, InventoryLogHandler>();
 builder.Services.AddScoped<IDomainEventHandler<AnnouncementCreatedEvent>, AnnouncementCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipApplicationSubmittedEvent>, MembershipApplicationSubmittedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipRequestApprovedEvent>, MembershipRequestApprovedNotificationHandler>();

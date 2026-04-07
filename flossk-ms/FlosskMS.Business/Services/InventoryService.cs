@@ -4,6 +4,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using FlosskMS.Business.DTOs;
+using FlosskMS.Business.DomainEvents;
+using FlosskMS.Business.DomainEvents.Inventory;
 using FlosskMS.Data;
 using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Http;
@@ -17,14 +19,14 @@ public class InventoryService : IInventoryService
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IFileService _fileService;
-    private readonly ILogService _logService;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
 
-    public InventoryService(ApplicationDbContext context, IMapper mapper, IFileService fileService, ILogService logService)
+    public InventoryService(ApplicationDbContext context, IMapper mapper, IFileService fileService, IDomainEventDispatcher domainEventDispatcher)
     {
         _context = context;
         _mapper = mapper;
         _fileService = fileService;
-        _logService = logService;
+        _domainEventDispatcher = domainEventDispatcher;
     }
 
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, string? currentUserId = null)
@@ -169,14 +171,8 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = item.Id.ToString(),
-            EntityName = item.Name,
-            Action = "Item created",
-            UserId = createdByUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", item.Id.ToString(), item.Name, "Item created", null, createdByUserId));
 
         // Log each image added during creation
         if (dto.Images != null && dto.Images.Count > 0)
@@ -187,15 +183,9 @@ public class InventoryService : IInventoryService
                 .ToListAsync();
             foreach (var img in savedImages)
             {
-                await _logService.CreateAsync(new CreateLogDto
-                {
-                    EntityType = "Inventory",
-                    EntityId = item.Id.ToString(),
-                    EntityName = item.Name,
-                    Action = "Image added",
-                    Detail = "/uploads/" + img.UploadedFile.FileName,
-                    UserId = createdByUserId
-                });
+                await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+                    "Inventory", item.Id.ToString(), item.Name, "Image added",
+                    "/uploads/" + img.UploadedFile.FileName, createdByUserId));
             }
         }
 
@@ -318,29 +308,16 @@ public class InventoryService : IInventoryService
         // Log one entry per changed field
         foreach (var (field, oldValue, newValue) in fieldChanges)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Inventory",
-                EntityId = item.Id.ToString(),
-                EntityName = item.Name,
-                Action = "Field updated",
-                Detail = $"{field}: \"{oldValue}\" → \"{newValue}\"",
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+                "Inventory", item.Id.ToString(), item.Name, "Field updated",
+                $"{field}: \"{oldValue}\" → \"{newValue}\"", userId));
         }
 
         // If nothing changed in fields but the call still hit (e.g. only images), log a generic entry
         if (fieldChanges.Count == 0 && (dto.Images == null || dto.Images.Count == 0))
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Inventory",
-                EntityId = item.Id.ToString(),
-                EntityName = item.Name,
-                Action = "Item updated",
-                Detail = "No changes detected",
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+                "Inventory", item.Id.ToString(), item.Name, "Item updated", "No changes detected", userId));
         }
 
         // Log each new image appended during update
@@ -354,15 +331,9 @@ public class InventoryService : IInventoryService
                 .ToListAsync();
             foreach (var img in savedImages)
             {
-                await _logService.CreateAsync(new CreateLogDto
-                {
-                    EntityType = "Inventory",
-                    EntityId = item.Id.ToString(),
-                    EntityName = item.Name,
-                    Action = "Image added",
-                    Detail = "/uploads/" + img.UploadedFile.FileName,
-                    UserId = userId
-                });
+                await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+                    "Inventory", item.Id.ToString(), item.Name, "Image added",
+                    "/uploads/" + img.UploadedFile.FileName, userId));
             }
         }
 
@@ -385,14 +356,8 @@ public class InventoryService : IInventoryService
         _context.InventoryItems.Remove(item);
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = itemId,
-            EntityName = itemName,
-            Action = "Item deleted",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", itemId, itemName, "Item deleted", null, userId));
 
         return new OkObjectResult(new { Message = "Inventory item deleted successfully." });
     }
@@ -463,14 +428,8 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = item.Id.ToString(),
-            EntityName = item.Name,
-            Action = $"Checked out {requestedQuantity} unit(s)",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", item.Id.ToString(), item.Name, $"Checked out {requestedQuantity} unit(s)", null, userId));
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
@@ -533,14 +492,8 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = item.Id.ToString(),
-            EntityName = item.Name,
-            Action = $"Checked in {quantityToReturn} unit(s)",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", item.Id.ToString(), item.Name, $"Checked in {quantityToReturn} unit(s)", null, userId));
 
         // Reload with includes
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
@@ -568,14 +521,8 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = item.Id.ToString(),
-            EntityName = item.Name,
-            Action = "Damage reported",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", item.Id.ToString(), item.Name, "Damage reported", null, userId));
 
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Damage report submitted. Item marked as damaged.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
@@ -602,14 +549,8 @@ public class InventoryService : IInventoryService
 
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = item.Id.ToString(),
-            EntityName = item.Name,
-            Action = "Repair reported",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", item.Id.ToString(), item.Name, "Repair reported", null, userId));
 
         var updatedItem = await GetItemWithIncludesAsync(item.Id);
         return new OkObjectResult(new { Message = "Repair report submitted. Item marked as repaired.", Data = _mapper.Map<InventoryItemDto>(updatedItem) });
@@ -648,15 +589,8 @@ public class InventoryService : IInventoryService
         _context.InventoryItemImages.Add(image);
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = id.ToString(),
-            EntityName = item.Name,
-            Action = "Image added",
-            Detail = "/uploads/" + file.FileName,
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", id.ToString(), item.Name, "Image added", "/uploads/" + file.FileName, userId));
 
         return new OkObjectResult(new { Message = "Image added successfully." });
     }
@@ -682,15 +616,9 @@ public class InventoryService : IInventoryService
         _context.InventoryItemImages.Remove(image);
         await _context.SaveChangesAsync();
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Inventory",
-            EntityId = id.ToString(),
-            EntityName = item.Name,
-            Action = "Image removed",
-            Detail = fileName != null ? "/uploads/" + fileName : null,
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+            "Inventory", id.ToString(), item.Name, "Image removed",
+            fileName != null ? "/uploads/" + fileName : null, userId));
 
         return new OkObjectResult(new { Message = "Image removed successfully." });
     }
@@ -1003,14 +931,8 @@ public class InventoryService : IInventoryService
 
         foreach (var (id, name) in itemsToLog)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Inventory",
-                EntityId = id,
-                EntityName = name,
-                Action = "Item created",
-                UserId = createdByUserId
-            });
+            await _domainEventDispatcher.PublishAsync(new InventoryLogEvent(
+                "Inventory", id, name, "Item created", null, createdByUserId));
         }
 
         return new OkObjectResult(new
