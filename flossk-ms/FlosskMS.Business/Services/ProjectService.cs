@@ -11,33 +11,20 @@ using Microsoft.Extensions.Logging;
 
 namespace FlosskMS.Business.Services;
 
-public class ProjectService : IProjectService
+public class ProjectService(
+    ApplicationDbContext dbContext,
+    IMapper mapper,
+    ILogger<ProjectService> logger,
+    IContributionService contributionService,
+    IFileService fileService,
+    IDomainEventDispatcher domainEventDispatcher) : IProjectService
 {
-    private readonly ApplicationDbContext _dbContext;
-    private readonly IMapper _mapper;
-    private readonly ILogger<ProjectService> _logger;
-    private readonly IContributionService _contributionService;
-    private readonly ILogService _logService;
-    private readonly IFileService _fileService;
-    private readonly IDomainEventDispatcher _domainEventDispatcher;
-
-    public ProjectService(
-        ApplicationDbContext dbContext,
-        IMapper mapper,
-        ILogger<ProjectService> logger,
-        IContributionService contributionService,
-        ILogService logService,
-        IFileService fileService,
-        IDomainEventDispatcher domainEventDispatcher)
-    {
-        _dbContext = dbContext;
-        _mapper = mapper;
-        _logger = logger;
-        _contributionService = contributionService;
-        _logService = logService;
-        _fileService = fileService;
-        _domainEventDispatcher = domainEventDispatcher;
-    }
+    private readonly ApplicationDbContext _dbContext = dbContext;
+    private readonly IMapper _mapper = mapper;
+    private readonly ILogger<ProjectService> _logger = logger;
+    private readonly IContributionService _contributionService = contributionService;
+    private readonly IFileService _fileService = fileService;
+    private readonly IDomainEventDispatcher _domainEventDispatcher = domainEventDispatcher;
 
     #region Project Operations
 
@@ -85,14 +72,8 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Project {ProjectId} created by user {UserId}", project.Id, userId);
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = project.Id.ToString(),
-            EntityName = project.Title,
-            Action = "Project created",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", project.Id.ToString(), project.Title, "Project created", null, userId));
 
         return new OkObjectResult(_mapper.Map<ProjectDto>(project));
     }
@@ -299,27 +280,15 @@ public class ProjectService : IProjectService
             {
                 foreach (var (field, oldValue, newValue) in fieldChanges)
                 {
-                    await _logService.CreateAsync(new CreateLogDto
-                    {
-                        EntityType = "Project",
-                        EntityId = project.Id.ToString(),
-                        EntityName = project.Title,
-                        Action = "Field updated",
-                        Detail = $"{field}: \"{oldValue}\" → \"{newValue}\"",
-                        UserId = userId
-                    });
+                    await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                        "Project", project.Id.ToString(), project.Title, "Field updated",
+                        $"{field}: \"{oldValue}\" → \"{newValue}\"", userId));
                 }
             }
             else
             {
-                await _logService.CreateAsync(new CreateLogDto
-                {
-                    EntityType = "Project",
-                    EntityId = project.Id.ToString(),
-                    EntityName = project.Title,
-                    Action = "Project updated",
-                    UserId = userId
-                });
+                await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                    "Project", project.Id.ToString(), project.Title, "Project updated", null, userId));
             }
         }
 
@@ -356,14 +325,8 @@ public class ProjectService : IProjectService
 
         if (userId != null)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = id.ToString(),
-                EntityName = projectName,
-                Action = "Project deleted",
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                "Project", id.ToString(), projectName, "Project deleted", null, userId));
         }
 
         return new OkObjectResult(new { Message = "Project deleted successfully." });
@@ -418,15 +381,9 @@ public class ProjectService : IProjectService
 
         if (userId != null)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = project.Id.ToString(),
-                EntityName = project.Title,
-                Action = "Status updated",
-                Detail = $"\"{oldProjectStatus}\" → \"{projectStatus}\"",
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                "Project", project.Id.ToString(), project.Title, "Status updated",
+                $"\"{oldProjectStatus}\" → \"{projectStatus}\"", userId));
         }
 
         return new OkObjectResult(new { Message = $"Project status updated to {projectStatus}." });
@@ -478,15 +435,9 @@ public class ProjectService : IProjectService
         await _domainEventDispatcher.PublishAsync(
             new TeamMemberPromotedToModeratorEvent(user.Id, project.Title, actingUserName));
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = project.Id.ToString(),
-            EntityName = project.Title,
-            Action = "Moderator added",
-            Detail = $"{user.FirstName} {user.LastName}".Trim(),
-            UserId = actingUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", project.Id.ToString(), project.Title, "Moderator added",
+            $"{user.FirstName} {user.LastName}".Trim(), actingUserId));
 
         return new OkObjectResult(new { Message = $"{user.FirstName} {user.LastName} added as project moderator." });
     }
@@ -521,15 +472,8 @@ public class ProjectService : IProjectService
         await _domainEventDispatcher.PublishAsync(
             new TeamMemberDemotedFromModeratorEvent(moderatorUserId, project.Title, actingUserName));
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = project.Id.ToString(),
-            EntityName = project.Title,
-            Action = "Moderator removed",
-            Detail = moderatorName,
-            UserId = actingUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", project.Id.ToString(), project.Title, "Moderator removed", moderatorName, actingUserId));
 
         return new OkObjectResult(new { Message = $"{moderatorName} removed as project moderator." });
     }
@@ -597,15 +541,9 @@ public class ProjectService : IProjectService
 
         if (addedByUserId != null)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = projectId.ToString(),
-                EntityName = project.Title,
-                Action = "Team member added",
-                Detail = $"{user.FirstName} {user.LastName}",
-                UserId = addedByUserId
-            });
+            await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                "Project", projectId.ToString(), project.Title, "Team member added",
+                $"{user.FirstName} {user.LastName}", addedByUserId));
         }
 
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
@@ -656,15 +594,9 @@ public class ProjectService : IProjectService
         await _domainEventDispatcher.PublishAsync(
             new TeamMemberRemovedFromProjectEvent(userId, project.Title, currentUserName));
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = projectId.ToString(),
-            EntityName = project.Title,
-            Action = "Team member removed",
-            Detail = string.IsNullOrWhiteSpace(removedUserName) ? null : removedUserName,
-            UserId = currentUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", projectId.ToString(), project.Title, "Team member removed",
+            string.IsNullOrWhiteSpace(removedUserName) ? null : removedUserName, currentUserId));
 
         return new OkObjectResult(new { Message = "Team member removed from project successfully." });
     }
@@ -730,15 +662,9 @@ public class ProjectService : IProjectService
             .Select(tm => $"{tm.User?.FirstName} {tm.User?.LastName}".Trim())
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .ToList();
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = projectId.ToString(),
-            EntityName = project.Title,
-            Action = "Team members removed",
-            Detail = removedNames.Count > 0 ? string.Join(", ", removedNames) : null,
-            UserId = currentUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", projectId.ToString(), project.Title, "Team members removed",
+            removedNames.Count > 0 ? string.Join(", ", removedNames) : null, currentUserId));
 
         var response = new
         {
@@ -809,15 +735,9 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} joined project {ProjectId}", userId, projectId);
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = projectId.ToString(),
-            EntityName = project.Title,
-            Action = "Member joined",
-            Detail = $"{user.FirstName} {user.LastName}",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", projectId.ToString(), project.Title, "Member joined",
+            $"{user.FirstName} {user.LastName}", userId));
 
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
@@ -855,14 +775,8 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} left project {ProjectId}", userId, projectId);
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = projectId.ToString(),
-            EntityName = project.Title,
-            Action = "Member left",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", projectId.ToString(), project.Title, "Member left", null, userId));
 
         return new OkObjectResult(new { Message = "You have left the project successfully." });
     }
@@ -921,15 +835,8 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Objective {ObjectiveId} created for project {ProjectId} by user {UserId}", objective.Id, request.ProjectId, userId);
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = project.Id.ToString(),
-            EntityName = project.Title,
-            Action = "Objective created",
-            Detail = objective.Title,
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", project.Id.ToString(), project.Title, "Objective created", objective.Title, userId));
 
         return new OkObjectResult(_mapper.Map<ObjectiveDto>(objective));
     }
@@ -1026,28 +933,16 @@ public class ProjectService : IProjectService
             {
                 foreach (var (field, oldValue, newValue) in objFieldChanges)
                 {
-                    await _logService.CreateAsync(new CreateLogDto
-                    {
-                        EntityType = "Project",
-                        EntityId = objective.ProjectId.ToString(),
-                        EntityName = objective.Project?.Title,
-                        Action = "Field updated",
-                        Detail = $"{field}: \"{oldValue}\" → \"{newValue}\" (Objective: {objective.Title})",
-                        UserId = userId
-                    });
+                    await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                        "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Field updated",
+                        $"{field}: \"{oldValue}\" → \"{newValue}\" (Objective: {objective.Title})", userId));
                 }
             }
             else
             {
-                await _logService.CreateAsync(new CreateLogDto
-                {
-                    EntityType = "Project",
-                    EntityId = objective.ProjectId.ToString(),
-                    EntityName = objective.Project?.Title,
-                    Action = "Objective updated",
-                    Detail = objective.Title,
-                    UserId = userId
-                });
+                await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                    "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Objective updated",
+                    objective.Title, userId));
             }
         }
 
@@ -1081,15 +976,8 @@ public class ProjectService : IProjectService
 
         if (userId != null)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = projectId.ToString(),
-                EntityName = projectName,
-                Action = "Objective deleted",
-                Detail = objectiveTitle,
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                "Project", projectId.ToString(), projectName, "Objective deleted", objectiveTitle, userId));
         }
 
         return new OkObjectResult(new { Message = "Objective deleted successfully." });
@@ -1128,15 +1016,9 @@ public class ProjectService : IProjectService
 
         if (userId != null)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = objective.ProjectId.ToString(),
-                EntityName = objective.Project?.Title,
-                Action = "Objective status updated",
-                Detail = $"{objective.Title}: \"{oldObjectiveStatus}\" → \"{objectiveStatus}\"",
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Objective status updated",
+                $"{objective.Title}: \"{oldObjectiveStatus}\" → \"{objectiveStatus}\"", userId));
         }
 
         return new OkObjectResult(new { Message = $"Objective status updated to {objectiveStatus}." });
@@ -1228,15 +1110,9 @@ public class ProjectService : IProjectService
                 objective.Project?.Title ?? "Unknown",
                 assignedByName));
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = objective.ProjectId.ToString(),
-            EntityName = objective.Project?.Title,
-            Action = "Member assigned to objective",
-            Detail = $"{user.FirstName} {user.LastName} → {objective.Title}",
-            UserId = currentUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Member assigned to objective",
+            $"{user.FirstName} {user.LastName} → {objective.Title}", currentUserId));
 
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
@@ -1283,15 +1159,9 @@ public class ProjectService : IProjectService
         await _domainEventDispatcher.PublishAsync(
             new TeamMemberRemovedFromObjectiveEvent(userId, objective.Title, objective.Project.Title, currentUserName));
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = objective.ProjectId.ToString(),
-            EntityName = objective.Project?.Title,
-            Action = "Member removed from objective",
-            Detail = objective.Title,
-            UserId = currentUserId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Member removed from objective",
+            objective.Title, currentUserId));
 
         return new OkObjectResult(new { Message = "Team member removed from objective successfully." });
     }
@@ -1375,15 +1245,9 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} joined objective {ObjectiveId}", userId, objectiveId);
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = objective.ProjectId.ToString(),
-            EntityName = objective.Project?.Title,
-            Action = "Objective member joined",
-            Detail = $"{user.FirstName} {user.LastName} → {objective.Title}",
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Objective member joined",
+            $"{user.FirstName} {user.LastName} → {objective.Title}", userId));
 
         return new OkObjectResult(_mapper.Map<TeamMemberDto>(teamMember));
     }
@@ -1416,15 +1280,9 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("User {UserId} left objective {ObjectiveId}", userId, objectiveId);
 
-        await _logService.CreateAsync(new CreateLogDto
-        {
-            EntityType = "Project",
-            EntityId = objective.ProjectId.ToString(),
-            EntityName = objective.Project?.Title,
-            Action = "Objective member left",
-            Detail = objective.Title,
-            UserId = userId
-        });
+        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+            "Project", objective.ProjectId.ToString(), objective.Project?.Title, "Objective member left",
+            objective.Title, userId));
 
         return new OkObjectResult(new { Message = "You have left the objective successfully." });
     }
@@ -1536,15 +1394,8 @@ public class ProjectService : IProjectService
 
         if (logProject != null)
         {
-            await _logService.CreateAsync(new CreateLogDto
-            {
-                EntityType = "Project",
-                EntityId = logProject.Id.ToString(),
-                EntityName = logProject.Title,
-                Action = "Resource added",
-                Detail = resource.Title,
-                UserId = userId
-            });
+            await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                "Project", logProject.Id.ToString(), logProject.Title, "Resource added", resource.Title, userId));
         }
 
         // Reload with files for response
@@ -1754,56 +1605,32 @@ public class ProjectService : IProjectService
                 {
                     foreach (var (field, oldValue, newValue) in resFieldChanges)
                     {
-                        await _logService.CreateAsync(new CreateLogDto
-                        {
-                            EntityType = "Project",
-                            EntityId = logProjectUpdate.Id.ToString(),
-                            EntityName = logProjectUpdate.Title,
-                            Action = "Field updated",
-                            Detail = $"{field}: \"{oldValue}\" → \"{newValue}\" (Resource: {resource.Title})",
-                            UserId = userId
-                        });
+                        await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                            "Project", logProjectUpdate.Id.ToString(), logProjectUpdate.Title, "Field updated",
+                            $"{field}: \"{oldValue}\" → \"{newValue}\" (Resource: {resource.Title})", userId));
                     }
                 }
                 else if (addedFilesInfo.Count == 0 && removedFilesInfo.Count == 0)
                 {
-                    await _logService.CreateAsync(new CreateLogDto
-                    {
-                        EntityType = "Project",
-                        EntityId = logProjectUpdate.Id.ToString(),
-                        EntityName = logProjectUpdate.Title,
-                        Action = "Resource updated",
-                        Detail = resource.Title,
-                        UserId = userId
-                    });
+                    await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                        "Project", logProjectUpdate.Id.ToString(), logProjectUpdate.Title, "Resource updated",
+                        resource.Title, userId));
                 }
 
                 foreach (var file in addedFilesInfo)
                 {
                     var isImage = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-                    await _logService.CreateAsync(new CreateLogDto
-                    {
-                        EntityType = "Project",
-                        EntityId = logProjectUpdate.Id.ToString(),
-                        EntityName = logProjectUpdate.Title,
-                        Action = "File attached",
-                        Detail = isImage ? file.FilePath : $"\"{file.OriginalFileName}\" added to Resource: {resource.Title}",
-                        UserId = userId
-                    });
+                    await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                        "Project", logProjectUpdate.Id.ToString(), logProjectUpdate.Title, "File attached",
+                        isImage ? file.FilePath : $"\"{file.OriginalFileName}\" added to Resource: {resource.Title}", userId));
                 }
 
                 foreach (var file in removedFilesInfo)
                 {
                     var isImage = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-                    await _logService.CreateAsync(new CreateLogDto
-                    {
-                        EntityType = "Project",
-                        EntityId = logProjectUpdate.Id.ToString(),
-                        EntityName = logProjectUpdate.Title,
-                        Action = "File detached",
-                        Detail = isImage ? file.FilePath : $"\"{file.OriginalFileName}\" removed from Resource: {resource.Title}",
-                        UserId = userId
-                    });
+                    await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                        "Project", logProjectUpdate.Id.ToString(), logProjectUpdate.Title, "File detached",
+                        isImage ? file.FilePath : $"\"{file.OriginalFileName}\" removed from Resource: {resource.Title}", userId));
                 }
             }
         }
@@ -1839,15 +1666,8 @@ public class ProjectService : IProjectService
             }
             if (logProjectDel != null)
             {
-                await _logService.CreateAsync(new CreateLogDto
-                {
-                    EntityType = "Project",
-                    EntityId = logProjectDel.Id.ToString(),
-                    EntityName = logProjectDel.Title,
-                    Action = "Resource removed",
-                    Detail = resourceTitle,
-                    UserId = userId
-                });
+                await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
+                    "Project", logProjectDel.Id.ToString(), logProjectDel.Title, "Resource removed", resourceTitle, userId));
             }
         }
 

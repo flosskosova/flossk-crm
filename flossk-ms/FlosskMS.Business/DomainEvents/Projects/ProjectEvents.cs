@@ -37,3 +37,12 @@ public sealed record TeamMemberDemotedFromModeratorEvent(
     string ProjectTitle,
     string? DemotedByName
 ) : IDomainEvent;
+
+public sealed record ProjectLogEvent(
+    string EntityType,
+    string EntityId,
+    string? EntityName,
+    string Action,
+    string? Detail,
+    string UserId
+) : IDomainEvent;

@@ -182,6 +182,7 @@ builder.Services.AddScoped<IDomainEventHandler<TeamMemberAssignedToObjectiveEven
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberRemovedFromObjectiveEvent>, TeamMemberRemovedFromObjectiveNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberPromotedToModeratorEvent>, TeamMemberPromotedToModeratorNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberDemotedFromModeratorEvent>, TeamMemberDemotedFromModeratorNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<ProjectLogEvent>, ProjectLogHandler>();
 builder.Services.AddScoped<IDomainEventHandler<AnnouncementCreatedEvent>, AnnouncementCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipApplicationSubmittedEvent>, MembershipApplicationSubmittedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipRequestApprovedEvent>, MembershipRequestApprovedNotificationHandler>();
