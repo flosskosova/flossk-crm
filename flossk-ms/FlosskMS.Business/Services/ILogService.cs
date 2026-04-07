@@ -9,7 +9,7 @@ public interface ILogService
     Task CreateAsync(CreateLogDto dto);
 
     /// <summary>Returns all logs, optionally filtered by entity type and/or entity ID.</summary>
-    Task<IActionResult> GetAllAsync(string? entityType = null, string? entityId = null, int page = 1, int pageSize = 50);
+    Task<IActionResult> GetAllAsync(string? entityType = null, string? entityId = null, string? userId = null, int page = 1, int pageSize = 50);
 
     /// <summary>Returns a single log by ID.</summary>
     Task<IActionResult> GetByIdAsync(Guid id);

@@ -30,7 +30,7 @@ public class LogService(ApplicationDbContext context, IMapper mapper) : ILogServ
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IActionResult> GetAllAsync(string? entityType = null, string? entityId = null, int page = 1, int pageSize = 50)
+    public async Task<IActionResult> GetAllAsync(string? entityType = null, string? entityId = null, string? userId = null, int page = 1, int pageSize = 50)
     {
         var query = _context.Logs
             .Include(l => l.User)
@@ -42,6 +42,9 @@ public class LogService(ApplicationDbContext context, IMapper mapper) : ILogServ
 
         if (!string.IsNullOrEmpty(entityId))
             query = query.Where(l => l.EntityId == entityId);
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(l => l.UserId == userId);
 
         var totalCount = await query.CountAsync();
         var logs = await query
