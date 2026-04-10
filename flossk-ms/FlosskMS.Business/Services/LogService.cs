@@ -4,6 +4,7 @@ using FlosskMS.Data;
 using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace FlosskMS.Business.Services;
 
@@ -30,7 +31,7 @@ public class LogService(ApplicationDbContext context, IMapper mapper) : ILogServ
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IActionResult> GetAllAsync(string? entityType = null, string? entityId = null, string? userId = null, int page = 1, int pageSize = 50)
+    public async Task<IActionResult> GetAllAsync(string? entityType = null, string? entityId = null, string? userId = null, int page = 1, int pageSize = 50, string? dateFrom = null, string? dateTo = null)
     {
         var query = _context.Logs
             .Include(l => l.User)
@@ -45,6 +46,20 @@ public class LogService(ApplicationDbContext context, IMapper mapper) : ILogServ
 
         if (!string.IsNullOrEmpty(userId))
             query = query.Where(l => l.UserId == userId);
+
+        if (!string.IsNullOrEmpty(dateFrom) &&
+            DateTime.TryParseExact(dateFrom, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var rawFrom))
+        {
+            var from = new DateTime(rawFrom.Year, rawFrom.Month, rawFrom.Day, 0, 0, 0, DateTimeKind.Utc);
+            query = query.Where(l => l.Timestamp >= from);
+        }
+
+        if (!string.IsNullOrEmpty(dateTo) &&
+            DateTime.TryParseExact(dateTo, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var rawTo))
+        {
+            var toExclusive = new DateTime(rawTo.Year, rawTo.Month, rawTo.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
+            query = query.Where(l => l.Timestamp < toExclusive);
+        }
 
         var totalCount = await query.CountAsync();
         var logs = await query

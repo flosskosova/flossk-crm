@@ -20,9 +20,11 @@ public class LogsController(ILogService logService) : ControllerBase
         [FromQuery] string? entityId = null,
         [FromQuery] string? userId = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? dateFrom = null,
+        [FromQuery] string? dateTo = null)
     {
-        return await _logService.GetAllAsync(entityType, entityId, userId, page, pageSize);
+        return await _logService.GetAllAsync(entityType, entityId, userId, page, pageSize, dateFrom, dateTo);
     }
 
     /// <summary>

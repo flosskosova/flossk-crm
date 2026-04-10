@@ -38,6 +38,8 @@ export class LogService {
         userId?: string;
         page?: number;
         pageSize?: number;
+        dateFrom?: string;
+        dateTo?: string;
     }): Observable<PaginatedLogsResponse> {
         let httpParams = new HttpParams();
         if (params.entityType) httpParams = httpParams.set('entityType', params.entityType);
@@ -45,6 +47,8 @@ export class LogService {
         if (params.userId)     httpParams = httpParams.set('userId', params.userId);
         if (params.page)       httpParams = httpParams.set('page', params.page.toString());
         if (params.pageSize)   httpParams = httpParams.set('pageSize', params.pageSize.toString());
+        if (params.dateFrom)   httpParams = httpParams.set('dateFrom', params.dateFrom);
+        if (params.dateTo)     httpParams = httpParams.set('dateTo', params.dateTo);
         return this.http.get<PaginatedLogsResponse>(this.API_URL, { params: httpParams });
     }
 }

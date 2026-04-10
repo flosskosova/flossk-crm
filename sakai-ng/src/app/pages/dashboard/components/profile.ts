@@ -36,8 +36,8 @@ import { environment } from '@environments/environment.prod';
     providers: [ConfirmationService],
     template: `
         <p-confirmdialog></p-confirmdialog>
-        <!-- Loading Skeleton -->
-        <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">
+        <!-- Profile Header Loading Skeleton -->
+        <div *ngIf="isProfileLoading" class="grid grid-cols-12 gap-8">
             <div class="col-span-12">
                 <div class="card">
                     <div class="flex flex-col lg:flex-row gap-8">
@@ -68,7 +68,7 @@ import { environment } from '@environments/environment.prod';
         </div>
 
         <!-- Main Content -->
-        <ng-container *ngIf="!isLoading">
+        <ng-container *ngIf="!isProfileLoading">
         <p-dialog [(visible)]="editDialogVisible" header="Edit Profile" [modal]="true" [style]="{width: '70rem'}" [contentStyle]="{'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Column 1: Profile Picture -->
@@ -374,7 +374,22 @@ import { environment } from '@environments/environment.prod';
                                 <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0"> {{ userProfile.firstName }}'s Projects</h3>
                             </div>
                             
-                            <div class="flex flex-col gap-4">
+                            <!-- Projects Skeleton -->
+                            <div *ngIf="isProjectsLoading" class="flex flex-col gap-4">
+                                <div *ngFor="let i of [1,2]" class="border border-surface-200 dark:border-surface-700 rounded-border p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div class="flex-1">
+                                            <p-skeleton width="40%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                                            <p-skeleton width="20%" height="1rem"></p-skeleton>
+                                        </div>
+                                        <p-skeleton width="5rem" height="1.5rem"></p-skeleton>
+                                    </div>
+                                    <p-skeleton width="100%" height="2rem" styleClass="mb-4"></p-skeleton>
+                                    <p-skeleton width="60%" height="1rem"></p-skeleton>
+                                </div>
+                            </div>
+
+                            <div *ngIf="!isProjectsLoading" class="flex flex-col gap-4">
                                 <div *ngFor="let project of userProjects" class="border border-surface-200 dark:border-surface-700 rounded-border p-4 hover:shadow-md transition-shadow">
                                     <div class="flex justify-between items-start mb-3">
                                         <div>
@@ -440,7 +455,24 @@ import { environment } from '@environments/environment.prod';
                                 <h3 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ isOwnProfile ? 'My Certificates' : userProfile.firstName + "'s Certificates" }}</h3>
                             </div>
 
-                            <div class="flex flex-col gap-4">
+                            <!-- Certificates Skeleton -->
+                            <div *ngIf="isCertificatesLoading" class="flex flex-col gap-4">
+                                <div *ngFor="let i of [1,2]" class="border border-surface-200 dark:border-surface-700 rounded-border p-4">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex-1">
+                                            <p-skeleton width="50%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                                            <p-skeleton width="70%" height="1rem"></p-skeleton>
+                                        </div>
+                                        <p-skeleton width="4rem" height="1.5rem"></p-skeleton>
+                                    </div>
+                                    <div class="flex gap-4 mt-3">
+                                        <p-skeleton width="6rem" height="1rem"></p-skeleton>
+                                        <p-skeleton width="8rem" height="1rem"></p-skeleton>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div *ngIf="!isCertificatesLoading" class="flex flex-col gap-4">
                                 <div *ngFor="let cert of userCertificates" class="border border-surface-200 dark:border-surface-700 rounded-border p-4 hover:shadow-md transition-shadow">
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="flex-1">
@@ -634,7 +666,20 @@ import { environment } from '@environments/environment.prod';
                                     <ng-container *ngIf="!isOwnProfile">{{ userProfile.firstName }}'s Checked Out Items</ng-container>
                                 </h3>
                             </div>
-                            <div class="flex flex-col gap-3">
+                            <!-- Checked Out Items Skeleton -->
+                            <div *ngIf="isItemsLoading" class="flex flex-col gap-3">
+                                <div *ngFor="let i of [1,2]" class="border border-surface-200 dark:border-surface-700 rounded-border p-3">
+                                    <div class="flex items-start gap-3">
+                                        <p-skeleton width="4rem" height="4rem" styleClass="rounded-border"></p-skeleton>
+                                        <div class="flex-1">
+                                            <p-skeleton width="40%" height="1rem" styleClass="mb-2"></p-skeleton>
+                                            <p-skeleton width="60%" height="0.75rem" styleClass="mb-2"></p-skeleton>
+                                            <p-skeleton width="30%" height="0.75rem"></p-skeleton>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div *ngIf="!isItemsLoading" class="flex flex-col gap-3">
                                 <div *ngIf="checkedOutItems && checkedOutItems.length > 0" class="flex flex-col gap-3">
                                     <div *ngFor="let item of checkedOutItems" class="border border-surface-200 dark:border-surface-700 rounded-border p-3">
                                         <div class="flex items-start gap-3">
@@ -689,7 +734,10 @@ import { environment } from '@environments/environment.prod';
     `
 })
 export class Profile implements OnInit {
-    isLoading = true;
+    isProfileLoading = true;
+    isProjectsLoading = true;
+    isCertificatesLoading = true;
+    isItemsLoading = true;
     isOwnProfile = true;
     profileUserId = '';
     checkedOutItems: InventoryItem[] = [];
@@ -706,7 +754,6 @@ export class Profile implements OnInit {
             // Only reload if we're on our own profile page (no userId in route params)
             if (user && this.isOwnProfile && !this.route.snapshot.paramMap.has('userId')) {
                 this.loadUserProfile();
-                this.isLoading = false;
             }
         });
     }
@@ -784,7 +831,7 @@ export class Profile implements OnInit {
                 this.isOwnProfile = false;
                 this.loadUserById(userId);
             } else {
-                // Viewing own profile
+                // Viewing own profile - profile data comes from the signal/effect
                 this.isOwnProfile = true;
                 this.loadUserProfile();
                 this.loadCheckedOutItems();
@@ -793,21 +840,27 @@ export class Profile implements OnInit {
     }
 
     loadUserById(userId: string) {
-        this.isLoading = true;
+        this.isProfileLoading = true;
+        this.isProjectsLoading = true;
+        this.isCertificatesLoading = true;
+        this.isItemsLoading = true;
         this.profileUserId = userId;
         this.presenceService.fetchStatuses([userId]);
         this.http.get<User>(`${environment.apiUrl}/Auth/users/${userId}`).subscribe({
             next: (user) => {
                 console.log('Fetched user data:', user);
                 this.mapUserToProfile(user);
+                this.isProfileLoading = false;
                 this.loadUserProjects(userId);
                 this.loadUserCertificates(userId);
                 this.loadCheckedOutItems();
-                this.isLoading = false;
             },
             error: (err) => {
                 console.error('Error loading user:', err);
-                this.isLoading = false;
+                this.isProfileLoading = false;
+                this.isProjectsLoading = false;
+                this.isCertificatesLoading = false;
+                this.isItemsLoading = false;
             }
         });
     }
@@ -922,6 +975,8 @@ export class Profile implements OnInit {
                 socialLinks: this.parseSocialLinks(user.socialLinks)
             };
 
+            this.isProfileLoading = false;
+
             // Load user's projects
             if (user.id) {
                 this.loadUserProjects(user.id);
@@ -937,6 +992,7 @@ export class Profile implements OnInit {
     certViewUrl = '';
 
     loadUserProjects(userId: string) {
+        this.isProjectsLoading = true;
         this.projectsService.getProjectsByUserId(userId).subscribe({
             next: (projects) => {
                 this.userProjects = projects.map(project => {
@@ -964,16 +1020,19 @@ export class Profile implements OnInit {
                         team: team
                     };
                 });
+                this.isProjectsLoading = false;
             },
             error: (err) => {
                 console.error('Error loading user projects:', err);
                 this.userProjects = [];
+                this.isProjectsLoading = false;
             }
         });
     }
 
     loadCheckedOutItems() {
         if (!this.profileUserId) return;
+        this.isItemsLoading = true;
 
         const observable = this.isOwnProfile
             ? this.inventoryService.getMyInventoryItems()
@@ -983,22 +1042,27 @@ export class Profile implements OnInit {
             next: (items) => {
                 this.checkedOutItems = items;
                 console.log('Checked out items:', items);
+                this.isItemsLoading = false;
             },
             error: (err) => {
                 console.error('Error loading checked out items:', err);
                 this.checkedOutItems = [];
+                this.isItemsLoading = false;
             }
         });
     }
 
     loadUserCertificates(userId: string) {
+        this.isCertificatesLoading = true;
         this.http.get<any[]>(`${environment.apiUrl}/Certificates/user/${userId}`).subscribe({
             next: (certs) => {
                 this.userCertificates = certs;
+                this.isCertificatesLoading = false;
             },
             error: (err) => {
                 console.error('Error loading certificates:', err);
                 this.userCertificates = [];
+                this.isCertificatesLoading = false;
             }
         });
     }
