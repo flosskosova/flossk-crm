@@ -30,6 +30,7 @@ export class AppMenu {
             label: 'Home',
             items: [
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] },
+                { label: 'Collaboration Pads', icon: 'pi pi-fw pi-clipboard', routerLink: ['/dashboard/collaboration-pads'] },
                 { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/dashboard/profile'] },
                 { label: 'Projects', icon: 'pi pi-fw pi-hammer', routerLink: ['/dashboard/projects'] },
                 { label: 'Notifications', icon: 'pi pi-fw pi-inbox', routerLink: ['/dashboard/notifications'] },
@@ -40,9 +41,10 @@ export class AppMenu {
                 { label: 'Elections', icon: 'pi pi-fw pi-vote', routerLink: ['/dashboard/elections'] },
                 { label: 'General Statistics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/statistics'] },
                 { label: 'Leaderboard', icon: 'pi pi-fw pi-graduation-cap', routerLink: ['/dashboard/leaderboard'] },
-                { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },
                 { label: 'Integrations', icon: 'pi pi-fw pi-th-large', routerLink: ['/dashboard/integrations'] },
                 ...(this.adminOnly() ? [
+                    { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },
+                    { label: 'Membership Requests', icon: 'pi pi-fw pi-bell', routerLink: ['/dashboard/membership-requests'] },
                     { label: 'Expenses Tracking (Frontend only)', icon: 'pi pi-fw pi-wallet', routerLink: ['/dashboard/expenses'] },
                     { label: 'Plugins (Frontend only)', icon: 'pi pi-fw pi-objects-column', routerLink: ['/dashboard/plugins'] },
                     { label: 'Certificate Builder', icon: 'pi pi-fw pi-sparkles', routerLink: ['/dashboard/cert-builder'] },

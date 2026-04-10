@@ -27,6 +27,8 @@ import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
 import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
 import { UserSettings } from '@/pages/dashboard/components/user-settings';
+import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
+import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -36,6 +38,8 @@ export const appRoutes: Routes = [
         canActivate: [authGuard],
         children: [
             { path: '', component: Dashboard },
+            { path: 'membership-requests', component: MembershipRequests, canActivate: [roleGuard(['Admin', 'Full Member'])]  },
+            { path: 'collaboration-pads', component: CollaborationPads },
             { path: 'profile', component: Profile },
             { path: 'profile/:userId', component: Profile },
             { path: 'notifications', component: Notifications },
@@ -51,7 +55,7 @@ export const appRoutes: Routes = [
             { path: 'plugins', component: Plugins },
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
-            { path: 'external-messages', component: ExternalMessages },
+            { path: 'external-messages', component: ExternalMessages, canActivate: [roleGuard(['Admin', 'Full Member'])]  },
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
