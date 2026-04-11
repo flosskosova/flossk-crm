@@ -104,7 +104,7 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                             name="idNumber" 
                             #idNumber="ngModel"
                             type="text"
-                            pattern="^[0-9]+$"
+                            pattern="^[0-9]{10}$"
                             class="w-full"
                             [class.ng-invalid]="idNumber.invalid && idNumber.touched"
                             [disabled]="!formData.applicantDateofBirth"
@@ -117,7 +117,7 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                         </small>
                         <small *ngIf="idNumber.invalid && idNumber.touched && formData.applicantDateofBirth" class="text-red-500">
                             <span *ngIf="idNumber.errors?.['required']">ID number is required.</span>
-                            <span *ngIf="idNumber.errors?.['pattern']">ID number can only contain numbers.</span>
+                            <span *ngIf="idNumber.errors?.['pattern']">ID number must be exactly 10 digits.</span>
                         </small>
                     </div>
                 </div>

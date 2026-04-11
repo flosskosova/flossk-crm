@@ -29,6 +29,7 @@ import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate
 import { UserSettings } from '@/pages/dashboard/components/user-settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
+import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -55,6 +56,7 @@ export const appRoutes: Routes = [
             { path: 'plugins', component: Plugins },
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
+            { path: 'audit-logs', component: AuditLogs },
             { path: 'external-messages', component: ExternalMessages, canActivate: [roleGuard(['Admin', 'Full Member'])]  },
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },

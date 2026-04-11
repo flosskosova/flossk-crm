@@ -42,17 +42,21 @@ export class AppMenu {
                 { label: 'General Statistics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/statistics'] },
                 { label: 'Leaderboard', icon: 'pi pi-fw pi-graduation-cap', routerLink: ['/dashboard/leaderboard'] },
                 { label: 'Integrations', icon: 'pi pi-fw pi-th-large', routerLink: ['/dashboard/integrations'] },
-                ...(this.adminOnly() ? [
-                    { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },
-                    { label: 'Membership Requests', icon: 'pi pi-fw pi-bell', routerLink: ['/dashboard/membership-requests'] },
-                    { label: 'Expenses Tracking (Frontend only)', icon: 'pi pi-fw pi-wallet', routerLink: ['/dashboard/expenses'] },
-                    { label: 'Plugins (Frontend only)', icon: 'pi pi-fw pi-objects-column', routerLink: ['/dashboard/plugins'] },
-                    { label: 'Certificate Builder', icon: 'pi pi-fw pi-sparkles', routerLink: ['/dashboard/cert-builder'] },
-                    { label: 'Administration Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/admin-settings'] },
-                ] : []),
                 // { label: 'RFID Configurer', icon: 'pi pi-fw pi-id-card', routerLink: ['/dashboard/rfid-configurer'] },
                 // { label: 'Hackerspace Presence (Frontend only)', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/dashboard/hackerspace-presence'] },
             ]
+        },
+        {
+            label: 'Administration',
+            items: this.adminOnly() ? [
+                { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },
+                { label: 'Membership Requests', icon: 'pi pi-fw pi-bell', routerLink: ['/dashboard/membership-requests'] },
+                { label: 'Expenses Tracking (Frontend only)', icon: 'pi pi-fw pi-wallet', routerLink: ['/dashboard/expenses'] },
+                { label: 'Plugins (Frontend only)', icon: 'pi pi-fw pi-objects-column', routerLink: ['/dashboard/plugins'] },
+                { label: 'Certificate Builder', icon: 'pi pi-fw pi-sparkles', routerLink: ['/dashboard/cert-builder'] },
+                { label: 'Audit Logs', icon: 'pi pi-fw pi-server', routerLink: ['/dashboard/audit-logs'] },
+                { label: 'Administration Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/admin-settings'] },
+            ] : [],
         }
     ]);
 }
