@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -14,38 +14,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
-
-export interface Instructor {
-    name: string;
-    role: string;
-}
-
-export interface CourseModule {
-    id: number;
-    title: string;
-    description: string;
-}
-
-export interface CourseResource {
-    id: number;
-    title: string;
-    url: string;
-    description: string;
-    type: 'video' | 'document' | 'link' | 'other';
-}
-
-export interface Course {
-    id: number;
-    title: string;
-    description: string;
-    level: string;
-    status: 'draft' | 'active' | 'completed';
-    instructors: Instructor[];
-    modules: CourseModule[];
-    resources: CourseResource[];
-    scheduledDates: Date[];
-    createdAt: Date;
-}
+import { CourseService, Course, CourseModule, CourseResource, Instructor } from '@/pages/service/course.service';
 
 @Component({
     selector: 'app-course-portal',
@@ -459,10 +428,9 @@ export interface Course {
 })
 export class CoursePortal {
     // ── State ──────────────────────────────────────────────────────────────
-    courses: Course[] = [];
+    get courses(): Course[] { return this.courseService.courses(); }
     selectedCourse: Course | null = null;
     activeTab: string = 'overview';
-    private nextId = 1;
 
     // ── Course dialog ──────────────────────────────────────────────────────
     courseDialogVisible = false;
@@ -481,14 +449,12 @@ export class CoursePortal {
     moduleDialogMode: 'add' | 'edit' = 'add';
     editingModule: CourseModule | null = null;
     moduleForm: { title: string; description: string } = { title: '', description: '' };
-    private nextModuleId = 1;
 
     // ── Resource dialog ────────────────────────────────────────────────────
     resourceDialogVisible = false;
     resourceDialogMode: 'add' | 'edit' = 'add';
     editingResource: CourseResource | null = null;
     resourceForm: { title: string; url: string; description: string; type: CourseResource['type'] } = this.emptyResourceForm();
-    private nextResourceId = 1;
 
     // ── Options ────────────────────────────────────────────────────────────
     levelOptions = [
@@ -510,7 +476,10 @@ export class CoursePortal {
         { label: 'Other', value: 'other' }
     ];
 
-    constructor(private confirmationService: ConfirmationService) {}
+    constructor(
+        private confirmationService: ConfirmationService,
+        private courseService: CourseService
+    ) {}
 
     // ── Helpers ────────────────────────────────────────────────────────────
     private emptyCourseForm() {
@@ -609,29 +578,22 @@ export class CoursePortal {
             return;
         }
         const instructors = this.courseForm.instructors.filter(i => i.name.trim());
+        const data = {
+            title: this.courseForm.title.trim(),
+            description: this.courseForm.description.trim(),
+            level: this.courseForm.level,
+            status: this.courseForm.status,
+            instructors
+        };
 
         if (this.courseDialogMode === 'add') {
-            const course: Course = {
-                id: this.nextId++,
-                title: this.courseForm.title.trim(),
-                description: this.courseForm.description.trim(),
-                level: this.courseForm.level,
-                status: this.courseForm.status,
-                instructors,
-                modules: [],
-                resources: [],
-                scheduledDates: [],
-                createdAt: new Date()
-            };
-            this.courses.push(course);
+            const course = this.courseService.addCourse(data);
             this.courseDialogVisible = false;
             this.selectCourse(course);
         } else if (this.selectedCourse) {
-            this.selectedCourse.title = this.courseForm.title.trim();
-            this.selectedCourse.description = this.courseForm.description.trim();
-            this.selectedCourse.level = this.courseForm.level;
-            this.selectedCourse.status = this.courseForm.status;
-            this.selectedCourse.instructors = instructors;
+            this.courseService.updateCourse(this.selectedCourse.id, data);
+            // Refresh local reference from service after update
+            this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? null;
             this.courseDialogVisible = false;
         }
     }
@@ -644,8 +606,10 @@ export class CoursePortal {
             acceptLabel: 'Delete',
             rejectLabel: 'Cancel',
             accept: () => {
-                this.courses = this.courses.filter(c => c.id !== this.selectedCourse?.id);
-                this.selectedCourse = null;
+                if (this.selectedCourse) {
+                    this.courseService.deleteCourse(this.selectedCourse.id);
+                    this.selectedCourse = null;
+                }
             }
         });
     }
@@ -667,30 +631,27 @@ export class CoursePortal {
 
     saveModule() {
         if (!this.moduleForm.title.trim() || !this.selectedCourse) return;
+        const data = { title: this.moduleForm.title.trim(), description: this.moduleForm.description.trim() };
         if (this.moduleDialogMode === 'add') {
-            this.selectedCourse.modules.push({
-                id: this.nextModuleId++,
-                title: this.moduleForm.title.trim(),
-                description: this.moduleForm.description.trim()
-            });
+            this.courseService.addModule(this.selectedCourse.id, data);
         } else if (this.editingModule) {
-            this.editingModule.title = this.moduleForm.title.trim();
-            this.editingModule.description = this.moduleForm.description.trim();
+            this.courseService.updateModule(this.selectedCourse.id, this.editingModule.id, data);
         }
+        this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
         this.moduleDialogVisible = false;
     }
 
     moveModuleUp(index: number) {
         if (!this.selectedCourse || index === 0) return;
-        const mods = this.selectedCourse.modules;
-        [mods[index - 1], mods[index]] = [mods[index], mods[index - 1]];
+        this.courseService.moveModule(this.selectedCourse.id, index, index - 1);
+        this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
     }
 
     moveModuleDown(index: number) {
         if (!this.selectedCourse) return;
-        const mods = this.selectedCourse.modules;
-        if (index >= mods.length - 1) return;
-        [mods[index], mods[index + 1]] = [mods[index + 1], mods[index]];
+        if (index >= this.selectedCourse.modules.length - 1) return;
+        this.courseService.moveModule(this.selectedCourse.id, index, index + 1);
+        this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
     }
 
     confirmDeleteModule(mod: CourseModule) {
@@ -702,7 +663,8 @@ export class CoursePortal {
             rejectLabel: 'Cancel',
             accept: () => {
                 if (this.selectedCourse) {
-                    this.selectedCourse.modules = this.selectedCourse.modules.filter(m => m.id !== mod.id);
+                    this.courseService.deleteModule(this.selectedCourse.id, mod.id);
+                    this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
                 }
             }
         });
@@ -725,20 +687,18 @@ export class CoursePortal {
 
     saveResource() {
         if (!this.resourceForm.title.trim() || !this.selectedCourse) return;
+        const data = {
+            title: this.resourceForm.title.trim(),
+            url: this.resourceForm.url.trim(),
+            description: this.resourceForm.description.trim(),
+            type: this.resourceForm.type
+        };
         if (this.resourceDialogMode === 'add') {
-            this.selectedCourse.resources.push({
-                id: this.nextResourceId++,
-                title: this.resourceForm.title.trim(),
-                url: this.resourceForm.url.trim(),
-                description: this.resourceForm.description.trim(),
-                type: this.resourceForm.type
-            });
+            this.courseService.addResource(this.selectedCourse.id, data);
         } else if (this.editingResource) {
-            this.editingResource.title = this.resourceForm.title.trim();
-            this.editingResource.url = this.resourceForm.url.trim();
-            this.editingResource.description = this.resourceForm.description.trim();
-            this.editingResource.type = this.resourceForm.type;
+            this.courseService.updateResource(this.selectedCourse.id, this.editingResource.id, data);
         }
+        this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
         this.resourceDialogVisible = false;
     }
 
@@ -751,25 +711,32 @@ export class CoursePortal {
             rejectLabel: 'Cancel',
             accept: () => {
                 if (this.selectedCourse) {
-                    this.selectedCourse.resources = this.selectedCourse.resources.filter(r => r.id !== res.id);
+                    this.courseService.deleteResource(this.selectedCourse.id, res.id);
+                    this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
                 }
             }
         });
     }
 
     // ── Schedule actions ───────────────────────────────────────────────────
-    onDateSelect() { /* model already updated via ngModel */ }
+    onDateSelect() {
+        if (this.selectedCourse) {
+            this.courseService.setScheduledDates(this.selectedCourse.id, this.selectedCourse.scheduledDates);
+            this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
+        }
+    }
 
     onDateClear() {
         if (this.selectedCourse) {
-            this.selectedCourse.scheduledDates = [];
+            this.courseService.setScheduledDates(this.selectedCourse.id, []);
+            this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
         }
     }
 
     removeDate(date: Date) {
         if (!this.selectedCourse) return;
-        this.selectedCourse.scheduledDates = this.selectedCourse.scheduledDates.filter(
-            d => d.getTime() !== date.getTime()
-        );
+        const updated = this.selectedCourse.scheduledDates.filter(d => d.getTime() !== date.getTime());
+        this.courseService.setScheduledDates(this.selectedCourse.id, updated);
+        this.selectedCourse = this.courseService.getCourseById(this.selectedCourse.id) ?? this.selectedCourse;
     }
 }

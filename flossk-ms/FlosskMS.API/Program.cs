@@ -176,6 +176,7 @@ builder.Services.AddScoped<IElectionCategoryService, ElectionCategoryService>();
 builder.Services.AddScoped<IContributionService, ContributionService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberRemovedFromProjectEvent>, TeamMemberRemovedFromProjectNotificationHandler>();

@@ -51,7 +51,6 @@ export const appRoutes: Routes = [
             { path: 'users', component: Users },
             { path: 'inventory', component: Inventory },
             { path: 'integrations', component: Integrations },
-            { path: 'course/:courseId', component: Course },
             // { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },
@@ -76,6 +75,7 @@ export const appRoutes: Routes = [
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
     { path: 'notfound', component: Notfound },
+    { path: 'course/:courseId', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }

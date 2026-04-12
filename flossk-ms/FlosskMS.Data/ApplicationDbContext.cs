@@ -41,6 +41,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CertificateTemplateField> CertificateTemplateFields { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<PushSubscription> PushSubscriptions { get; set; }
+    public DbSet<Course> Courses { get; set; }
+    public DbSet<CourseInstructor> CourseInstructors { get; set; }
+    public DbSet<CourseModule> CourseModules { get; set; }
+    public DbSet<CourseResource> CourseResources { get; set; }
+    public DbSet<CourseReview> CourseReviews { get; set; }
+    public DbSet<CourseSession> CourseSessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -664,6 +670,128 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Endpoint).IsUnique();
+        });
+
+        // Course configuration
+        builder.Entity<Course>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(10000);
+            entity.Property(e => e.Level)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(e => e.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(e => e.CommunicationChannels)
+                .HasColumnType("text[]")
+                .HasDefaultValueSql("'{}'");
+
+            entity.HasOne(e => e.Project)
+                .WithOne(p => p.Course)
+                .HasForeignKey<Course>(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Enforce 1:1 uniqueness with Project
+            entity.HasIndex(e => e.ProjectId).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Level);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // CourseInstructor (join table)
+        builder.Entity<CourseInstructor>(entity =>
+        {
+            entity.HasKey(e => new { e.CourseId, e.UserId });
+            entity.Property(e => e.Role).HasMaxLength(100);
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.Instructors)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CourseModule
+        builder.Entity<CourseModule>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(5000);
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.Modules)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CourseId);
+            entity.HasIndex(e => new { e.CourseId, e.Order });
+        });
+
+        // CourseResource
+        builder.Entity<CourseResource>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Url).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Type)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasOne(e => e.CourseModule)
+                .WithMany(m => m.Resources)
+                .HasForeignKey(e => e.CourseModuleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CourseModuleId);
+        });
+
+        // CourseReview
+        builder.Entity<CourseReview>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Description).HasMaxLength(5000).IsRequired();
+            entity.Property(e => e.SubmitterName).HasMaxLength(200);
+            entity.Property(e => e.SubmitterEmail).HasMaxLength(256);
+
+            entity.HasOne(e => e.CourseModule)
+                .WithMany(m => m.Reviews)
+                .HasForeignKey(e => e.CourseModuleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CourseModuleId);
+            entity.HasIndex(e => e.SubmittedAt);
+        });
+
+        // CourseSession
+        builder.Entity<CourseSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Location).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Type)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.Sessions)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CourseId);
+            entity.HasIndex(e => e.Date);
         });
     }
 }
