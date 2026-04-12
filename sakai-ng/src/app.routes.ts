@@ -30,6 +30,9 @@ import { UserSettings } from '@/pages/dashboard/components/user-settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
 import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
+import { CoursePortal } from '@/pages/dashboard/components/course-portal';
+import { CourseLogin } from '@/pages/auth/course-login';
+import { Course } from '@/pages/dashboard/components/public-course';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -48,6 +51,7 @@ export const appRoutes: Routes = [
             { path: 'users', component: Users },
             { path: 'inventory', component: Inventory },
             { path: 'integrations', component: Integrations },
+            { path: 'course/:courseId', component: Course },
             // { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
             { path: 'events', component: Events },
@@ -56,7 +60,8 @@ export const appRoutes: Routes = [
             { path: 'plugins', component: Plugins },
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
-            { path: 'audit-logs', component: AuditLogs },
+            { path: 'audit-logs', component: AuditLogs, canActivate: [roleGuard(['Admin'])]  },
+            { path: 'course-portal', component: CoursePortal },
             { path: 'external-messages', component: ExternalMessages, canActivate: [roleGuard(['Admin', 'Full Member'])]  },
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
@@ -71,6 +76,7 @@ export const appRoutes: Routes = [
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
     { path: 'notfound', component: Notfound },
+    { path: 'auth/course-login', component: CourseLogin },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }
 ];
