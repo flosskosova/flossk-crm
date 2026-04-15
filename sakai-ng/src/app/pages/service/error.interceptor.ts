@@ -4,6 +4,18 @@ import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { catchError, throwError } from 'rxjs';
 
+function extractValidationErrors(errors: unknown): string | null {
+    if (!errors || typeof errors !== 'object' || Array.isArray(errors)) {
+        return null;
+    }
+
+    const messages = Object.values(errors as Record<string, unknown>)
+        .flatMap((v) => (Array.isArray(v) ? v : [v]))
+        .filter((v) => typeof v === 'string') as string[];
+
+    return messages.length > 0 ? messages.join(' ') : null;
+}
+
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     const messageService = inject(MessageService);
     const router = inject(Router);
@@ -20,7 +32,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
                 body?.message ||
                 body?.Message ||
                 (Array.isArray(body?.Errors) ? body.Errors[0] : null) ||
-                (Array.isArray(body?.errors) ? body.errors[0] : null);
+                (Array.isArray(body?.errors) ? body.errors[0] : null) ||
+                extractValidationErrors(body?.errors) ||
+                extractValidationErrors(body?.Errors);
 
             switch (true) {
                 // 400 — Validation: show server message so the user can fix the issue

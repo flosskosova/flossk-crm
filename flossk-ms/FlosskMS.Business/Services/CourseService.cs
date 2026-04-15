@@ -24,7 +24,7 @@ public class CourseService(
             .Include(c => c.Project)
             .Include(c => c.CreatedByUser)
             .Include(c => c.Instructors).ThenInclude(i => i.User)
-            .Include(c => c.Modules).ThenInclude(m => m.Resources)
+            .Include(c => c.Modules).ThenInclude(m => m.Resources).ThenInclude(r => r.Files).ThenInclude(f => f.File)
             .Include(c => c.Modules).ThenInclude(m => m.Reviews)
             .Include(c => c.Sessions);
 
@@ -224,7 +224,9 @@ public class CourseService(
 
     public async Task<IActionResult> UpdateModuleAsync(Guid courseId, Guid moduleId, UpdateCourseModuleDto request, string userId, bool isAdmin)
     {
-        var module = await _db.CourseModules.Include(m => m.Resources).Include(m => m.Reviews)
+        var module = await _db.CourseModules
+            .Include(m => m.Resources).ThenInclude(r => r.Files).ThenInclude(f => f.File)
+            .Include(m => m.Reviews)
             .FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId);
         if (module == null)
             return new NotFoundObjectResult(new { Error = "Module not found." });
@@ -293,27 +295,56 @@ public class CourseService(
             return new ForbidResult();
 
         if (!Enum.TryParse<ResourceType>(request.Type, true, out var resourceType))
-            return new BadRequestObjectResult(new { Error = "Invalid resource type. Valid values: Link, Video, Document, Other." });
+            return new BadRequestObjectResult(new { Error = "Invalid resource type. Valid values: Documentation, Tutorial, Tool, Reference, Other." });
 
         var resource = new CourseResource
         {
             Id = Guid.NewGuid(),
             Title = request.Title.Trim(),
-            Url = request.Url.Trim(),
+            Urls = request.Urls.Select(u => u.Trim()).ToList(),
             Description = request.Description?.Trim(),
             Type = resourceType,
             CourseModuleId = moduleId
         };
 
         _db.CourseResources.Add(resource);
+
+        if (request.FileIds.Count > 0)
+        {
+            var existingFileIds = await _db.UploadedFiles
+                .Where(f => request.FileIds.Contains(f.Id))
+                .Select(f => f.Id)
+                .ToListAsync();
+
+            var notFound = request.FileIds.Except(existingFileIds).ToList();
+            if (notFound.Count > 0)
+                return new BadRequestObjectResult(new { Error = $"File(s) not found: {string.Join(", ", notFound)}" });
+
+            foreach (var fileId in existingFileIds)
+            {
+                _db.CourseResourceFiles.Add(new CourseResourceFile
+                {
+                    Id = Guid.NewGuid(),
+                    CourseResourceId = resource.Id,
+                    FileId = fileId
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
 
-        return new OkObjectResult(_mapper.Map<CourseResourceDto>(resource));
+        var created = await _db.CourseResources
+            .Include(r => r.Files)
+                .ThenInclude(f => f.File)
+            .FirstAsync(r => r.Id == resource.Id);
+
+        return new OkObjectResult(_mapper.Map<CourseResourceDto>(created));
     }
 
     public async Task<IActionResult> UpdateResourceAsync(Guid courseId, Guid moduleId, Guid resourceId, UpdateCourseResourceDto request, string userId, bool isAdmin)
     {
         var resource = await _db.CourseResources
+            .Include(r => r.Files)
             .FirstOrDefaultAsync(r => r.Id == resourceId && r.CourseModuleId == moduleId);
         if (resource == null)
             return new NotFoundObjectResult(new { Error = "Resource not found." });
@@ -322,15 +353,46 @@ public class CourseService(
             return new ForbidResult();
 
         if (!Enum.TryParse<ResourceType>(request.Type, true, out var resourceType))
-            return new BadRequestObjectResult(new { Error = "Invalid resource type. Valid values: Link, Video, Document, Other." });
+            return new BadRequestObjectResult(new { Error = "Invalid resource type. Valid values: Documentation, Tutorial, Tool, Reference, Other." });
 
         resource.Title = request.Title.Trim();
-        resource.Url = request.Url.Trim();
+        resource.Urls = request.Urls.Select(u => u.Trim()).ToList();
         resource.Description = request.Description?.Trim();
         resource.Type = resourceType;
 
+        // Replace file attachments
+        _db.CourseResourceFiles.RemoveRange(resource.Files);
+
+        if (request.FileIds.Count > 0)
+        {
+            var existingFileIds = await _db.UploadedFiles
+                .Where(f => request.FileIds.Contains(f.Id))
+                .Select(f => f.Id)
+                .ToListAsync();
+
+            var notFound = request.FileIds.Except(existingFileIds).ToList();
+            if (notFound.Count > 0)
+                return new BadRequestObjectResult(new { Error = $"File(s) not found: {string.Join(", ", notFound)}" });
+
+            foreach (var fileId in existingFileIds)
+            {
+                _db.CourseResourceFiles.Add(new CourseResourceFile
+                {
+                    Id = Guid.NewGuid(),
+                    CourseResourceId = resource.Id,
+                    FileId = fileId
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
-        return new OkObjectResult(_mapper.Map<CourseResourceDto>(resource));
+
+        var updated = await _db.CourseResources
+            .Include(r => r.Files)
+                .ThenInclude(f => f.File)
+            .FirstAsync(r => r.Id == resource.Id);
+
+        return new OkObjectResult(_mapper.Map<CourseResourceDto>(updated));
     }
 
     public async Task<IActionResult> DeleteResourceAsync(Guid courseId, Guid moduleId, Guid resourceId, string userId, bool isAdmin)

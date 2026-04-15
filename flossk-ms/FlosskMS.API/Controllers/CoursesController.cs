@@ -16,9 +16,8 @@ public class CoursesController(ICourseService courseService) : ControllerBase
     // ── Course Endpoints ──────────────────────────────────────────────────
 
     /// <summary>
-    /// Create a new course linked to a project (Admin only)
+    /// Create a new course linked to a project 
     /// </summary>
-    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateCourse([FromBody] CreateCourseDto request)
     {
@@ -55,7 +54,7 @@ public class CoursesController(ICourseService courseService) : ControllerBase
     }
 
     /// <summary>
-    /// Update a course (instructors or Admin)
+    /// Update a course 
     /// </summary>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateCourse(Guid id, [FromBody] UpdateCourseDto request)

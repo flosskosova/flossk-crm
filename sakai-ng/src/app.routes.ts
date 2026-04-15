@@ -30,9 +30,9 @@ import { UserSettings } from '@/pages/dashboard/components/user-settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
 import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
-import { CoursePortal } from '@/pages/dashboard/components/course-portal';
+import { CoursePortal } from './app/pages/dashboard/components/course-portal';
 import { CourseLogin } from '@/pages/auth/course-login';
-import { Course } from '@/pages/dashboard/components/public-course';
+import { Course } from './app/pages/dashboard/components/public-course';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },

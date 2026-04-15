@@ -45,6 +45,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseInstructor> CourseInstructors { get; set; }
     public DbSet<CourseModule> CourseModules { get; set; }
     public DbSet<CourseResource> CourseResources { get; set; }
+    public DbSet<CourseResourceFile> CourseResourceFiles { get; set; }
     public DbSet<CourseReview> CourseReviews { get; set; }
     public DbSet<CourseSession> CourseSessions { get; set; }
 
@@ -743,7 +744,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
-            entity.Property(e => e.Url).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Urls)
+                .HasColumnType("jsonb")
+                .HasDefaultValueSql("'[]'::jsonb");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Type)
                 .HasConversion<string>()
@@ -754,7 +757,32 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CourseModuleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasMany(e => e.Files)
+                .WithOne(f => f.CourseResource)
+                .HasForeignKey(f => f.CourseResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasIndex(e => e.CourseModuleId);
+        });
+
+        // CourseResourceFile
+        builder.Entity<CourseResourceFile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.CourseResource)
+                .WithMany(r => r.Files)
+                .HasForeignKey(e => e.CourseResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.File)
+                .WithMany()
+                .HasForeignKey(e => e.FileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.CourseResourceId);
+            entity.HasIndex(e => e.FileId);
+            entity.HasIndex(e => new { e.CourseResourceId, e.FileId }).IsUnique();
         });
 
         // CourseReview

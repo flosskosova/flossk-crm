@@ -43,7 +43,17 @@ public class CourseProfile : Profile
 
         // CourseResource → CourseResourceDto
         CreateMap<CourseResource, CourseResourceDto>()
-            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()));
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
+            .ForMember(dest => dest.Files, opt => opt.MapFrom(src => src.Files));
+
+        // CourseResourceFile → CourseResourceFileDto
+        CreateMap<CourseResourceFile, CourseResourceFileDto>()
+            .ForMember(dest => dest.FileId, opt => opt.MapFrom(src => src.FileId))
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.File.FileName))
+            .ForMember(dest => dest.OriginalFileName, opt => opt.MapFrom(src => src.File.OriginalFileName))
+            .ForMember(dest => dest.ContentType, opt => opt.MapFrom(src => src.File.ContentType))
+            .ForMember(dest => dest.FileSize, opt => opt.MapFrom(src => src.File.FileSize))
+            .ForMember(dest => dest.FilePath, opt => opt.MapFrom(src => src.File.FilePath));
 
         // CourseReview → CourseReviewDto
         CreateMap<CourseReview, CourseReviewDto>();
