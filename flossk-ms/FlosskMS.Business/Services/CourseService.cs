@@ -26,12 +26,34 @@ public class CourseService(
             .Include(c => c.Instructors).ThenInclude(i => i.User)
             .Include(c => c.Modules).ThenInclude(m => m.Resources).ThenInclude(r => r.Files).ThenInclude(f => f.File)
             .Include(c => c.Modules).ThenInclude(m => m.Reviews)
-            .Include(c => c.Sessions);
+            .Include(c => c.Sessions)
+            .Include(c => c.Vouchers)
+            .AsNoTracking()
+            .AsSplitQuery();
 
     private async Task<bool> IsInstructorOrAdmin(Guid courseId, string userId, bool isAdmin)
     {
         if (isAdmin) return true;
         return await _db.CourseInstructors.AnyAsync(i => i.CourseId == courseId && i.UserId == userId);
+    }
+
+    private static string GenerateVoucherCode(string courseTitle)
+    {
+        var slug = new string(courseTitle
+            .ToUpperInvariant()
+            .Where(c => char.IsLetterOrDigit(c) || c == ' ')
+            .Select(c => c == ' ' ? '-' : c)
+            .ToArray())
+            .Trim('-');
+        while (slug.Contains("--"))
+            slug = slug.Replace("--", "-");
+
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        var suffix = new char[8];
+        for (var i = 0; i < suffix.Length; i++)
+            suffix[i] = chars[Random.Shared.Next(chars.Length)];
+
+        return $"{slug}-{new string(suffix)}";
     }
 
     // ── Course CRUD ────────────────────────────────────────────────────────
@@ -532,6 +554,104 @@ public class CourseService(
             return new ForbidResult();
 
         _db.CourseSessions.Remove(session);
+        await _db.SaveChangesAsync();
+        return new NoContentResult();
+    }
+
+    // ── Vouchers ───────────────────────────────────────────────────────────
+
+    public async Task<IActionResult> GenerateVouchersAsync(Guid courseId, GenerateCourseVouchersDto request, string userId, bool isAdmin)
+    {
+        var course = await _db.Courses.FirstOrDefaultAsync(c => c.Id == courseId);
+        if (course == null)
+            return new NotFoundObjectResult(new { Error = "Course not found." });
+
+        if (!await IsInstructorOrAdmin(courseId, userId, isAdmin))
+            return new ForbidResult();
+
+        var vouchers = new List<CourseVoucher>();
+
+        if (request.IsMultiUse)
+        {
+            vouchers.Add(new CourseVoucher
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                Code = GenerateVoucherCode(course.Title),
+                IsMultiUse = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            if (request.Count < 1 || request.Count > 500)
+                return new BadRequestObjectResult(new { Error = "Count must be between 1 and 500." });
+
+            for (var i = 0; i < request.Count; i++)
+            {
+                vouchers.Add(new CourseVoucher
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = courseId,
+                    Code = GenerateVoucherCode(course.Title),
+                    IsMultiUse = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        _db.CourseVouchers.AddRange(vouchers);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Generated {Count} voucher(s) for course {CourseId}", vouchers.Count, courseId);
+        return new OkObjectResult(vouchers.Select(v => new CourseVoucherDto
+        {
+            Id = v.Id,
+            CourseId = v.CourseId,
+            Code = v.Code,
+            IsMultiUse = v.IsMultiUse,
+            IsUsed = v.IsUsed,
+            UsedCount = v.UsedCount,
+            CreatedAt = v.CreatedAt
+        }).ToList());
+    }
+
+    public async Task<IActionResult> GetVouchersAsync(Guid courseId, string userId, bool isAdmin)
+    {
+        var course = await _db.Courses.FirstOrDefaultAsync(c => c.Id == courseId);
+        if (course == null)
+            return new NotFoundObjectResult(new { Error = "Course not found." });
+
+        if (!await IsInstructorOrAdmin(courseId, userId, isAdmin))
+            return new ForbidResult();
+
+        var vouchers = await _db.CourseVouchers
+            .Where(v => v.CourseId == courseId)
+            .OrderByDescending(v => v.CreatedAt)
+            .ToListAsync();
+
+        return new OkObjectResult(vouchers.Select(v => new CourseVoucherDto
+        {
+            Id = v.Id,
+            CourseId = v.CourseId,
+            Code = v.Code,
+            IsMultiUse = v.IsMultiUse,
+            IsUsed = v.IsUsed,
+            UsedCount = v.UsedCount,
+            CreatedAt = v.CreatedAt
+        }).ToList());
+    }
+
+    public async Task<IActionResult> DeleteVoucherAsync(Guid courseId, Guid voucherId, string userId, bool isAdmin)
+    {
+        var voucher = await _db.CourseVouchers.FirstOrDefaultAsync(v => v.Id == voucherId && v.CourseId == courseId);
+        if (voucher == null)
+            return new NotFoundObjectResult(new { Error = "Voucher not found." });
+
+        if (!await IsInstructorOrAdmin(courseId, userId, isAdmin))
+            return new ForbidResult();
+
+        _db.CourseVouchers.Remove(voucher);
         await _db.SaveChangesAsync();
         return new NoContentResult();
     }

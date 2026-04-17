@@ -23,4 +23,5 @@ public class CourseDto
     public List<CourseInstructorDto> Instructors { get; set; } = [];
     public List<CourseModuleDto> Modules { get; set; } = [];
     public List<CourseSessionDto> Sessions { get; set; } = [];
+    public List<CourseVoucherDto> Vouchers { get; set; } = [];
 }

@@ -26,4 +26,5 @@ public class Course
     public ICollection<CourseInstructor> Instructors { get; set; } = [];
     public ICollection<CourseModule> Modules { get; set; } = [];
     public ICollection<CourseSession> Sessions { get; set; } = [];
+    public ICollection<CourseVoucher> Vouchers { get; set; } = [];
 }

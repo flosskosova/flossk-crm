@@ -4,6 +4,14 @@ import { environment } from '@environments/environment.prod';
 import { forkJoin, Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 
+export interface UploadedFileResult {
+    fileId: string;
+    fileName: string;
+    originalFileName: string;
+    contentType: string;
+    fileSize: number;
+}
+
 export type CourseStatus = 'draft' | 'active' | 'completed';
 export type CourseResourceType = 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
 export type CourseSessionType = 'InPerson' | 'Online';
@@ -53,6 +61,16 @@ export interface CourseSession {
     notes: string;
 }
 
+export interface CourseVoucher {
+    id: string;
+    courseId: string;
+    code: string;
+    isMultiUse: boolean;
+    isUsed: boolean;
+    usedCount: number;
+    createdAt: string;
+}
+
 export interface Course {
     id: string;
     title: string;
@@ -65,6 +83,7 @@ export interface Course {
     instructors: Instructor[];
     modules: CourseModule[];
     sessions: CourseSession[];
+    vouchers: CourseVoucher[];
     createdAt: string;
     updatedAt: string | null;
     moduleCount: number;
@@ -267,6 +286,26 @@ export class CourseService {
         const body = { ...payload, type: this.capitalizeResourceType(payload.type) };
         return this.http.post(`${this.apiUrl}/${courseId}/modules/${moduleId}/resources`, body).pipe(
             switchMap(() => this.refreshCourse(courseId))
+        );
+    }
+
+    uploadFiles(files: File[]): Observable<UploadedFileResult[]> {
+        const form = new FormData();
+        files.forEach((f) => form.append('files', f, f.name));
+        return this.http.post<{ results: { success: boolean; fileId: string; fileName: string; originalFileName: string; contentType: string; fileSize: number }[] }>(
+            `${environment.apiUrl}/Files/upload-multiple`, form
+        ).pipe(
+            map((res) =>
+                res.results
+                    .filter((r) => r.success)
+                    .map((r) => ({
+                        fileId: r.fileId,
+                        fileName: r.fileName,
+                        originalFileName: r.originalFileName,
+                        contentType: r.contentType,
+                        fileSize: r.fileSize
+                    }))
+            )
         );
     }
 

@@ -18,7 +18,8 @@ public class CourseProfile : Profile
             .ForMember(dest => dest.CreatedByLastName, opt => opt.MapFrom(src => src.CreatedByUser.LastName))
             .ForMember(dest => dest.Instructors, opt => opt.MapFrom(src => src.Instructors))
             .ForMember(dest => dest.Modules, opt => opt.MapFrom(src => src.Modules.OrderBy(m => m.Order)))
-            .ForMember(dest => dest.Sessions, opt => opt.MapFrom(src => src.Sessions));
+            .ForMember(dest => dest.Sessions, opt => opt.MapFrom(src => src.Sessions))
+            .ForMember(dest => dest.Vouchers, opt => opt.MapFrom(src => src.Vouchers.OrderByDescending(v => v.CreatedAt)));
 
         // Course → CourseListDto
         CreateMap<Course, CourseListDto>()
@@ -61,5 +62,8 @@ public class CourseProfile : Profile
         // CourseSession → CourseSessionDto
         CreateMap<CourseSession, CourseSessionDto>()
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()));
+
+        // CourseVoucher → CourseVoucherDto
+        CreateMap<CourseVoucher, CourseVoucherDto>();
     }
 }

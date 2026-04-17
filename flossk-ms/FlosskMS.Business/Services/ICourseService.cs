@@ -33,4 +33,9 @@ public interface ICourseService
     Task<IActionResult> AddSessionAsync(Guid courseId, CreateCourseSessionDto request, string userId, bool isAdmin);
     Task<IActionResult> UpdateSessionAsync(Guid courseId, Guid sessionId, UpdateCourseSessionDto request, string userId, bool isAdmin);
     Task<IActionResult> DeleteSessionAsync(Guid courseId, Guid sessionId, string userId, bool isAdmin);
+
+    // Vouchers
+    Task<IActionResult> GenerateVouchersAsync(Guid courseId, GenerateCourseVouchersDto request, string userId, bool isAdmin);
+    Task<IActionResult> GetVouchersAsync(Guid courseId, string userId, bool isAdmin);
+    Task<IActionResult> DeleteVoucherAsync(Guid courseId, Guid voucherId, string userId, bool isAdmin);
 }

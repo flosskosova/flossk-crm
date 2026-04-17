@@ -48,6 +48,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseResourceFile> CourseResourceFiles { get; set; }
     public DbSet<CourseReview> CourseReviews { get; set; }
     public DbSet<CourseSession> CourseSessions { get; set; }
+    public DbSet<CourseVoucher> CourseVouchers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -820,6 +821,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.HasIndex(e => e.CourseId);
             entity.HasIndex(e => e.Date);
+        });
+
+        // CourseVoucher
+        builder.Entity<CourseVoucher>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Code).HasMaxLength(200).IsRequired();
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.Vouchers)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.CourseId);
         });
     }
 }

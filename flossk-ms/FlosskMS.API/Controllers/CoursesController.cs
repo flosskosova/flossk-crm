@@ -236,4 +236,43 @@ public class CoursesController(ICourseService courseService) : ControllerBase
         var isAdmin = User.IsInRole("Admin");
         return await _courseService.DeleteSessionAsync(courseId, sessionId, userId, isAdmin);
     }
+
+    // ── Voucher Endpoints ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Generate voucher codes for a course.
+    /// Set IsMultiUse=true for one shared code, or IsMultiUse=false with Count=N for N single-use codes.
+    /// </summary>
+    [HttpPost("{courseId:guid}/vouchers")]
+    public async Task<IActionResult> GenerateVouchers(Guid courseId, [FromBody] GenerateCourseVouchersDto request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+        return await _courseService.GenerateVouchersAsync(courseId, request, userId, isAdmin);
+    }
+
+    /// <summary>
+    /// Get all voucher codes for a course
+    /// </summary>
+    [HttpGet("{courseId:guid}/vouchers")]
+    public async Task<IActionResult> GetVouchers(Guid courseId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+        return await _courseService.GetVouchersAsync(courseId, userId, isAdmin);
+    }
+
+    /// <summary>
+    /// Delete a voucher code
+    /// </summary>
+    [HttpDelete("{courseId:guid}/vouchers/{voucherId:guid}")]
+    public async Task<IActionResult> DeleteVoucher(Guid courseId, Guid voucherId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+        return await _courseService.DeleteVoucherAsync(courseId, voucherId, userId, isAdmin);
+    }
 }
