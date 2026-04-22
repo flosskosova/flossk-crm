@@ -27,12 +27,12 @@ public class CoursesController(ICourseService courseService) : ControllerBase
     }
 
     /// <summary>
-    /// Get all courses with optional status and level filters
+    /// Get all courses
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetCourses([FromQuery] string? status = null, [FromQuery] string? level = null)
+    public async Task<IActionResult> GetCourses()
     {
-        return await _courseService.GetCoursesAsync(status, level);
+        return await _courseService.GetCoursesAsync();
     }
 
     /// <summary>

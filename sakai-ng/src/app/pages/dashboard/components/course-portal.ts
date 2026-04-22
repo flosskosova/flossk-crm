@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -19,15 +19,17 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import {
     CourseService,
     Course,
+    CourseInstructor,
     CourseModule,
     CourseResource,
     CourseResourceType,
     CourseSession,
     CourseSessionType,
-    Instructor,
+    CourseVoucher,
     UploadedFileResult
 } from '@/pages/service/course.service';
 import { ProjectsService, UserDto } from '@/pages/service/projects.service';
+import { AuthService } from '@/pages/service/auth.service';
 import { environment } from '@environments/environment.prod';
 
 interface SelectOption {
@@ -44,8 +46,6 @@ interface CourseFormState {
     title: string;
     description: string;
     projectId: string;
-    level: string;
-    status: 'draft' | 'active' | 'completed';
     instructors: InstructorFormRow[];
 }
 
@@ -107,7 +107,7 @@ interface SessionFormState {
                 </div>
 
                 <div>
-                    <label class="block font-medium mb-2">Description</label>
+                    <label class="block font-medium mb-2">Description <span class="text-red-500">*</span></label>
                     <textarea pTextarea [(ngModel)]="courseForm.description" rows="4" class="w-full" maxlength="2000" style="resize: vertical" placeholder="Course overview..."></textarea>
                     <div class="text-right text-xs text-muted-color mt-1">{{ courseForm.description.length }}/2000</div>
                 </div>
@@ -126,17 +126,6 @@ interface SessionFormState {
                     />
                     <div *ngIf="courseDialogMode === 'edit' && selectedCourse" class="text-xs text-muted-color mt-2">
                         Project linkage cannot be changed after the course is created.
-                    </div>
-                </div>
-
-                <div class="flex gap-4 flex-col md:flex-row">
-                    <div class="flex-1">
-                        <label class="block font-medium mb-2">Level</label>
-                        <p-select [(ngModel)]="courseForm.level" [options]="levelOptions" optionLabel="label" optionValue="value" placeholder="Select level" class="w-full" appendTo="body" />
-                    </div>
-                    <div class="flex-1">
-                        <label class="block font-medium mb-2">Status</label>
-                        <p-select [(ngModel)]="courseForm.status" [options]="statusOptions" optionLabel="label" optionValue="value" placeholder="Select status" class="w-full" appendTo="body" />
                     </div>
                 </div>
 
@@ -267,9 +256,10 @@ interface SessionFormState {
         <!-- View Resource Dialog -->
         <p-dialog
             [(visible)]="viewResourceDialogVisible"
-            header="Resource Details"
             [modal]="true"
-            [style]="{ width: '36rem' }"
+            [style]="{ width: '36rem', 'max-width': 'calc(100vw - 2rem)' }"
+            [breakpoints]="{ '960px': '80vw', '640px': '95vw' }"
+            [contentStyle]="{ 'max-height': '80vh', 'overflow-y': 'auto', 'overflow-x': 'hidden' }"
             appendTo="body"
         >
             <div *ngIf="viewingResource" class="flex flex-col gap-4 pt-2">
@@ -302,9 +292,9 @@ interface SessionFormState {
                         <a *ngFor="let file of viewingResource.files"
                             [href]="getFileDownloadUrl(file.fileId)"
                             target="_blank" rel="noopener noreferrer"
-                            class="flex items-center gap-2 text-sm text-primary hover:underline">
+                            class="flex items-center gap-2 text-sm text-primary hover:underline min-w-0">
                             <i class="pi pi-download shrink-0"></i>
-                            <span class="truncate">{{ file.originalFileName }}</span>
+                            <span class="truncate min-w-0">{{ file.originalFileName }}</span>
                             <span class="text-xs text-muted-color shrink-0">({{ formatFileSize(file.fileSize) }})</span>
                         </a>
                     </div>
@@ -355,7 +345,7 @@ interface SessionFormState {
         <div *ngIf="!selectedCourse">
             <div class="card">
                 <div class="flex justify-between items-center mb-6 gap-3 flex-wrap">
-                    <h2 class="text-2xl m-0">Courses</h2>
+                    <h3 class="text-2xl m-0">Courses</h3>
                     <p-button label="New Course" icon="pi pi-plus" size="small" (onClick)="openAddCourseDialog()" />
                 </div>
 
@@ -377,11 +367,6 @@ interface SessionFormState {
                         class="border border-surface-200 dark:border-surface-700 rounded-xl p-5 flex flex-col gap-3 cursor-pointer hover:shadow-md hover:border-primary transition-all"
                         (click)="selectCourse(course)"
                     >
-                        <div class="flex items-center justify-between gap-3">
-                            <p-tag [value]="course.status | titlecase" [severity]="getStatusSeverity(course.status)" />
-                            <span *ngIf="course.level" class="text-xs text-muted-color bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded-full">{{ course.level }}</span>
-                        </div>
-
                         <div>
                             <h3 class="text-lg m-0 line-clamp-2">{{ course.title }}</h3>
                             <p class="text-xs text-muted-color mt-1 mb-0">{{ course.projectTitle }}</p>
@@ -393,13 +378,13 @@ interface SessionFormState {
 
                         <div class="flex items-center gap-4 text-xs text-muted-color flex-wrap">
                             <span class="flex items-center gap-1">
-                                <i class="pi pi-list"></i> {{ course.moduleCount }} {{ course.moduleCount === 1 ? 'module' : 'modules' }}
+                                <i class="pi pi-list"></i> {{ getModuleCount(course) }} {{ getModuleCount(course) === 1 ? 'module' : 'modules' }}
                             </span>
                             <span class="flex items-center gap-1">
-                                <i class="pi pi-link"></i> {{ course.resourceCount }} {{ course.resourceCount === 1 ? 'resource' : 'resources' }}
+                                <i class="pi pi-link"></i> {{ getResourceCount(course) }} {{ getResourceCount(course) === 1 ? 'resource' : 'resources' }}
                             </span>
                             <span class="flex items-center gap-1">
-                                <i class="pi pi-calendar"></i> {{ course.sessionCount }} {{ course.sessionCount === 1 ? 'session' : 'sessions' }}
+                                <i class="pi pi-calendar"></i> {{ getSessionCount(course) }} {{ getSessionCount(course) === 1 ? 'session' : 'sessions' }}
                             </span>
                         </div>
 
@@ -407,12 +392,12 @@ interface SessionFormState {
                             <span class="text-xs text-muted-color">By:</span>
                             <span *ngFor="let inst of course.instructors.slice(0, 3)" class="flex items-center gap-1">
                                 <p-avatar
-                                    [label]="getInitials(inst.name)"
+                                    [label]="getInstructorInitials(inst)"
                                     shape="circle"
                                     size="normal"
                                     [style]="{ 'width': '1.6rem', 'height': '1.6rem', 'font-size': '0.6rem', 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                 ></p-avatar>
-                                <span class="text-xs font-medium">{{ inst.name }}</span>
+                                <span class="text-xs font-medium">{{ getInstructorName(inst) }}</span>
                             </span>
                             <span *ngIf="course.instructors.length > 3" class="text-xs text-muted-color">+{{ course.instructors.length - 3 }} more</span>
                         </div>
@@ -435,8 +420,6 @@ interface SessionFormState {
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <h2 class="text-2xl m-0">{{ selectedCourse.title }}</h2>
-                                    <p-tag [value]="selectedCourse.status | titlecase" [severity]="getStatusSeverity(selectedCourse.status)" />
-                                    <span *ngIf="selectedCourse.level" class="text-xs text-muted-color bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded-full">{{ selectedCourse.level }}</span>
                                 </div>
                                 <p class="text-sm text-muted-color mt-1 mb-0">{{ selectedCourse.projectTitle }}</p>
                             </div>
@@ -447,32 +430,35 @@ interface SessionFormState {
                         </div>
                     </div>
 
-                    <p-tabs [(value)]="activeTab">
+                    <p-tabs [value]="activeTab" (valueChange)="onTabChange($event)">
                         <p-tablist>
                             <p-tab value="overview">Overview</p-tab>
                             <p-tab value="modules">
                                 Modules
-                                <span class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ selectedCourse.moduleCount }}</span>
+                                <span class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ getModuleCount(selectedCourse) }}</span>
                             </p-tab>
                             <p-tab value="schedule">
                                 Schedule
-                                <span *ngIf="selectedCourse.sessionCount > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ selectedCourse.sessionCount }}</span>
+                                <span *ngIf="getSessionCount(selectedCourse) > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ getSessionCount(selectedCourse) }}</span>
                             </p-tab>
                             <p-tab value="members">Members</p-tab>
+                            <p-tab value="vouchers">Vouchers
+                                <span *ngIf="courseVouchers.length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ courseVouchers.length }}</span>
+                            </p-tab>
                         </p-tablist>
 
                         <p-tabpanels>
                             <p-tabpanel value="overview">
                                 <div class="flex flex-col gap-5 pt-3">
                                     <div *ngIf="selectedCourse.description">
-                                        <h5 class="text-sm text-muted-color mb-2 tracking-wide">Description</h5>
+                                        <h5 class="text-sm text-muted-color mb-2">Description</h5>
                                         <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0 whitespace-pre-wrap">{{ selectedCourse.description }}</p>
                                     </div>
                                     <div *ngIf="!selectedCourse.description" class="text-muted-color text-sm">No description provided.</div>
 
                                     <div>
                                         <div class="flex justify-between items-center mb-3">
-                                            <h5 class="text-sm text-muted-color m-0 tracking-wide">Instructors</h5>
+                                            <h5 class="text-sm m-0">Lead by</h5>
                                         </div>
                                         <div *ngIf="selectedCourse.instructors.length === 0" class="text-muted-color text-sm py-4 flex flex-col items-center bg-surface-50 dark:bg-surface-800 rounded-lg">
                                             <i class="pi pi-users text-2xl mb-2"></i>
@@ -481,13 +467,13 @@ interface SessionFormState {
                                         <div *ngIf="selectedCourse.instructors.length > 0" class="flex flex-col gap-2">
                                             <div *ngFor="let inst of selectedCourse.instructors" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                                 <p-avatar
-                                                    [label]="getInitials(inst.name)"
+                                                    [label]="getInstructorInitials(inst)"
                                                     shape="circle"
                                                     size="large"
                                                     [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                                 ></p-avatar>
                                                 <div>
-                                                    <p class="m-0">{{ inst.name }}</p>
+                                                    <p class="m-0">{{ getInstructorName(inst) }}</p>
                                                     <p class="text-sm text-muted-color m-0">{{ inst.role || 'Instructor' }}</p>
                                                 </div>
                                             </div>
@@ -511,7 +497,7 @@ interface SessionFormState {
                                         <div *ngFor="let mod of selectedCourse.modules; let i = index" class="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden">
                                             <!-- Module header -->
                                             <div class="flex items-start gap-3 p-4 bg-surface-50 dark:bg-surface-800">
-                                                <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
+                                                <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm ">
                                                     {{ i + 1 }}
                                                 </div>
                                                 <div class="flex-1 min-w-0">
@@ -560,8 +546,8 @@ interface SessionFormState {
                                                         </div>
                                                         <div class="flex gap-1 shrink-0">
                                                             <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="openViewResourceDialog(res)" />
-                                                            <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Edit" (onClick)="openEditResourceDialog(res)" />
-                                                            <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" pTooltip="Delete" (onClick)="confirmDeleteResource(res)" />
+                                                            <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Edit" (onClick)="openEditResourceDialog(mod.id, res)" />
+                                                            <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small" severity="danger" pTooltip="Delete" (onClick)="confirmDeleteResource(mod.id, res)" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -605,8 +591,8 @@ interface SessionFormState {
                                                 <div class="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1">
                                                     <div *ngFor="let session of sortedSessions(); let i = index" class="flex items-start gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl">
                                                         <div class="shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center leading-none">
-                                                            <span class="text-xs font-bold text-primary">{{ sessionDate(session) | date: 'MMM' }}</span>
-                                                            <span class="text-lg font-bold text-primary leading-tight">{{ sessionDate(session) | date: 'd' }}</span>
+                                                            <span class="text-xs  text-primary">{{ sessionDate(session) | date: 'MMM' }}</span>
+                                                            <span class="text-lg  text-primary leading-tight">{{ sessionDate(session) | date: 'd' }}</span>
                                                         </div>
                                                         <div class="flex-1 min-w-0">
                                                             <div class="flex items-center gap-2 flex-wrap">
@@ -628,6 +614,33 @@ interface SessionFormState {
                                     </div>
                                 </div>
                             </p-tabpanel>
+                            <p-tabpanel value="vouchers">
+                                <div class="pt-3">
+                                    <div *ngIf="loadingVouchers" class="flex items-center justify-center py-12 text-muted-color gap-3">
+                                        <i class="pi pi-spin pi-spinner"></i>
+                                        <span>Loading vouchers...</span>
+                                    </div>
+
+                                    <div *ngIf="!loadingVouchers && courseVouchers.length === 0" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-lg">
+                                        <i class="pi pi-ticket text-4xl mb-3 opacity-40"></i>
+                                        <p class="m-0 text-sm">No vouchers for this course.</p>
+                                    </div>
+
+                                    <div *ngIf="!loadingVouchers && courseVouchers.length > 0" class="flex flex-col gap-2">
+                                        <div *ngFor="let voucher of courseVouchers" class="flex items-center gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl">
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-mono text-sm m-0 select-all">{{ voucher.code }}</p>
+                                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                                    <span class="text-xs px-2 py-0.5 rounded-full" [ngClass]="voucher.isMultiUse ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-surface-100 dark:bg-surface-800 text-muted-color'">{{ voucher.isMultiUse ? 'Multi-use' : 'Single-use' }}</span>
+                                                    <span *ngIf="!voucher.isMultiUse" class="text-xs px-2 py-0.5 rounded-full" [ngClass]="voucher.isUsed ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'">{{ voucher.isUsed ? 'Used' : 'Available' }}</span>
+                                                    <span *ngIf="voucher.isMultiUse" class="text-xs text-muted-color">{{ voucher.usedCount }} redemption{{ voucher.usedCount !== 1 ? 's' : '' }}</span>
+                                                    <span class="text-xs text-muted-color">Created {{ voucher.createdAt | date: 'MMM d, y' }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </p-tabpanel>
                         </p-tabpanels>
                     </p-tabs>
                 </ng-container>
@@ -636,6 +649,8 @@ interface SessionFormState {
     `
 })
 export class CoursePortal implements OnInit {
+    private authService = inject(AuthService);
+
     get courses(): Course[] {
         return this.courseService.courses();
     }
@@ -675,27 +690,18 @@ export class CoursePortal implements OnInit {
     sessionForm: SessionFormState = this.emptySessionForm();
     scheduleCalendarDate: Date | null = null;
 
+    courseVouchers: CourseVoucher[] = [];
+    loadingVouchers = false;
+
     projectOptions: SelectOption[] = [];
     userOptions: SelectOption[] = [];
 
-    levelOptions = [
-        { label: 'Beginner', value: 'Beginner' },
-        { label: 'Intermediate', value: 'Intermediate' },
-        { label: 'Advanced', value: 'Advanced' }
-    ];
-
-    statusOptions = [
-        { label: 'Draft', value: 'draft' },
-        { label: 'Active', value: 'active' },
-        { label: 'Completed', value: 'completed' }
-    ];
-
     resourceTypeOptions: { label: string; value: CourseResourceType }[] = [
-        { label: 'Documentation', value: 'documentation' },
-        { label: 'Tutorial', value: 'tutorial' },
-        { label: 'Tool', value: 'tool' },
-        { label: 'Reference', value: 'reference' },
-        { label: 'Other', value: 'other' }
+        { label: 'Documentation', value: 'Documentation' },
+        { label: 'Tutorial', value: 'Tutorial' },
+        { label: 'Tool', value: 'Tool' },
+        { label: 'Reference', value: 'Reference' },
+        { label: 'Other', value: 'Other' }
     ];
 
     sessionTypeOptions: { label: string; value: CourseSessionType }[] = [
@@ -715,36 +721,39 @@ export class CoursePortal implements OnInit {
         this.loadCourses();
     }
 
-    getInitials(name: string): string {
-        if (!name) return '?';
-        const parts = name.trim().split(' ').filter((part) => part.length > 0);
+    getInstructorName(instructor: CourseInstructor): string {
+        const name = `${instructor.firstName ?? ''} ${instructor.lastName ?? ''}`.trim();
+        return name || instructor.userId;
+    }
+
+    getInstructorInitials(instructor: CourseInstructor): string {
+        const parts = this.getInstructorName(instructor).split(' ').filter((part) => part.length > 0);
         if (parts.length === 0) return '?';
         if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
         return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
     }
 
-    getStatusSeverity(status: string): 'success' | 'warn' | 'secondary' | 'info' | 'danger' | 'contrast' | undefined {
-        switch (status) {
-            case 'active':
-                return 'success';
-            case 'draft':
-                return 'secondary';
-            case 'completed':
-                return 'info';
-            default:
-                return undefined;
-        }
+    getModuleCount(course: Course): number {
+        return course.modules.length;
+    }
+
+    getResourceCount(course: Course): number {
+        return course.modules.reduce((count, module) => count + module.resources.length, 0);
+    }
+
+    getSessionCount(course: Course): number {
+        return course.sessions.length;
     }
 
     getResourceIcon(type: CourseResourceType): string {
         switch (type) {
-            case 'documentation':
+            case 'Documentation':
                 return 'pi pi-file-pdf';
-            case 'tutorial':
+            case 'Tutorial':
                 return 'pi pi-play-circle';
-            case 'tool':
+            case 'Tool':
                 return 'pi pi-wrench';
-            case 'reference':
+            case 'Reference':
                 return 'pi pi-link';
             default:
                 return 'pi pi-paperclip';
@@ -753,13 +762,13 @@ export class CoursePortal implements OnInit {
 
     getResourceIconBg(type: CourseResourceType): string {
         switch (type) {
-            case 'documentation':
+            case 'Documentation':
                 return 'bg-blue-400';
-            case 'tutorial':
+            case 'Tutorial':
                 return 'bg-red-400';
-            case 'tool':
+            case 'Tool':
                 return 'bg-yellow-500';
-            case 'reference':
+            case 'Reference':
                 return 'bg-green-400';
             default:
                 return 'bg-surface-400';
@@ -807,6 +816,7 @@ export class CoursePortal implements OnInit {
         this.selectedCourse = null;
         this.scheduleCalendarDate = null;
         this.activeTab = 'overview';
+        this.courseVouchers = [];
     }
 
     openAddCourseDialog(): void {
@@ -826,8 +836,6 @@ export class CoursePortal implements OnInit {
             title: this.selectedCourse.title,
             description: this.selectedCourse.description,
             projectId: this.selectedCourse.projectId,
-            level: this.selectedCourse.level,
-            status: this.selectedCourse.status,
             instructors: this.selectedCourse.instructors.map((instructor) => ({
                 userId: instructor.userId,
                 role: instructor.role
@@ -881,8 +889,6 @@ export class CoursePortal implements OnInit {
                 title: this.courseForm.title.trim(),
                 description: this.courseForm.description.trim(),
                 projectId: this.courseForm.projectId,
-                level: this.courseForm.level,
-                status: this.courseForm.status,
                 instructors,
                 communicationChannels: []
             }).subscribe({
@@ -910,8 +916,6 @@ export class CoursePortal implements OnInit {
         this.courseService.updateCourse(this.selectedCourse.id, {
             title: this.courseForm.title.trim(),
             description: this.courseForm.description.trim(),
-            level: this.courseForm.level,
-            status: this.courseForm.status,
             instructors,
             communicationChannels: []
         }).subscribe({
@@ -1129,15 +1133,22 @@ export class CoursePortal implements OnInit {
     }
 
     getFileDownloadUrl(fileId: string): string {
-        return `${environment.apiUrl}/Files/${fileId}/download`;
+        const downloadUrl = new URL(`${environment.apiUrl}/Files/${fileId}/download`);
+        const token = this.authService.getToken();
+
+        if (token) {
+            downloadUrl.searchParams.set('token', token);
+        }
+
+        return downloadUrl.toString();
     }
 
-    openEditResourceDialog(resource: CourseResource): void {
+    openEditResourceDialog(moduleId: string, resource: CourseResource): void {
         this.resourceDialogMode = 'edit';
         this.editingResource = resource;
         this.resourceUploadError = '';
         this.resourceForm = {
-            moduleId: resource.moduleId,
+            moduleId,
             title: resource.title,
             urls: resource.urls.length > 0 ? [...resource.urls] : [''],
             uploadedFiles: resource.files.map((f) => ({
@@ -1147,7 +1158,7 @@ export class CoursePortal implements OnInit {
                 contentType: f.contentType,
                 fileSize: f.fileSize
             })),
-            description: resource.description,
+            description: resource.description ?? '',
             type: resource.type
         };
         this.resourceDialogVisible = true;
@@ -1196,7 +1207,7 @@ export class CoursePortal implements OnInit {
         });
     }
 
-    confirmDeleteResource(resource: CourseResource): void {
+    confirmDeleteResource(moduleId: string, resource: CourseResource): void {
         this.confirmationService.confirm({
             message: `Delete resource "<strong>${resource.title}</strong>"?`,
             header: 'Delete Resource',
@@ -1208,7 +1219,7 @@ export class CoursePortal implements OnInit {
                     return;
                 }
 
-                this.courseService.deleteResource(this.selectedCourse.id, resource.moduleId, resource.id).subscribe({
+                this.courseService.deleteResource(this.selectedCourse.id, moduleId, resource.id).subscribe({
                     next: (course) => {
                         this.selectedCourse = course;
                         this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Resource deleted successfully.' });
@@ -1246,7 +1257,7 @@ export class CoursePortal implements OnInit {
             hour: this.parseTimeString(session.hour),
             type: session.type,
             location: session.location,
-            notes: session.notes
+            notes: session.notes ?? ''
         };
         this.scheduleCalendarDate = null;
         this.sessionDialogVisible = true;
@@ -1323,6 +1334,28 @@ export class CoursePortal implements OnInit {
         });
     }
 
+    onTabChange(tab: string | number | undefined): void {
+        this.activeTab = (tab as string) ?? 'overview';
+        if (this.activeTab === 'vouchers' && this.selectedCourse) {
+            this.loadVouchers(this.selectedCourse.id);
+        }
+    }
+
+    private loadVouchers(courseId: string): void {
+        this.loadingVouchers = true;
+        this.courseService.getVouchers(courseId).subscribe({
+            next: (vouchers) => {
+                console.log('Course vouchers response:', vouchers);
+                this.courseVouchers = vouchers;
+                this.loadingVouchers = false;
+            },
+            error: (error: unknown) => {
+                this.loadingVouchers = false;
+                this.showError('Unable to load vouchers.', error);
+            }
+        });
+    }
+
     private loadCourses(): void {
         this.loadingCourses = true;
         this.courseService.loadCourses().subscribe({
@@ -1374,8 +1407,6 @@ export class CoursePortal implements OnInit {
             title: '',
             description: '',
             projectId: '',
-            level: 'Beginner',
-            status: 'draft',
             instructors: []
         };
     }
@@ -1387,7 +1418,7 @@ export class CoursePortal implements OnInit {
             urls: [''],
             uploadedFiles: [],
             description: '',
-            type: 'documentation'
+            type: 'Documentation'
         };
     }
 

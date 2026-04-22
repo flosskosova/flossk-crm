@@ -5,8 +5,6 @@ public class Course
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public CourseLevel Level { get; set; } = CourseLevel.Beginner;
-    public CourseStatus Status { get; set; } = CourseStatus.Draft;
 
     // Communication channels (e.g. Discord invite, Mattermost server URL)
     public List<string> CommunicationChannels { get; set; } = [];

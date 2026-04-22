@@ -1,24 +1,24 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { TabsModule } from 'primeng/tabs';
 import { AvatarModule } from 'primeng/avatar';
 import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
-import { CourseService, Course as CourseData, CourseSession, CourseResource } from '@/pages/service/course.service';
+import { CourseService, Course as CourseData, CourseInstructor, CourseSession, CourseResource } from '@/pages/service/course.service';
+import { AuthService } from '@/pages/service/auth.service';
 import { environment } from '@environments/environment.prod';
 
 @Component({
     selector: 'app-course',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TagModule, DividerModule, TabsModule, AvatarModule, TooltipModule, DatePickerModule, DialogModule],
+    imports: [CommonModule, FormsModule, RouterModule, ButtonModule, DividerModule, TabsModule, AvatarModule, TooltipModule, DatePickerModule, DialogModule],
     template: `
-    <div class="card mx-auto max-w-5xl my-6 mx-4 lg:mx-auto">
+    <div class="card max-w-5xl my-6 mx-4 lg:mx-auto">
         <div *ngIf="!loading && !course" class="flex flex-col items-center justify-center py-20 text-muted-color">
             <i class="pi pi-book text-6xl mb-4 opacity-40"></i>
             <h2 class="text-2xl mb-2">Course not found</h2>
@@ -35,8 +35,6 @@ import { environment } from '@environments/environment.prod';
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <h2 class="text-2xl font-semibold m-0">{{ course.title }}</h2>
-                        <p-tag [value]="course.status | titlecase" [severity]="getStatusSeverity(course.status)" />
-                        <span *ngIf="course.level" class="text-xs text-muted-color bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded-full">{{ course.level }}</span>
                     </div>
                     <p class="text-sm text-muted-color mt-1 mb-0">{{ course.projectTitle }}</p>
                 </div>
@@ -47,11 +45,11 @@ import { environment } from '@environments/environment.prod';
                     <p-tab value="overview">Overview</p-tab>
                     <p-tab value="modules">
                         Modules
-                        <span class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ course.moduleCount }}</span>
+                        <span class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ course.modules.length }}</span>
                     </p-tab>
                     <p-tab value="schedule">
                         Schedule
-                        <span *ngIf="course.sessionCount > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ course.sessionCount }}</span>
+                        <span *ngIf="course.sessions.length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ course.sessions.length }}</span>
                     </p-tab>
                 </p-tablist>
 
@@ -76,13 +74,13 @@ import { environment } from '@environments/environment.prod';
                                 <div *ngIf="course.instructors.length > 0" class="flex flex-col gap-2">
                                     <div *ngFor="let inst of course.instructors" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                         <p-avatar
-                                            [label]="getInitials(inst.name)"
+                                            [label]="getInstructorInitials(inst)"
                                             shape="circle"
                                             size="large"
                                             [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                         ></p-avatar>
                                         <div>
-                                            <p class="font-semibold m-0">{{ inst.name }}</p>
+                                            <p class="font-semibold m-0">{{ getInstructorName(inst) }}</p>
                                             <p class="text-sm text-muted-color m-0">{{ inst.role || 'Instructor' }}</p>
                                         </div>
                                     </div>
@@ -307,6 +305,8 @@ import { environment } from '@environments/environment.prod';
     `
 })
 export class Course implements OnInit {
+    private authService = inject(AuthService);
+
     course: CourseData | undefined;
     loading = true;
     activeTab = 'overview';
@@ -370,42 +370,44 @@ export class Course implements OnInit {
     }
 
     getFileDownloadUrl(fileId: string): string {
-        return `${environment.apiUrl}/Files/${fileId}/download`;
+        const downloadUrl = new URL(`${environment.apiUrl}/Files/${fileId}/download`);
+        const token = this.authService.getToken();
+
+        if (token) {
+            downloadUrl.searchParams.set('token', token);
+        }
+
+        return downloadUrl.toString();
     }
 
-    getInitials(name: string): string {
-        if (!name) return '?';
-        const parts = name.trim().split(' ').filter((p) => p.length > 0);
+    getInstructorName(instructor: CourseInstructor): string {
+        const name = `${instructor.firstName ?? ''} ${instructor.lastName ?? ''}`.trim();
+        return name || instructor.userId;
+    }
+
+    getInstructorInitials(instructor: CourseInstructor): string {
+        const parts = this.getInstructorName(instructor).split(' ').filter((p) => p.length > 0);
         if (parts.length === 0) return '?';
         if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
         return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
     }
 
-    getStatusSeverity(status: string): 'success' | 'warn' | 'secondary' | 'info' | 'danger' | 'contrast' | undefined {
-        switch (status) {
-            case 'active': return 'success';
-            case 'draft': return 'secondary';
-            case 'completed': return 'info';
-            default: return undefined;
-        }
-    }
-
     getResourceIcon(type: string): string {
         switch (type) {
-            case 'documentation': return 'pi pi-file-pdf';
-            case 'tutorial': return 'pi pi-play-circle';
-            case 'tool': return 'pi pi-wrench';
-            case 'reference': return 'pi pi-link';
+            case 'Documentation': return 'pi pi-file-pdf';
+            case 'Tutorial': return 'pi pi-play-circle';
+            case 'Tool': return 'pi pi-wrench';
+            case 'Reference': return 'pi pi-link';
             default: return 'pi pi-paperclip';
         }
     }
 
     getResourceIconBg(type: string): string {
         switch (type) {
-            case 'documentation': return 'bg-blue-400';
-            case 'tutorial': return 'bg-red-400';
-            case 'tool': return 'bg-yellow-500';
-            case 'reference': return 'bg-green-400';
+            case 'Documentation': return 'bg-blue-400';
+            case 'Tutorial': return 'bg-red-400';
+            case 'Tool': return 'bg-yellow-500';
+            case 'Reference': return 'bg-green-400';
             default: return 'bg-surface-400';
         }
     }

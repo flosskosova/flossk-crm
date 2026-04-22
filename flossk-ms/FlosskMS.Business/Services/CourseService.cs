@@ -60,12 +60,6 @@ public class CourseService(
 
     public async Task<IActionResult> CreateCourseAsync(CreateCourseDto request, string userId)
     {
-        if (!Enum.TryParse<CourseLevel>(request.Level, true, out var level))
-            return new BadRequestObjectResult(new { Error = "Invalid level. Valid values: Beginner, Intermediate, Advanced." });
-
-        if (!Enum.TryParse<CourseStatus>(request.Status, true, out var status))
-            return new BadRequestObjectResult(new { Error = "Invalid status. Valid values: Draft, Active, Completed." });
-
         var project = await _db.Projects.Include(p => p.Course).FirstOrDefaultAsync(p => p.Id == request.ProjectId);
         if (project == null)
             return new NotFoundObjectResult(new { Error = "Project not found." });
@@ -91,8 +85,6 @@ public class CourseService(
             Id = Guid.NewGuid(),
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
-            Level = level,
-            Status = status,
             ProjectId = project.Id,
             CommunicationChannels = request.CommunicationChannels ?? [],
             CreatedByUserId = userId,
@@ -118,17 +110,9 @@ public class CourseService(
         return new OkObjectResult(_mapper.Map<CourseDto>(created));
     }
 
-    public async Task<IActionResult> GetCoursesAsync(string? status = null, string? level = null)
+    public async Task<IActionResult> GetCoursesAsync()
     {
-        var query = CourseQuery();
-
-        if (!string.IsNullOrEmpty(status) && Enum.TryParse<CourseStatus>(status, true, out var statusEnum))
-            query = query.Where(c => c.Status == statusEnum);
-
-        if (!string.IsNullOrEmpty(level) && Enum.TryParse<CourseLevel>(level, true, out var levelEnum))
-            query = query.Where(c => c.Level == levelEnum);
-
-        var courses = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
+        var courses = await CourseQuery().OrderByDescending(c => c.CreatedAt).ToListAsync();
         return new OkObjectResult(_mapper.Map<List<CourseListDto>>(courses));
     }
 
@@ -159,12 +143,6 @@ public class CourseService(
         if (!await IsInstructorOrAdmin(id, userId, isAdmin))
             return new ForbidResult();
 
-        if (!Enum.TryParse<CourseLevel>(request.Level, true, out var level))
-            return new BadRequestObjectResult(new { Error = "Invalid level. Valid values: Beginner, Intermediate, Advanced." });
-
-        if (!Enum.TryParse<CourseStatus>(request.Status, true, out var status))
-            return new BadRequestObjectResult(new { Error = "Invalid status. Valid values: Draft, Active, Completed." });
-
         if (request.Instructors == null || request.Instructors.Count == 0)
             return new BadRequestObjectResult(new { Error = "At least one instructor is required." });
 
@@ -180,8 +158,6 @@ public class CourseService(
 
         course.Title = request.Title.Trim();
         course.Description = request.Description.Trim();
-        course.Level = level;
-        course.Status = status;
         course.CommunicationChannels = request.CommunicationChannels ?? [];
         course.UpdatedAt = DateTime.UtcNow;
 
@@ -441,8 +417,8 @@ public class CourseService(
             return new NotFoundObjectResult(new { Error = "Module not found." });
 
         var course = await _db.Courses.FindAsync(courseId);
-        if (course == null || course.Status != CourseStatus.Active)
-            return new BadRequestObjectResult(new { Error = "Reviews can only be submitted for active courses." });
+        if (course == null)
+            return new NotFoundObjectResult(new { Error = "Course not found." });
 
         var review = new CourseReview
         {

@@ -10,8 +10,6 @@ public class CourseProfile : Profile
     {
         // Course → CourseDto
         CreateMap<Course, CourseDto>()
-            .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.Level.ToString()))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.ProjectTitle, opt => opt.MapFrom(src => src.Project.Title))
             .ForMember(dest => dest.CreatedByUserId, opt => opt.MapFrom(src => src.CreatedByUserId))
             .ForMember(dest => dest.CreatedByFirstName, opt => opt.MapFrom(src => src.CreatedByUser.FirstName))
@@ -23,8 +21,6 @@ public class CourseProfile : Profile
 
         // Course → CourseListDto
         CreateMap<Course, CourseListDto>()
-            .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.Level.ToString()))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.ProjectTitle, opt => opt.MapFrom(src => src.Project.Title))
             .ForMember(dest => dest.ModuleCount, opt => opt.MapFrom(src => src.Modules.Count))
             .ForMember(dest => dest.SessionCount, opt => opt.MapFrom(src => src.Sessions.Count))

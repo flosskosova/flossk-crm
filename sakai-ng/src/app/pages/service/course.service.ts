@@ -12,13 +12,13 @@ export interface UploadedFileResult {
     fileSize: number;
 }
 
-export type CourseStatus = 'draft' | 'active' | 'completed';
-export type CourseResourceType = 'documentation' | 'tutorial' | 'tool' | 'reference' | 'other';
+export type CourseResourceType = 'Documentation' | 'Tutorial' | 'Tool' | 'Reference' | 'Other';
 export type CourseSessionType = 'InPerson' | 'Online';
 
-export interface Instructor {
+export interface CourseInstructor {
     userId: string;
-    name: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
 }
 
@@ -34,12 +34,10 @@ export interface CourseResourceFile {
 
 export interface CourseResource {
     id: string;
-    moduleId: string;
-    moduleTitle: string;
     title: string;
     urls: string[];
     files: CourseResourceFile[];
-    description: string;
+    description: string | null;
     type: CourseResourceType;
 }
 
@@ -58,7 +56,7 @@ export interface CourseSession {
     hour: string;
     type: CourseSessionType;
     location: string;
-    notes: string;
+    notes: string | null;
 }
 
 export interface CourseVoucher {
@@ -75,130 +73,18 @@ export interface Course {
     id: string;
     title: string;
     description: string;
-    level: string;
-    status: CourseStatus;
     projectId: string;
     projectTitle: string;
     communicationChannels: string[];
-    instructors: Instructor[];
+    createdByUserId: string;
+    createdByFirstName: string;
+    createdByLastName: string;
+    instructors: CourseInstructor[];
     modules: CourseModule[];
     sessions: CourseSession[];
     vouchers: CourseVoucher[];
     createdAt: string;
     updatedAt: string | null;
-    moduleCount: number;
-    resourceCount: number;
-    sessionCount: number;
-}
-
-export interface CourseInstructorPayload {
-    userId: string;
-    role: string;
-}
-
-export interface CreateCoursePayload {
-    title: string;
-    description: string;
-    level: string;
-    status: CourseStatus;
-    projectId: string;
-    instructors: CourseInstructorPayload[];
-    communicationChannels?: string[];
-}
-
-export interface UpdateCoursePayload {
-    title: string;
-    description: string;
-    level: string;
-    status: CourseStatus;
-    instructors: CourseInstructorPayload[];
-    communicationChannels?: string[];
-}
-
-export interface CourseModulePayload {
-    title: string;
-    description: string;
-}
-
-export interface CourseResourcePayload {
-    title: string;
-    urls: string[];
-    fileIds: string[];
-    description: string;
-    type: CourseResourceType;
-}
-
-export interface CourseSessionPayload {
-    title: string;
-    date: string;
-    hour: string;
-    type: CourseSessionType;
-    location: string;
-    notes?: string;
-}
-
-interface CourseListApi {
-    id: string;
-}
-
-interface CourseDtoApi {
-    id: string;
-    title: string;
-    description: string;
-    level: string;
-    status: string;
-    communicationChannels: string[];
-    createdAt: string;
-    updatedAt: string | null;
-    projectId: string;
-    projectTitle: string;
-    instructors: CourseInstructorApi[];
-    modules: CourseModuleApi[];
-    sessions: CourseSessionApi[];
-}
-
-interface CourseInstructorApi {
-    userId: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-}
-
-interface CourseModuleApi {
-    id: string;
-    title: string;
-    description: string;
-    order: number;
-    resources: CourseResourceApi[];
-}
-
-interface CourseResourceApi {
-    id: string;
-    title: string;
-    urls: string[];
-    files: CourseResourceFileApi[];
-    description?: string | null;
-    type: string;
-}
-
-interface CourseResourceFileApi {
-    id: string;
-    fileId: string;
-    fileName: string;
-    originalFileName: string;
-    contentType: string;
-    fileSize: number;
-    filePath: string;
-}
-
-interface CourseSessionApi {
-    id: string;
-    title: string;
-    date: string;
-    hour: string;
-    type: string;
-    location: string;
-    notes?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -211,7 +97,7 @@ export class CourseService {
     constructor(private http: HttpClient) {}
 
     loadCourses(): Observable<Course[]> {
-        return this.http.get<CourseListApi[]>(this.apiUrl).pipe(
+        return this.http.get<Array<Pick<Course, 'id'>>>(this.apiUrl).pipe(
             switchMap((courses) => {
                 if (courses.length === 0) {
                     return of([] as Course[]);
@@ -236,16 +122,14 @@ export class CourseService {
         return this.refreshCourse(id);
     }
 
-    createCourse(payload: CreateCoursePayload): Observable<Course> {
-        return this.http.post<CourseDtoApi>(this.apiUrl, payload).pipe(
-            map((course) => this.mapCourse(course)),
+    createCourse(payload: Pick<Course, 'title' | 'description' | 'projectId' | 'communicationChannels'> & { instructors: Array<Pick<CourseInstructor, 'userId' | 'role'>> }): Observable<Course> {
+        return this.http.post<Course>(this.apiUrl, payload).pipe(
             tap((course) => this.upsertCourse(course, true))
         );
     }
 
-    updateCourse(id: string, payload: UpdateCoursePayload): Observable<Course> {
-        return this.http.put<CourseDtoApi>(`${this.apiUrl}/${id}`, payload).pipe(
-            map((course) => this.mapCourse(course)),
+    updateCourse(id: string, payload: Pick<Course, 'title' | 'description' | 'communicationChannels'> & { instructors: Array<Pick<CourseInstructor, 'userId' | 'role'>> }): Observable<Course> {
+        return this.http.put<Course>(`${this.apiUrl}/${id}`, payload).pipe(
             tap((course) => this.upsertCourse(course))
         );
     }
@@ -258,13 +142,13 @@ export class CourseService {
         );
     }
 
-    addModule(courseId: string, payload: CourseModulePayload): Observable<Course> {
+    addModule(courseId: string, payload: Pick<CourseModule, 'title' | 'description'>): Observable<Course> {
         return this.http.post(`${this.apiUrl}/${courseId}/modules`, payload).pipe(
             switchMap(() => this.refreshCourse(courseId))
         );
     }
 
-    updateModule(courseId: string, moduleId: string, payload: CourseModulePayload): Observable<Course> {
+    updateModule(courseId: string, moduleId: string, payload: Pick<CourseModule, 'title' | 'description'>): Observable<Course> {
         return this.http.put(`${this.apiUrl}/${courseId}/modules/${moduleId}`, payload).pipe(
             switchMap(() => this.refreshCourse(courseId))
         );
@@ -282,9 +166,8 @@ export class CourseService {
         );
     }
 
-    addResource(courseId: string, moduleId: string, payload: CourseResourcePayload): Observable<Course> {
-        const body = { ...payload, type: this.capitalizeResourceType(payload.type) };
-        return this.http.post(`${this.apiUrl}/${courseId}/modules/${moduleId}/resources`, body).pipe(
+    addResource(courseId: string, moduleId: string, payload: Pick<CourseResource, 'title' | 'urls' | 'description' | 'type'> & { fileIds: string[] }): Observable<Course> {
+        return this.http.post(`${this.apiUrl}/${courseId}/modules/${moduleId}/resources`, payload).pipe(
             switchMap(() => this.refreshCourse(courseId))
         );
     }
@@ -309,9 +192,8 @@ export class CourseService {
         );
     }
 
-    updateResource(courseId: string, moduleId: string, resourceId: string, payload: CourseResourcePayload): Observable<Course> {
-        const body = { ...payload, type: this.capitalizeResourceType(payload.type) };
-        return this.http.put(`${this.apiUrl}/${courseId}/modules/${moduleId}/resources/${resourceId}`, body).pipe(
+    updateResource(courseId: string, moduleId: string, resourceId: string, payload: Pick<CourseResource, 'title' | 'urls' | 'description' | 'type'> & { fileIds: string[] }): Observable<Course> {
+        return this.http.put(`${this.apiUrl}/${courseId}/modules/${moduleId}/resources/${resourceId}`, payload).pipe(
             switchMap(() => this.refreshCourse(courseId))
         );
     }
@@ -322,13 +204,13 @@ export class CourseService {
         );
     }
 
-    addSession(courseId: string, payload: CourseSessionPayload): Observable<Course> {
+    addSession(courseId: string, payload: Pick<CourseSession, 'title' | 'date' | 'hour' | 'type' | 'location' | 'notes'>): Observable<Course> {
         return this.http.post(`${this.apiUrl}/${courseId}/sessions`, payload).pipe(
             switchMap(() => this.refreshCourse(courseId))
         );
     }
 
-    updateSession(courseId: string, sessionId: string, payload: CourseSessionPayload): Observable<Course> {
+    updateSession(courseId: string, sessionId: string, payload: Pick<CourseSession, 'title' | 'date' | 'hour' | 'type' | 'location' | 'notes'>): Observable<Course> {
         return this.http.put(`${this.apiUrl}/${courseId}/sessions/${sessionId}`, payload).pipe(
             switchMap(() => this.refreshCourse(courseId))
         );
@@ -340,6 +222,10 @@ export class CourseService {
         );
     }
 
+    getVouchers(courseId: string): Observable<CourseVoucher[]> {
+        return this.http.get<CourseVoucher[]>(`${this.apiUrl}/${courseId}/vouchers`);
+    }
+
     private refreshCourse(courseId: string): Observable<Course> {
         return this.fetchCourse(courseId).pipe(
             tap((course) => this.upsertCourse(course))
@@ -347,9 +233,7 @@ export class CourseService {
     }
 
     private fetchCourse(courseId: string): Observable<Course> {
-        return this.http.get<CourseDtoApi>(`${this.apiUrl}/${courseId}`).pipe(
-            map((course) => this.mapCourse(course))
-        );
+        return this.http.get<Course>(`${this.apiUrl}/${courseId}`);
     }
 
     private upsertCourse(course: Course, prepend: boolean = false): void {
@@ -357,110 +241,5 @@ export class CourseService {
             const withoutCurrent = courses.filter((item) => item.id !== course.id);
             return prepend ? [course, ...withoutCurrent] : [...withoutCurrent, course];
         });
-    }
-
-    private mapCourse(course: CourseDtoApi): Course {
-        const modules = [...course.modules]
-            .sort((left, right) => left.order - right.order)
-            .map((module) => this.mapModule(module));
-        const sessions = [...course.sessions]
-            .map((session) => this.mapSession(session))
-            .sort((left, right) => `${left.date}T${left.hour}`.localeCompare(`${right.date}T${right.hour}`));
-
-        return {
-            id: course.id,
-            title: course.title,
-            description: course.description ?? '',
-            level: course.level,
-            status: this.normalizeStatus(course.status),
-            projectId: course.projectId,
-            projectTitle: course.projectTitle,
-            communicationChannels: course.communicationChannels ?? [],
-            instructors: course.instructors.map((instructor) => ({
-                userId: instructor.userId,
-                name: `${instructor.firstName} ${instructor.lastName}`.trim(),
-                role: instructor.role
-            })),
-            modules,
-            sessions,
-            createdAt: course.createdAt,
-            updatedAt: course.updatedAt,
-            moduleCount: modules.length,
-            resourceCount: modules.reduce((count, module) => count + module.resources.length, 0),
-            sessionCount: sessions.length
-        };
-    }
-
-    private mapModule(module: CourseModuleApi): CourseModule {
-        return {
-            id: module.id,
-            title: module.title,
-            description: module.description ?? '',
-            order: module.order,
-            resources: (module.resources ?? []).map((resource) => ({
-                id: resource.id,
-                moduleId: module.id,
-                moduleTitle: module.title,
-                title: resource.title,
-                urls: resource.urls ?? [],
-                files: (resource.files ?? []).map((f) => ({
-                    id: f.id,
-                    fileId: f.fileId,
-                    fileName: f.fileName,
-                    originalFileName: f.originalFileName,
-                    contentType: f.contentType,
-                    fileSize: f.fileSize,
-                    filePath: f.filePath
-                })),
-                description: resource.description ?? '',
-                type: this.normalizeResourceType(resource.type)
-            }))
-        };
-    }
-
-    private mapSession(session: CourseSessionApi): CourseSession {
-        return {
-            id: session.id,
-            title: session.title,
-            date: session.date,
-            hour: session.hour,
-            type: this.normalizeSessionType(session.type),
-            location: session.location,
-            notes: session.notes ?? ''
-        };
-    }
-
-    private normalizeStatus(status: string): CourseStatus {
-        switch (status.toLowerCase()) {
-            case 'active':
-                return 'active';
-            case 'completed':
-                return 'completed';
-            default:
-                return 'draft';
-        }
-    }
-
-    private capitalizeResourceType(type: CourseResourceType): string {
-        return type.charAt(0).toUpperCase() + type.slice(1);
-    }
-
-    private normalizeResourceType(type: string): CourseResourceType {
-        switch (type.toLowerCase()) {
-            case 'documentation':
-                return 'documentation';
-            case 'tutorial':
-                return 'tutorial';
-            case 'tool':
-                return 'tool';
-            case 'reference':
-                return 'reference';
-            default:
-                return 'other';
-        }
-    }
-
-    private normalizeSessionType(type: string): CourseSessionType {
-        return type.toLowerCase() === 'online' ? 'Online' : 'InPerson';
     }
 }

@@ -11,12 +11,6 @@ public class CreateCourseDto
     [StringLength(2000)]
     public string Description { get; set; } = string.Empty;
 
-    [Required]
-    public string Level { get; set; } = "Beginner";
-
-    [Required]
-    public string Status { get; set; } = "Draft";
-
     /// <summary>ID of the Project this course belongs to. Must be unique (1:1).</summary>
     [Required]
     public Guid ProjectId { get; set; }

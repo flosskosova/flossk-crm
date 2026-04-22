@@ -12,12 +12,6 @@ public class UpdateCourseDto
     public string Description { get; set; } = string.Empty;
 
     [Required]
-    public string Level { get; set; } = "Beginner";
-
-    [Required]
-    public string Status { get; set; } = "Draft";
-
-    [Required]
     [MinLength(1, ErrorMessage = "At least one instructor is required.")]
     public List<CourseInstructorInputDto> Instructors { get; set; } = [];
 

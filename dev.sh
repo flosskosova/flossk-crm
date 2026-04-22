@@ -15,7 +15,7 @@ trap cleanup SIGINT SIGTERM
 
 # ── 1. Docker dev containers ──────────────────────────────────────────────────
 echo "Starting Docker containers..."
-docker compose -f "$BASE_DIR/docker-compose.dev.yml" up -d
+docker compose -f "$BASE_DIR/docker-compose.dev.yml" up 
 echo "Docker containers started."
 echo ""
 

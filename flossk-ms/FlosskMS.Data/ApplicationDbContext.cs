@@ -680,12 +680,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(10000);
-            entity.Property(e => e.Level)
-                .HasConversion<string>()
-                .HasMaxLength(20);
-            entity.Property(e => e.Status)
-                .HasConversion<string>()
-                .HasMaxLength(20);
             entity.Property(e => e.CommunicationChannels)
                 .HasColumnType("text[]")
                 .HasDefaultValueSql("'{}'");
@@ -702,8 +696,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             // Enforce 1:1 uniqueness with Project
             entity.HasIndex(e => e.ProjectId).IsUnique();
-            entity.HasIndex(e => e.Status);
-            entity.HasIndex(e => e.Level);
             entity.HasIndex(e => e.CreatedAt);
         });
 

@@ -512,18 +512,8 @@ namespace FlosskMS.Data.Migrations
                         .HasMaxLength(10000)
                         .HasColumnType("character varying(10000)");
 
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -539,12 +529,8 @@ namespace FlosskMS.Data.Migrations
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("Level");
-
                     b.HasIndex("ProjectId")
                         .IsUnique();
-
-                    b.HasIndex("Status");
 
                     b.ToTable("Courses");
                 });
