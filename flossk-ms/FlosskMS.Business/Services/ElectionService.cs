@@ -306,7 +306,7 @@ public class ElectionService : IElectionService
     }
 
     /// <summary>
-    /// Ranks candidates, promotes top-3 to Admin, top-1 to Leader.
+    /// Ranks candidates, promotes top-3 to Admin.
     /// Called automatically by SyncStatusAsync — never manually.
     /// </summary>
     private async Task AutoFinalizeAsync(Election election)
@@ -325,32 +325,26 @@ public class ElectionService : IElectionService
             var user = await _userManager.FindByIdAsync(ranked[i].UserId);
             if (user == null) continue;
 
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                _logger.LogInformation(
+                    "User {UserId} already has Admin role — skipping promotion (election {ElectionId}, rank: #{Rank}, votes: {Votes})",
+                    user.Id, election.Id, i + 1, ranked[i].VoteCount);
+                continue;
+            }
+
             if (await _userManager.IsInRoleAsync(user, "Full Member"))
                 await _userManager.RemoveFromRoleAsync(user, "Full Member");
 
-            if (!await _userManager.IsInRoleAsync(user, "Admin"))
-                await _userManager.AddToRoleAsync(user, "Admin");
+            await _userManager.AddToRoleAsync(user, "Admin");
 
-            if (i == 0)
-            {
-                if (!await _userManager.IsInRoleAsync(user, "Leader"))
-                    await _userManager.AddToRoleAsync(user, "Leader");
-
-                _logger.LogInformation(
-                    "User {UserId} auto-promoted to Leader after election {ElectionId} ended (votes: {Votes})",
-                    user.Id, election.Id, ranked[i].VoteCount);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "User {UserId} auto-promoted to Admin after election {ElectionId} ended (rank: #{Rank}, votes: {Votes})",
-                    user.Id, election.Id, i + 1, ranked[i].VoteCount);
-            }
+            _logger.LogInformation(
+                "User {UserId} auto-promoted to Admin after election {ElectionId} ended (rank: #{Rank}, votes: {Votes})",
+                user.Id, election.Id, i + 1, ranked[i].VoteCount);
         }
 
         election.IsFinalized = true;
         election.FinalizedAt = DateTime.UtcNow;
-        // FinalizedByUserId intentionally left null — finalization was automatic
 
         _logger.LogInformation("Election {ElectionId} auto-finalized (end date reached)", election.Id);
     }

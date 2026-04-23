@@ -1,14 +1,14 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { PasswordModule } from 'primeng/password';
 import { MessageModule } from 'primeng/message';
 import { DividerModule } from 'primeng/divider';
 import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
 import { LayoutService } from '@/layout/service/layout.service';
+import { AuthService } from '@/pages/service/auth.service';
 
 type PageMode = 'join' | 'login';
 
@@ -21,7 +21,6 @@ type PageMode = 'join' | 'login';
         RouterModule,
         ButtonModule,
         InputTextModule,
-        PasswordModule,
         MessageModule,
         DividerModule,
         AppFloatingConfigurator
@@ -85,17 +84,11 @@ type PageMode = 'join' | 'login';
 
                         <!-- ── RETURNING STUDENT LOGIN ── -->
                         <div *ngIf="mode === 'login'">
-                            <div class="mb-6">
+                            <div class="mb-8">
                                 <label for="loginEmail" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Email <span class="text-red-500">*</span></label>
                                 <input pInputText id="loginEmail" type="email" placeholder="your@email.com"
                                        class="w-full" [(ngModel)]="email" (keyup.enter)="onStudentLogin()" />
-                            </div>
-
-                            <div class="mb-8">
-                                <label for="loginPassword" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Password <span class="text-red-500">*</span></label>
-                                <p-password id="loginPassword" [(ngModel)]="password" placeholder="Your password"
-                                            [toggleMask]="true" [fluid]="true" [feedback]="false"
-                                            (keyup.enter)="onStudentLogin()" />
+                                <small class="text-muted-color">Enter the email you used when you enrolled.</small>
                             </div>
 
                             <p-button label="Sign In" icon="pi pi-sign-in" styleClass="w-full" [loading]="loading" (onClick)="onStudentLogin()" />
@@ -119,13 +112,12 @@ export class CourseLogin {
     name = '';
     email = '';
     accessCode = '';
-    password = '';
 
     loading = false;
     errorMsg = '';
     successMsg = '';
 
-    constructor(public layoutService: LayoutService) {}
+    constructor(public layoutService: LayoutService, private authService: AuthService, private router: Router) {}
 
     switchMode(m: PageMode) {
         this.mode = m;
@@ -141,18 +133,31 @@ export class CourseLogin {
             this.errorMsg = 'Please enter your name.';
             return;
         }
+        if (!this.email.trim()) {
+            this.errorMsg = 'Please enter your email.';
+            return;
+        }
         if (!this.accessCode.trim()) {
             this.errorMsg = 'Please enter a course access code.';
             return;
         }
 
         this.loading = true;
-        // Simulate async lookup — replace with real service call when backend is ready
-        setTimeout(() => {
-            this.loading = false;
-            // Placeholder: treat any non-empty code as valid for now
-            this.successMsg = `Welcome, ${this.name.trim()}! You've been enrolled successfully.`;
-        }, 900);
+        this.authService.traineeRegister({
+            fullName: this.name.trim(),
+            email: this.email.trim(),
+            voucherCode: this.accessCode.trim()
+        }).subscribe({
+            next: (res) => {
+                this.loading = false;
+                this.router.navigate(['/course', res.courseId]);
+            },
+            error: (err) => {
+                this.loading = false;
+                const errors: string[] = err.error?.errors ?? [];
+                this.errorMsg = errors.length > 0 ? errors[0] : 'Enrolment failed. Please check your access code and try again.';
+            }
+        });
     }
 
     onStudentLogin() {
@@ -163,16 +168,18 @@ export class CourseLogin {
             this.errorMsg = 'Please enter your email.';
             return;
         }
-        if (!this.password) {
-            this.errorMsg = 'Please enter your password.';
-            return;
-        }
 
         this.loading = true;
-        // Placeholder — replace with real authentication call when backend is ready
-        setTimeout(() => {
-            this.loading = false;
-            this.successMsg = 'Signed in! Redirecting to your courses...';
-        }, 900);
+        this.authService.traineeLogin({ email: this.email.trim() }).subscribe({
+            next: (res) => {
+                this.loading = false;
+                this.router.navigate(['/course', res.courseId]);
+            },
+            error: (err) => {
+                this.loading = false;
+                const errors: string[] = err.error?.errors ?? [];
+                this.errorMsg = errors.length > 0 ? errors[0] : 'Sign in failed. Please check your email and try again.';
+            }
+        });
     }
 }

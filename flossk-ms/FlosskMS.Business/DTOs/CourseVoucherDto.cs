@@ -9,6 +9,7 @@ public class CourseVoucherDto
     public bool IsUsed { get; set; }
     public int UsedCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public List<string> RedeemedByEmails { get; set; } = new();
 }
 
 public class GenerateCourseVouchersDto

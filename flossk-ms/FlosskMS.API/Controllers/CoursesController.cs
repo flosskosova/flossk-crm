@@ -27,12 +27,12 @@ public class CoursesController(ICourseService courseService) : ControllerBase
     }
 
     /// <summary>
-    /// Get all courses
+    /// Get all courses (paginated)
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetCourses()
+    public async Task<IActionResult> GetCourses([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        return await _courseService.GetCoursesAsync();
+        return await _courseService.GetCoursesAsync(page, pageSize);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public class CoursesController(ICourseService courseService) : ControllerBase
     }
 
     /// <summary>
-    /// Update a course 
+    /// Update a course (only the course creator or Admin)
     /// </summary>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateCourse(Guid id, [FromBody] UpdateCourseDto request)
@@ -66,7 +66,7 @@ public class CoursesController(ICourseService courseService) : ControllerBase
     }
 
     /// <summary>
-    /// Delete a course (instructors or Admin)
+    /// Delete a course (only the course creator or Admin)
     /// </summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteCourse(Guid id)

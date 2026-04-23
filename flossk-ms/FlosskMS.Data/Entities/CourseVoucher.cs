@@ -17,5 +17,8 @@ public class CourseVoucher
     /// <summary>How many times this code has been redeemed.</summary>
     public int UsedCount { get; set; }
 
+    /// <summary>Emails of users who redeemed this voucher, stored for fast read access.</summary>
+    public List<string> RedeemedByEmails { get; set; } = [];
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

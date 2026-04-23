@@ -40,6 +40,7 @@ export function isDefaultAvatar(avatarUrl: string | null | undefined): boolean {
 export interface LoginRequest {
     email: string;
     password: string;
+    rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
@@ -67,6 +68,7 @@ export interface AuthResponse {
     token?: string;
     user?: User;
     message?: string;
+    courseId?: string;
 }
 
 @Injectable({
@@ -220,6 +222,32 @@ export class AuthService {
 
     seedAdmin(data: RegisterRequest): Observable<AuthResponse> {
         return this.http.post<AuthResponse>(`${this.API_URL}/seed-admin`, data);
+    }
+
+    traineeRegister(data: { fullName: string; email: string; voucherCode: string }): Observable<AuthResponse> {
+        return this.http.post<AuthResponse>(`${this.API_URL}/trainee-register`, data).pipe(
+            tap(response => {
+                if (response.token) {
+                    this.setToken(response.token);
+                }
+                if (response.user) {
+                    this.currentUser.set(response.user);
+                }
+            })
+        );
+    }
+
+    traineeLogin(data: { email: string }): Observable<AuthResponse> {
+        return this.http.post<AuthResponse>(`${this.API_URL}/trainee-login`, data).pipe(
+            tap(response => {
+                if (response.token) {
+                    this.setToken(response.token);
+                }
+                if (response.user) {
+                    this.currentUser.set(response.user);
+                }
+            })
+        );
     }
 
     /**

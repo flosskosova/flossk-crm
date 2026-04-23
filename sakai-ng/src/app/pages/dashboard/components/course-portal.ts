@@ -15,6 +15,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
+import { PaginatorModule } from 'primeng/paginator';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
     CourseService,
@@ -84,7 +85,8 @@ interface SessionFormState {
         TooltipModule,
         AvatarModule,
         ConfirmDialogModule,
-        ToastModule
+        ToastModule,
+        PaginatorModule
     ],
     providers: [ConfirmationService, MessageService],
     template: `
@@ -307,7 +309,6 @@ interface SessionFormState {
 
         <p-dialog
             [(visible)]="sessionDialogVisible"
-            [header]="sessionDialogMode === 'add' ? 'Add Session' : 'Edit Session'"
             [modal]="true"
             [style]="{ width: '42rem' }"
             appendTo="body"
@@ -339,6 +340,62 @@ interface SessionFormState {
             <div class="flex justify-end gap-2 mt-6">
                 <p-button label="Cancel" severity="secondary" (onClick)="sessionDialogVisible = false" />
                 <p-button [label]="sessionDialogMode === 'add' ? 'Add Session' : 'Save'" (onClick)="saveSession()" [disabled]="sessionSaving || !sessionForm.date || !sessionForm.hour || !sessionForm.location.trim()" />
+            </div>
+        </p-dialog>
+
+        <!-- Voucher Creation Dialog -->
+        <p-dialog
+            [(visible)]="voucherDialogVisible"
+            header="Create Vouchers"
+            [modal]="true"
+            [style]="{ width: '36rem' }"
+            appendTo="body"
+        >
+            <div class="flex flex-col gap-4 pt-2">
+                <p class="text-sm text-muted-color m-0">Choose the type of voucher to generate:</p>
+
+                <div
+                    class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all"
+                    [ngClass]="voucherType === 'multiuse' ? 'border-primary bg-primary/5' : 'border-surface-200 dark:border-surface-700 hover:border-primary/50'"
+                    (click)="voucherType = 'multiuse'"
+                >
+                    <div class="shrink-0 mt-0.5">
+                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                            [ngClass]="voucherType === 'multiuse' ? 'border-primary' : 'border-surface-400'">
+                            <div *ngIf="voucherType === 'multiuse'" class="w-2 h-2 rounded-full bg-primary"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="m-0 font-medium">Single multi-use voucher</p>
+                        <p class="m-0 text-sm text-muted-color mt-1">Generates one voucher code that can be redeemed by multiple participants.</p>
+                    </div>
+                </div>
+
+                <div
+                    class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all"
+                    [ngClass]="voucherType === 'singleuse' ? 'border-primary bg-primary/5' : 'border-surface-200 dark:border-surface-700 hover:border-primary/50'"
+                    (click)="voucherType = 'singleuse'"
+                >
+                    <div class="shrink-0 mt-0.5">
+                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                            [ngClass]="voucherType === 'singleuse' ? 'border-primary' : 'border-surface-400'">
+                            <div *ngIf="voucherType === 'singleuse'" class="w-2 h-2 rounded-full bg-primary"></div>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <p class="m-0 font-medium">Multiple single-use vouchers</p>
+                        <p class="m-0 text-sm text-muted-color mt-1">Generates several unique codes, each redeemable by one participant.</p>
+                        <div *ngIf="voucherType === 'singleuse'" class="mt-3 flex items-center gap-2">
+                            <label class="text-sm font-medium whitespace-nowrap">Number of vouchers:</label>
+                            <input pInputText type="number" [(ngModel)]="voucherCount" [min]="1" [max]="500" class="w-24" (click)="$event.stopPropagation()" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <p-button label="Cancel" severity="secondary" (onClick)="voucherDialogVisible = false" />
+                <p-button label="Create" icon="pi pi-plus" (onClick)="createVouchers()" [loading]="voucherSaving" [disabled]="voucherSaving || (voucherType === 'singleuse' && voucherCount < 1)" />
             </div>
         </p-dialog>
 
@@ -616,6 +673,10 @@ interface SessionFormState {
                             </p-tabpanel>
                             <p-tabpanel value="vouchers">
                                 <div class="pt-3">
+                                    <div class="flex justify-end items-center mb-4">
+                                        <p-button label="Create" icon="pi pi-plus" size="small" (onClick)="openCreateVoucherDialog()" />
+                                    </div>
+
                                     <div *ngIf="loadingVouchers" class="flex items-center justify-center py-12 text-muted-color gap-3">
                                         <i class="pi pi-spin pi-spinner"></i>
                                         <span>Loading vouchers...</span>
@@ -627,17 +688,34 @@ interface SessionFormState {
                                     </div>
 
                                     <div *ngIf="!loadingVouchers && courseVouchers.length > 0" class="flex flex-col gap-2">
-                                        <div *ngFor="let voucher of courseVouchers" class="flex items-center gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl">
-                                            <div class="flex-1 min-w-0">
-                                                <p class="font-mono text-sm m-0 select-all">{{ voucher.code }}</p>
-                                                <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                                    <span class="text-xs px-2 py-0.5 rounded-full" [ngClass]="voucher.isMultiUse ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-surface-100 dark:bg-surface-800 text-muted-color'">{{ voucher.isMultiUse ? 'Multi-use' : 'Single-use' }}</span>
-                                                    <span *ngIf="!voucher.isMultiUse" class="text-xs px-2 py-0.5 rounded-full" [ngClass]="voucher.isUsed ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'">{{ voucher.isUsed ? 'Used' : 'Available' }}</span>
-                                                    <span *ngIf="voucher.isMultiUse" class="text-xs text-muted-color">{{ voucher.usedCount }} redemption{{ voucher.usedCount !== 1 ? 's' : '' }}</span>
-                                                    <span class="text-xs text-muted-color">Created {{ voucher.createdAt | date: 'MMM d, y' }}</span>
+                                        <div *ngFor="let voucher of paginatedVouchers" class="flex flex-col gap-2 p-4 border border-surface-200 dark:border-surface-700 rounded-xl">
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="font-mono text-sm m-0 select-all">{{ voucher.code }}</p>
+                                                    <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                                        <span class="text-xs px-2 py-0.5 rounded-full" [ngClass]="voucher.isMultiUse ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-surface-100 dark:bg-surface-800 text-muted-color'">{{ voucher.isMultiUse ? 'Multi-use' : 'Single-use' }}</span>
+                                                        <span *ngIf="!voucher.isMultiUse" class="text-xs px-2 py-0.5 rounded-full" [ngClass]="voucher.isUsed ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'">{{ voucher.isUsed ? 'Used' : 'Available' }}</span>
+                                                        <span *ngIf="voucher.isMultiUse" class="text-xs text-muted-color">{{ voucher.usedCount }} redemption{{ voucher.usedCount !== 1 ? 's' : '' }}</span>
+                                                        <span class="text-xs text-muted-color">Created {{ voucher.createdAt | date: 'MMM d, y' }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div *ngIf="voucher.redeemedByEmails && voucher.redeemedByEmails.length > 0" class="flex flex-wrap gap-1.5 pt-1 border-t border-surface-100 dark:border-surface-700">
+                                                <span *ngFor="let email of voucher.redeemedByEmails"
+                                                      class="text-xs px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-800 text-muted-color font-mono">
+                                                    {{ email }}
+                                                </span>
+                                            </div>
                                         </div>
+                                        <p-paginator
+                                            *ngIf="courseVouchers.length > voucherPageSize"
+                                            [first]="voucherPage * voucherPageSize"
+                                            [rows]="voucherPageSize"
+                                            [totalRecords]="courseVouchers.length"
+                                            [rowsPerPageOptions]="[10, 25, 50]"
+                                            (onPageChange)="voucherPage = $event.page ?? 0; voucherPageSize = $event.rows ?? 10"
+                                            styleClass="mt-3"
+                                        />
                                     </div>
                                 </div>
                             </p-tabpanel>
@@ -692,6 +770,16 @@ export class CoursePortal implements OnInit {
 
     courseVouchers: CourseVoucher[] = [];
     loadingVouchers = false;
+    voucherPage = 0;
+    voucherPageSize = 10;
+    voucherDialogVisible = false;
+    voucherType: 'multiuse' | 'singleuse' = 'multiuse';
+    voucherCount = 10;
+    voucherSaving = false;
+
+    get paginatedVouchers(): CourseVoucher[] {
+        return this.courseVouchers.slice(this.voucherPage * this.voucherPageSize, (this.voucherPage + 1) * this.voucherPageSize);
+    }
 
     projectOptions: SelectOption[] = [];
     userOptions: SelectOption[] = [];
@@ -714,7 +802,7 @@ export class CoursePortal implements OnInit {
         private messageService: MessageService,
         private courseService: CourseService,
         private projectsService: ProjectsService
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         this.loadMeta();
@@ -1341,12 +1429,42 @@ export class CoursePortal implements OnInit {
         }
     }
 
+    openCreateVoucherDialog(): void {
+        this.voucherType = 'multiuse';
+        this.voucherCount = 10;
+        this.voucherDialogVisible = true;
+    }
+
+    createVouchers(): void {
+        if (!this.selectedCourse) return;
+
+        this.voucherSaving = true;
+        const payload = {
+            isMultiUse: this.voucherType === 'multiuse',
+            count: this.voucherType === 'multiuse' ? 1 : this.voucherCount
+        };
+
+        this.courseService.createVouchers(this.selectedCourse.id, payload).subscribe({
+            next: () => {
+                this.voucherSaving = false;
+                this.voucherDialogVisible = false;
+                this.loadVouchers(this.selectedCourse!.id);
+                const label = payload.isMultiUse ? 'Multi-use voucher created.' : `${payload.count} single-use voucher${payload.count !== 1 ? 's' : ''} created.`;
+                this.messageService.add({ severity: 'success', summary: 'Created', detail: label });
+            },
+            error: (error: unknown) => {
+                this.voucherSaving = false;
+                this.showError('Unable to create vouchers.', error);
+            }
+        });
+    }
+
     private loadVouchers(courseId: string): void {
         this.loadingVouchers = true;
         this.courseService.getVouchers(courseId).subscribe({
             next: (vouchers) => {
-                console.log('Course vouchers response:', vouchers);
                 this.courseVouchers = vouchers;
+                this.voucherPage = 0;
                 this.loadingVouchers = false;
             },
             error: (error: unknown) => {

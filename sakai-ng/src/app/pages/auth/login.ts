@@ -168,7 +168,7 @@ export class Login {
     }
 
     onLogin() {
-        this.authService.login({ email: this.email, password: this.password }).subscribe({
+        this.authService.login({ email: this.email, password: this.password, rememberMe: this.checked }).subscribe({
             next: () => {
                 this.authService.loadCurrentUser();
                 this.router.navigate(['/dashboard']);

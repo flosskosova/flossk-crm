@@ -31,6 +31,22 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         => await _authService.LoginAsync(request);
 
+    /// <summary>
+    /// Register a new trainee using their full name, email, and a course voucher code.
+    /// Creates an account with the Trainee role and returns a JWT token.
+    /// </summary>
+    [HttpPost("trainee-register")]
+    public async Task<IActionResult> TraineeRegister([FromBody] TraineeRegisterRequestDto request)
+        => await _authService.TraineeRegisterAsync(request);
+
+    /// <summary>
+    /// Log in as a trainee using only an email address.
+    /// Succeeds only if the email belongs to a Trainee account that has redeemed a course voucher.
+    /// </summary>
+    [HttpPost("trainee-login")]
+    public async Task<IActionResult> TraineeLogin([FromBody] TraineeLoginRequestDto request)
+        => await _authService.TraineeLoginAsync(request);
+
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetLoggedInUser()

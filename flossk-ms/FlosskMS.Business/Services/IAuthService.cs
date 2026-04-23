@@ -8,6 +8,8 @@ public interface IAuthService
 {
     Task<IActionResult> RegisterAsync(RegisterRequestDto request);
     Task<IActionResult> LoginAsync(LoginRequestDto request);
+    Task<IActionResult> TraineeRegisterAsync(TraineeRegisterRequestDto request);
+    Task<IActionResult> TraineeLoginAsync(TraineeLoginRequestDto request);
     Task<IActionResult> GetLoggedInUserAsync(string? userId);
     Task<IActionResult> UpdateUserAsync(string? userId, UpdateUserDto request, IFormFile? profilePicture = null);
     Task<IActionResult> DeleteProfilePictureAsync(string? userId);

@@ -7,7 +7,7 @@ public interface ICourseService
 {
     // Course CRUD
     Task<IActionResult> CreateCourseAsync(CreateCourseDto request, string userId);
-    Task<IActionResult> GetCoursesAsync();
+    Task<IActionResult> GetCoursesAsync(int page = 1, int pageSize = 10);
     Task<IActionResult> GetCourseByIdAsync(Guid id);
     Task<IActionResult> GetCourseByProjectIdAsync(Guid projectId);
     Task<IActionResult> UpdateCourseAsync(Guid id, UpdateCourseDto request, string userId, bool isAdmin);

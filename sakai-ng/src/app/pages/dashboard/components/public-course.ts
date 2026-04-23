@@ -31,12 +31,25 @@ import { environment } from '@environments/environment.prod';
         </div>
 
         <div *ngIf="course && !loading">
-            <div class="flex items-start gap-3 mb-4 flex-wrap">
+            <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <h2 class="text-2xl font-semibold m-0">{{ course.title }}</h2>
                     </div>
                     <p class="text-sm text-muted-color mt-1 mb-0">{{ course.projectTitle }}</p>
+                </div>
+
+                <div *ngIf="currentUser()" class="flex items-start gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 shrink-0">
+                    <p-avatar
+                        [label]="currentUserInitials()"
+                        shape="circle"
+                        [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
+                    ></p-avatar>
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sm m-0 leading-tight">{{ currentUser()!.firstName }} {{ currentUser()!.lastName }}</p>
+                        <p class="text-xs text-muted-color m-0 truncate">{{ currentUser()!.email }}</p>
+                        <span *ngIf="currentUser()!.role" class="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{{ currentUser()!.role }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -307,6 +320,8 @@ import { environment } from '@environments/environment.prod';
 export class Course implements OnInit {
     private authService = inject(AuthService);
 
+    readonly currentUser = this.authService.currentUser;
+
     course: CourseData | undefined;
     loading = true;
     activeTab = 'overview';
@@ -367,6 +382,14 @@ export class Course implements OnInit {
         this.viewingSession = session;
         this.viewingSessionIndex = index;
         this.viewSessionDialogVisible = true;
+    }
+
+    currentUserInitials(): string {
+        const u = this.currentUser();
+        if (!u) return '?';
+        const first = u.firstName?.charAt(0) ?? '';
+        const last = u.lastName?.charAt(0) ?? '';
+        return (first + last).toUpperCase() || u.email.charAt(0).toUpperCase();
     }
 
     getFileDownloadUrl(fileId: string): string {

@@ -67,6 +67,7 @@ export interface CourseVoucher {
     isUsed: boolean;
     usedCount: number;
     createdAt: string;
+    redeemedByEmails: string[];
 }
 
 export interface Course {
@@ -97,7 +98,8 @@ export class CourseService {
     constructor(private http: HttpClient) {}
 
     loadCourses(): Observable<Course[]> {
-        return this.http.get<Array<Pick<Course, 'id'>>>(this.apiUrl).pipe(
+        return this.http.get<{ items: Array<Pick<Course, 'id'>> }>(this.apiUrl).pipe(
+            map((response) => response.items ?? []),
             switchMap((courses) => {
                 if (courses.length === 0) {
                     return of([] as Course[]);
@@ -224,6 +226,10 @@ export class CourseService {
 
     getVouchers(courseId: string): Observable<CourseVoucher[]> {
         return this.http.get<CourseVoucher[]>(`${this.apiUrl}/${courseId}/vouchers`);
+    }
+
+    createVouchers(courseId: string, payload: { isMultiUse: boolean; count: number }): Observable<CourseVoucher[]> {
+        return this.http.post<CourseVoucher[]>(`${this.apiUrl}/${courseId}/vouchers`, payload);
     }
 
     private refreshCourse(courseId: string): Observable<Course> {

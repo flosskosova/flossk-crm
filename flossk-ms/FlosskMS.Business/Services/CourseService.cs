@@ -110,10 +110,22 @@ public class CourseService(
         return new OkObjectResult(_mapper.Map<CourseDto>(created));
     }
 
-    public async Task<IActionResult> GetCoursesAsync()
+    public async Task<IActionResult> GetCoursesAsync(int page = 1, int pageSize = 10)
     {
-        var courses = await CourseQuery().OrderByDescending(c => c.CreatedAt).ToListAsync();
-        return new OkObjectResult(_mapper.Map<List<CourseListDto>>(courses));
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+        var query = CourseQuery().OrderByDescending(c => c.CreatedAt);
+        var totalCount = await query.CountAsync();
+        var courses = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new OkObjectResult(new PagedResultDto<CourseListDto>
+        {
+            Items = _mapper.Map<List<CourseListDto>>(courses),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        });
     }
 
     public async Task<IActionResult> GetCourseByIdAsync(Guid id)
@@ -140,7 +152,7 @@ public class CourseService(
         if (course == null)
             return new NotFoundObjectResult(new { Error = "Course not found." });
 
-        if (!await IsInstructorOrAdmin(id, userId, isAdmin))
+        if (!isAdmin && course.CreatedByUserId != userId)
             return new ForbidResult();
 
         if (request.Instructors == null || request.Instructors.Count == 0)
@@ -185,7 +197,7 @@ public class CourseService(
         if (course == null)
             return new NotFoundObjectResult(new { Error = "Course not found." });
 
-        if (!await IsInstructorOrAdmin(id, userId, isAdmin))
+        if (!isAdmin && course.CreatedByUserId != userId)
             return new ForbidResult();
 
         _db.Courses.Remove(course);
@@ -588,7 +600,8 @@ public class CourseService(
             IsMultiUse = v.IsMultiUse,
             IsUsed = v.IsUsed,
             UsedCount = v.UsedCount,
-            CreatedAt = v.CreatedAt
+            CreatedAt = v.CreatedAt,
+            RedeemedByEmails = []
         }).ToList());
     }
 
@@ -614,7 +627,8 @@ public class CourseService(
             IsMultiUse = v.IsMultiUse,
             IsUsed = v.IsUsed,
             UsedCount = v.UsedCount,
-            CreatedAt = v.CreatedAt
+            CreatedAt = v.CreatedAt,
+            RedeemedByEmails = v.RedeemedByEmails
         }).ToList());
     }
 

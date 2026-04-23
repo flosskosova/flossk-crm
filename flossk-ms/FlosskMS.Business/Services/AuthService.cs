@@ -104,6 +104,102 @@ public class AuthService(
             });
         }
 
+        var expireMinutes = request.RememberMe ? 60 * 24 * 10 : _jwtSettings.ExpirationInMinutes;
+        var token = await GenerateJwtTokenAsync(user, expireMinutes);
+        var expiration = DateTime.UtcNow.AddMinutes(expireMinutes);
+
+        return new OkObjectResult(new AuthResponseDto
+        {
+            Success = true,
+            Token = token,
+            Expiration = expiration,
+            User = await MapToUserDtoAsync(user)
+        });
+    }
+
+    public async Task<IActionResult> TraineeRegisterAsync(TraineeRegisterRequestDto request)
+    {
+        // Validate voucher
+        var code = request.VoucherCode.Trim().ToUpperInvariant();
+        var voucher = await _dbContext.CourseVouchers
+            .FirstOrDefaultAsync(v => v.Code == code);
+
+        if (voucher == null)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["Invalid voucher code."]
+            });
+        }
+
+        // Single-use vouchers that have already been redeemed cannot be re-used
+        if (!voucher.IsMultiUse && voucher.IsUsed)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["This voucher has already been used."]
+            });
+        }
+
+        // If user already exists, tell them to log in instead
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["An account with this email already exists. Please sign in using your email."]
+            });
+        }
+
+        // Split full name into first / last
+        var nameParts = request.FullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var firstName = nameParts[0];
+        var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+
+        var user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = firstName,
+            LastName = lastName,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Generate a random un-guessable password — trainees authenticate by email + voucher check
+        var randomPassword = $"Tr@{Guid.NewGuid():N}1";
+        var createResult = await _userManager.CreateAsync(user, randomPassword);
+
+        if (!createResult.Succeeded)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = createResult.Errors.Select(e => e.Description).ToList()
+            });
+        }
+
+        // Ensure the Trainee role exists, then assign it
+        if (!await _roleManager.RoleExistsAsync("Trainee"))
+            await _roleManager.CreateAsync(new IdentityRole("Trainee"));
+
+        await _userManager.AddToRoleAsync(user, "Trainee");
+
+        // Record the redemption
+        _dbContext.CourseVoucherRedemptions.Add(new FlosskMS.Data.Entities.CourseVoucherRedemption
+        {
+            Id = Guid.NewGuid(),
+            CourseVoucherId = voucher.Id,
+            UserId = user.Id,
+            RedeemedAt = DateTime.UtcNow
+        });
+
+        // Update voucher usage counters
+        voucher.UsedCount++;
+        if (!voucher.IsMultiUse)
+            voucher.IsUsed = true;
+        voucher.RedeemedByEmails.Add(user.Email!);
+
+        await _dbContext.SaveChangesAsync();
+
         var token = await GenerateJwtTokenAsync(user);
         var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
 
@@ -112,7 +208,59 @@ public class AuthService(
             Success = true,
             Token = token,
             Expiration = expiration,
-            User = await MapToUserDtoAsync(user)
+            User = await MapToUserDtoAsync(user),
+            CourseId = voucher.CourseId
+        });
+    }
+
+    public async Task<IActionResult> TraineeLoginAsync(TraineeLoginRequestDto request)
+    {
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+        if (user == null)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["No account found for this email address."]
+            });
+        }
+
+        // Only Trainee-role accounts can use this endpoint
+        if (!await _userManager.IsInRoleAsync(user, "Trainee"))
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["This email is not associated with a trainee account. Please use the standard login."]
+            });
+        }
+
+        // Verify the trainee actually redeemed a voucher (i.e., is legitimately enrolled)
+        var redemption = await _dbContext.CourseVoucherRedemptions
+            .Include(r => r.Voucher)
+            .Where(r => r.UserId == user.Id)
+            .OrderByDescending(r => r.RedeemedAt)
+            .FirstOrDefaultAsync();
+
+        if (redemption == null)
+        {
+            return new BadRequestObjectResult(new AuthResponseDto
+            {
+                Errors = ["No course enrolment found for this email address."]
+            });
+        }
+
+        var token = await GenerateJwtTokenAsync(user);
+        var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
+
+        return new OkObjectResult(new AuthResponseDto
+        {
+            Success = true,
+            Token = token,
+            Expiration = expiration,
+            User = await MapToUserDtoAsync(user),
+            CourseId = redemption.Voucher.CourseId
         });
     }
 
@@ -1041,7 +1189,7 @@ public class AuthService(
         };
     }
 
-    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
+    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, int? expirationInMinutes = null)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -1064,11 +1212,13 @@ public class AuthService(
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
+        var expiry = expirationInMinutes ?? _jwtSettings.ExpirationInMinutes;
+
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
+            expires: DateTime.UtcNow.AddMinutes(expiry),
             signingCredentials: credentials
         );
 

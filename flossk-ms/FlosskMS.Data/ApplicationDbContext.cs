@@ -49,6 +49,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseReview> CourseReviews { get; set; }
     public DbSet<CourseSession> CourseSessions { get; set; }
     public DbSet<CourseVoucher> CourseVouchers { get; set; }
+    public DbSet<CourseVoucherRedemption> CourseVoucherRedemptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -820,6 +821,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Code).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.RedeemedByEmails)
+                .HasColumnType("text[]")
+                .HasDefaultValueSql("'{}'");
 
             entity.HasOne(e => e.Course)
                 .WithMany(c => c.Vouchers)
@@ -828,6 +832,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasIndex(e => e.CourseId);
+        });
+
+        // CourseVoucherRedemption
+        builder.Entity<CourseVoucherRedemption>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Voucher)
+                .WithMany()
+                .HasForeignKey(e => e.CourseVoucherId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CourseVoucherId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.RedeemedAt);
         });
     }
 }

@@ -764,6 +764,12 @@ namespace FlosskMS.Data.Migrations
                     b.Property<int>("UsedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string[]>("RedeemedByEmails")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("'{}'");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -772,6 +778,33 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("CourseId");
 
                     b.ToTable("CourseVouchers");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.CourseVoucherRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CourseVoucherId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RedeemedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseVoucherId");
+
+                    b.HasIndex("RedeemedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CourseVoucherRedemptions");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Election", b =>
@@ -2100,6 +2133,25 @@ namespace FlosskMS.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.CourseVoucherRedemption", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.CourseVoucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("CourseVoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("Voucher");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Election", b =>

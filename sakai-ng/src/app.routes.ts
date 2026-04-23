@@ -39,7 +39,7 @@ export const appRoutes: Routes = [
     {
         path: 'dashboard',
         component: AppLayout,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard(['Admin', 'Leader', 'Full Member', 'User'])],
         children: [
             { path: '', component: Dashboard },
             { path: 'membership-requests', component: MembershipRequests, canActivate: [roleGuard(['Admin', 'Full Member'])]  },
