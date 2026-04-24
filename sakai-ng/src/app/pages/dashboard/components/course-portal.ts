@@ -579,7 +579,7 @@ interface SessionFormState {
                                     <div *ngIf="selectedCourse.modules.length > 0" class="flex flex-col gap-4">
                                         <div *ngFor="let mod of selectedCourse.modules; let i = index" class="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden">
                                             <!-- Module header -->
-                                            <div class="flex items-start gap-3 p-4 bg-surface-50 dark:bg-surface-800">
+                                            <div class="flex items-center gap-3 p-4 bg-surface-50 dark:bg-surface-800">
                                                 <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm ">
                                                     {{ i + 1 }}
                                                 </div>

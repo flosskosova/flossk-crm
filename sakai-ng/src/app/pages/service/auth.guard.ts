@@ -1,6 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
+import { of } from 'rxjs';
+import { switchMap, map } from 'rxjs/operators';
 
 export const authGuard: CanActivateFn = (route, state) => {
     const authService = inject(AuthService);
@@ -37,14 +39,22 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => (route, stat
         return false;
     }
 
-    const user = authService.currentUser();
-    const userRoles: string[] = user?.roles ?? (user?.role ? [user.role] : []);
-    const hasRole = allowedRoles.some(r => userRoles.includes(r));
-
-    if (!hasRole) {
-        router.navigate(['/notfound']);
-        return false;
+    // If currentUser is already loaded, check immediately
+    const existingUser = authService.currentUser();
+    if (existingUser) {
+        const userRoles: string[] = existingUser.roles ?? (existingUser.role ? [existingUser.role] : []);
+        const hasRole = allowedRoles.some(r => userRoles.includes(r));
+        if (!hasRole) router.navigate(['/notfound']);
+        return hasRole;
     }
 
-    return true;
+    // On refresh: currentUser is null but token exists — wait for load
+    return authService.loadCurrentUser$().pipe(
+        map(user => {
+            const userRoles: string[] = user?.roles ?? (user?.role ? [user.role] : []);
+            const hasRole = allowedRoles.some(r => userRoles.includes(r));
+            if (!hasRole) router.navigate(['/notfound']);
+            return hasRole;
+        })
+    );
 };

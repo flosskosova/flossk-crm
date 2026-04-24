@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, catchError, of, map } from 'rxjs';
 import { environment } from '@environments/environment.prod';
 
 // Default avatar URL - kept for backwards compatibility but prefer using initials
@@ -134,13 +134,17 @@ export class AuthService {
     }
 
     loadCurrentUser(): void {
+        this.loadCurrentUser$().subscribe();
+    }
+
+    loadCurrentUser$(): Observable<User | null> {
         const token = this.getToken();
         if (!token) {
             this.currentUser.set(null);
-            return;
+            return of(null);
         }
 
-        this.http.get<any>(`${this.API_URL}/me`).pipe(
+        return this.http.get<any>(`${this.API_URL}/me`).pipe(
             tap(response => {
                 const user: User = {
                     ...response,
@@ -151,11 +155,12 @@ export class AuthService {
                 };
                 this.currentUser.set(user);
             }),
+            map(response => this.currentUser()),
             catchError(err => {
                 this.logout();
                 return of(null);
             })
-        ).subscribe();
+        );
     }
 
     logout(): void {
