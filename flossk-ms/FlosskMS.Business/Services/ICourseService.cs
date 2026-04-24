@@ -38,4 +38,8 @@ public interface ICourseService
     Task<IActionResult> GenerateVouchersAsync(Guid courseId, GenerateCourseVouchersDto request, string userId, bool isAdmin);
     Task<IActionResult> GetVouchersAsync(Guid courseId, string userId, bool isAdmin);
     Task<IActionResult> DeleteVoucherAsync(Guid courseId, Guid voucherId, string userId, bool isAdmin);
+
+    // Self-enroll as instructor
+    Task<IActionResult> JoinAsInstructorAsync(Guid courseId, string userId);
+    Task<IActionResult> LeaveAsInstructorAsync(Guid courseId, string userId);
 }

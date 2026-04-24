@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -449,14 +450,18 @@ interface SessionFormState {
                             <span class="text-xs text-muted-color">By:</span>
                             <span *ngFor="let inst of course.instructors.slice(0, 3)" class="flex items-center gap-1">
                                 <p-avatar
-                                    [label]="getInstructorInitials(inst)"
+                                    [image]="inst.profilePictureUrl ? getInstructorProfilePictureUrl(inst.profilePictureUrl) : undefined"
+                                    [label]="inst.profilePictureUrl ? undefined : getInstructorInitials(inst)"
                                     shape="circle"
                                     size="normal"
-                                    [style]="{ 'width': '1.6rem', 'height': '1.6rem', 'font-size': '0.6rem', 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
+                                    [style]="inst.profilePictureUrl ? { 'width': '1.6rem', 'height': '1.6rem' } : { 'width': '1.6rem', 'height': '1.6rem', 'font-size': '0.6rem', 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                 ></p-avatar>
                                 <span class="text-xs font-medium">{{ getInstructorName(inst) }}</span>
                             </span>
                             <span *ngIf="course.instructors.length > 3" class="text-xs text-muted-color">+{{ course.instructors.length - 3 }} more</span>
+                        </div>
+                        <div class="flex justify-end mt-1" (click)="$event.stopPropagation()">
+                            <p-button label="Open" icon="pi pi-arrow-up-right" size="small" [text]="true" (onClick)="openCourse(course)" />
                         </div>
                     </div>
                 </div>
@@ -481,7 +486,17 @@ interface SessionFormState {
                                 <p class="text-sm text-muted-color mt-1 mb-0">{{ selectedCourse.projectTitle }}</p>
                             </div>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <p-button icon="pi pi-arrow-up-right" label="Open" severity="secondary" size="small" [outlined]="true" (onClick)="openCourse(selectedCourse)" />
+                            <p-button
+                                [icon]="isCurrentUserInstructor() ? 'pi pi-sign-out' : 'pi pi-sign-in'"
+                                [label]="isCurrentUserInstructor() ? 'Leave' : 'Join as Instructor'"
+                                [severity]="isCurrentUserInstructor() ? 'warn' : 'success'"
+                                size="small"
+                                [outlined]="true"
+                                [loading]="instructorToggling"
+                                (onClick)="toggleInstructor()"
+                            />
                             <p-button icon="pi pi-pencil" label="Edit" severity="secondary" size="small" (onClick)="openEditCourseDialog()" />
                             <p-button icon="pi pi-trash" severity="danger" size="small" [outlined]="true" (onClick)="confirmDeleteCourse()" />
                         </div>
@@ -526,10 +541,11 @@ interface SessionFormState {
                                         <div *ngIf="selectedCourse.instructors.length > 0" class="flex flex-col gap-2">
                                             <div *ngFor="let inst of selectedCourse.instructors" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                                 <p-avatar
-                                                    [label]="getInstructorInitials(inst)"
+                                                    [image]="inst.profilePictureUrl ? getInstructorProfilePictureUrl(inst.profilePictureUrl) : undefined"
+                                                    [label]="inst.profilePictureUrl ? undefined : getInstructorInitials(inst)"
                                                     shape="circle"
                                                     size="large"
-                                                    [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
+                                                    [style]="inst.profilePictureUrl ? {} : { 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                                 ></p-avatar>
                                                 <div>
                                                     <p class="m-0">{{ getInstructorName(inst) }}</p>
@@ -760,6 +776,7 @@ interface SessionFormState {
 })
 export class CoursePortal implements OnInit {
     private authService = inject(AuthService);
+    private router = inject(Router);
 
     get courses(): Course[] {
         return this.courseService.courses();
@@ -792,6 +809,8 @@ export class CoursePortal implements OnInit {
 
     viewResourceDialogVisible = false;
     viewingResource: CourseResource | null = null;
+
+    instructorToggling = false;
 
     sessionDialogVisible = false;
     sessionDialogMode: 'add' | 'edit' = 'add';
@@ -845,9 +864,40 @@ export class CoursePortal implements OnInit {
         this.loadCourses();
     }
 
+    openCourse(course: Course | null): void {
+        if (!course) return;
+        this.router.navigate(['/course', CourseService.slugify(course.title)]);
+    }
+
+    isCurrentUserInstructor(): boolean {
+        const user = this.authService.currentUser();
+        if (!user || !this.selectedCourse) return false;
+        return this.selectedCourse.instructors.some((i) => i.userId === user.id);
+    }
+
+    toggleInstructor(): void {
+        if (!this.selectedCourse || this.instructorToggling) return;
+        this.instructorToggling = true;
+        const action = this.isCurrentUserInstructor()
+            ? this.courseService.leaveAsInstructor(this.selectedCourse.id)
+            : this.courseService.joinAsInstructor(this.selectedCourse.id);
+
+        action.subscribe({
+            next: (updated) => {
+                this.selectedCourse = updated;
+                this.instructorToggling = false;
+            },
+            error: () => { this.instructorToggling = false; }
+        });
+    }
+
     getInstructorName(instructor: CourseInstructor): string {
         const name = `${instructor.firstName ?? ''} ${instructor.lastName ?? ''}`.trim();
         return name || instructor.userId;
+    }
+
+    getInstructorProfilePictureUrl(url: string): string {
+        return url.startsWith('http') ? url : `${environment.baseUrl}${url}`;
     }
 
     getInstructorInitials(instructor: CourseInstructor): string {

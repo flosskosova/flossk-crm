@@ -275,4 +275,28 @@ public class CoursesController(ICourseService courseService) : ControllerBase
         var isAdmin = User.IsInRole("Admin");
         return await _courseService.DeleteVoucherAsync(courseId, voucherId, userId, isAdmin);
     }
+
+    // ── Self-enroll Endpoints ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Join the course as an instructor (current user)
+    /// </summary>
+    [HttpPost("{courseId:guid}/instructors/me")]
+    public async Task<IActionResult> JoinAsInstructor(Guid courseId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _courseService.JoinAsInstructorAsync(courseId, userId);
+    }
+
+    /// <summary>
+    /// Leave the course as an instructor (current user)
+    /// </summary>
+    [HttpDelete("{courseId:guid}/instructors/me")]
+    public async Task<IActionResult> LeaveAsInstructor(Guid courseId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _courseService.LeaveAsInstructorAsync(courseId, userId);
+    }
 }

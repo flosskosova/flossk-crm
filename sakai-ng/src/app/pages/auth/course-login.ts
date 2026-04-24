@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -11,7 +11,7 @@ import { LayoutService } from '@/layout/service/layout.service';
 import { AuthService } from '@/pages/service/auth.service';
 import { CourseService } from '@/pages/service/course.service';
 
-type PageMode = 'join' | 'login';
+type PageMode = 'join' | 'login' | 'member';
 
 @Component({
     selector: 'app-course-login',
@@ -43,7 +43,7 @@ type PageMode = 'join' | 'login';
                                 <h1 class="text-xl m-0">Course Portal</h1>
                             </div>
                             <p class="text-muted-color mt-1 text-sm">
-                                {{ mode === 'join' ? 'Enter your access code to enroll in a course' : 'Sign in to access your enrolled courses' }}
+                                {{ mode === 'join' ? 'Enter your access code to enroll in a course' : mode === 'member' ? 'Sign in with your FLOSSK account' : 'Sign in to access your enrolled courses' }}
                             </p>
                         </div>
 
@@ -80,6 +80,8 @@ type PageMode = 'join' | 'login';
                             <div class="text-center">
                                 <span class="text-muted-color text-sm">Already enrolled? </span>
                                 <span class="text-primary font-medium cursor-pointer text-sm" (click)="switchMode('login')">Sign in here</span>
+                                <span class="text-muted-color text-sm"> &middot; </span>
+                                <span class="text-primary font-medium cursor-pointer text-sm" (click)="switchMode('member')">FLOSSK member?</span>
                             </div>
                         </div>
 
@@ -101,6 +103,29 @@ type PageMode = 'join' | 'login';
                                 <span class="text-primary font-medium cursor-pointer text-sm" (click)="switchMode('join')">Join a course</span>
                             </div>
                         </div>
+
+                        <!-- ── FLOSSK MEMBER LOGIN ── -->
+                        <div *ngIf="mode === 'member'">
+                            <div class="mb-4">
+                                <label for="memberEmail" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Email <span class="text-red-500">*</span></label>
+                                <input pInputText id="memberEmail" type="email" placeholder="your@email.com"
+                                       class="w-full" [(ngModel)]="email" (keyup.enter)="onMemberLogin()" />
+                            </div>
+                            <div class="mb-8">
+                                <label for="memberPassword" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Password <span class="text-red-500">*</span></label>
+                                <input pInputText id="memberPassword" type="password" placeholder="Your password"
+                                       class="w-full" [(ngModel)]="password" (keyup.enter)="onMemberLogin()" />
+                            </div>
+
+                            <p-button label="Sign In" icon="pi pi-sign-in" styleClass="w-full" [loading]="loading" (onClick)="onMemberLogin()" />
+
+                            <p-divider />
+
+                            <div class="text-center">
+                                <span class="text-muted-color text-sm">Have an access code? </span>
+                                <span class="text-primary font-medium cursor-pointer text-sm" (click)="switchMode('join')">Join a course</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -112,18 +137,20 @@ export class CourseLogin {
 
     name = '';
     email = '';
+    password = '';
     accessCode = '';
 
     loading = false;
     errorMsg = '';
     successMsg = '';
 
-    constructor(public layoutService: LayoutService, private authService: AuthService, private router: Router, private courseService: CourseService) {}
+    constructor(public layoutService: LayoutService, private authService: AuthService, private router: Router, private courseService: CourseService, private route: ActivatedRoute) {}
 
     switchMode(m: PageMode) {
         this.mode = m;
         this.errorMsg = '';
         this.successMsg = '';
+        this.password = '';
     }
 
     onJoin() {
@@ -165,6 +192,38 @@ export class CourseLogin {
                 this.loading = false;
                 const errors: string[] = err.error?.errors ?? [];
                 this.errorMsg = errors.length > 0 ? errors[0] : 'Enrolment failed. Please check your access code and try again.';
+            }
+        });
+    }
+
+    onMemberLogin() {
+        this.errorMsg = '';
+        this.successMsg = '';
+
+        if (!this.email.trim()) {
+            this.errorMsg = 'Please enter your email.';
+            return;
+        }
+        if (!this.password.trim()) {
+            this.errorMsg = 'Please enter your password.';
+            return;
+        }
+
+        this.loading = true;
+        this.authService.login({ email: this.email.trim(), password: this.password }).subscribe({
+            next: () => {
+                this.loading = false;
+                const courseSlug = this.route.snapshot.queryParamMap.get('course');
+                if (courseSlug) {
+                    this.router.navigate(['/course', courseSlug]);
+                } else {
+                    this.router.navigate(['/dashboard']);
+                }
+            },
+            error: (err) => {
+                this.loading = false;
+                const msg: string = err.error?.message || '';
+                this.errorMsg = msg || 'Sign in failed. Please check your credentials.';
             }
         });
     }

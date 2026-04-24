@@ -107,7 +107,9 @@ public class CourseService(
         _logger.LogInformation("Course {CourseId} created for project {ProjectId} by user {UserId}", course.Id, project.Id, userId);
 
         var created = await CourseQuery().FirstOrDefaultAsync(c => c.Id == course.Id);
-        return new OkObjectResult(_mapper.Map<CourseDto>(created));
+        var createdDto = _mapper.Map<CourseDto>(created);
+        await PatchInstructorProfilePicturesAsync(createdDto.Instructors);
+        return new OkObjectResult(createdDto);
     }
 
     public async Task<IActionResult> GetCoursesAsync(int page = 1, int pageSize = 10)
@@ -118,10 +120,12 @@ public class CourseService(
         var query = CourseQuery().OrderByDescending(c => c.CreatedAt);
         var totalCount = await query.CountAsync();
         var courses = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        var courseDtos = _mapper.Map<List<CourseListDto>>(courses);
+        await PatchInstructorProfilePicturesAsync(courseDtos.SelectMany(c => c.Instructors).ToList());
 
         return new OkObjectResult(new PagedResultDto<CourseListDto>
         {
-            Items = _mapper.Map<List<CourseListDto>>(courses),
+            Items = courseDtos,
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -134,16 +138,20 @@ public class CourseService(
         if (course == null)
             return new NotFoundObjectResult(new { Error = "Course not found." });
 
-        return new OkObjectResult(_mapper.Map<CourseDto>(course));
+        var courseDto = _mapper.Map<CourseDto>(course);
+        await PatchInstructorProfilePicturesAsync(courseDto.Instructors);
+        return new OkObjectResult(courseDto);
     }
 
     public async Task<IActionResult> GetCourseByProjectIdAsync(Guid projectId)
     {
-        var course = await CourseQuery().FirstOrDefaultAsync(c => c.ProjectId == projectId);
-        if (course == null)
+        var courseByProject = await CourseQuery().FirstOrDefaultAsync(c => c.ProjectId == projectId);
+        if (courseByProject == null)
             return new NotFoundObjectResult(new { Error = "No course found for this project." });
 
-        return new OkObjectResult(_mapper.Map<CourseDto>(course));
+        var courseByProjectDto = _mapper.Map<CourseDto>(courseByProject);
+        await PatchInstructorProfilePicturesAsync(courseByProjectDto.Instructors);
+        return new OkObjectResult(courseByProjectDto);
     }
 
     public async Task<IActionResult> UpdateCourseAsync(Guid id, UpdateCourseDto request, string userId, bool isAdmin)
@@ -188,7 +196,9 @@ public class CourseService(
         await _db.SaveChangesAsync();
 
         var updated = await CourseQuery().FirstOrDefaultAsync(c => c.Id == id);
-        return new OkObjectResult(_mapper.Map<CourseDto>(updated));
+        var updatedDto = _mapper.Map<CourseDto>(updated);
+        await PatchInstructorProfilePicturesAsync(updatedDto.Instructors);
+        return new OkObjectResult(updatedDto);
     }
 
     public async Task<IActionResult> DeleteCourseAsync(Guid id, string userId, bool isAdmin)
@@ -644,5 +654,82 @@ public class CourseService(
         _db.CourseVouchers.Remove(voucher);
         await _db.SaveChangesAsync();
         return new NoContentResult();
+    }
+
+    // ── Self-enroll as instructor ──────────────────────────────────────────
+
+    public async Task<IActionResult> JoinAsInstructorAsync(Guid courseId, string userId)
+    {
+        var course = await _db.Courses.FirstOrDefaultAsync(c => c.Id == courseId);
+        if (course == null)
+            return new NotFoundObjectResult(new { Error = "Course not found." });
+
+        var alreadyInstructor = await _db.CourseInstructors
+            .AnyAsync(i => i.CourseId == courseId && i.UserId == userId);
+        if (alreadyInstructor)
+            return new ConflictObjectResult(new { Error = "You are already an instructor of this course." });
+
+        _db.CourseInstructors.Add(new CourseInstructor
+        {
+            CourseId = courseId,
+            UserId = userId,
+            Role = "Instructor"
+        });
+
+        await _db.SaveChangesAsync();
+
+        var updatedJoin = await CourseQuery().FirstOrDefaultAsync(c => c.Id == courseId);
+        var joinDto = _mapper.Map<CourseDto>(updatedJoin);
+        await PatchInstructorProfilePicturesAsync(joinDto.Instructors);
+        return new OkObjectResult(joinDto);
+    }
+
+    public async Task<IActionResult> LeaveAsInstructorAsync(Guid courseId, string userId)
+    {
+        var instructor = await _db.CourseInstructors
+            .FirstOrDefaultAsync(i => i.CourseId == courseId && i.UserId == userId);
+        if (instructor == null)
+            return new NotFoundObjectResult(new { Error = "You are not an instructor of this course." });
+
+        _db.CourseInstructors.Remove(instructor);
+        await _db.SaveChangesAsync();
+
+        var updatedLeave = await CourseQuery().FirstOrDefaultAsync(c => c.Id == courseId);
+        var leaveDto = _mapper.Map<CourseDto>(updatedLeave);
+        await PatchInstructorProfilePicturesAsync(leaveDto.Instructors);
+        return new OkObjectResult(leaveDto);
+    }
+
+    private async Task PatchInstructorProfilePicturesAsync(List<CourseInstructorDto> instructors)
+    {
+        if (instructors.Count == 0) return;
+        var userIds = instructors.Select(i => i.UserId).Distinct().Where(id => !string.IsNullOrEmpty(id)).ToList();
+        if (userIds.Count == 0) return;
+
+        var files = await _db.UploadedFiles
+            .Where(f => f.FileType == FileType.ProfilePicture
+                     && f.UserId != null
+                     && userIds.Contains(f.UserId))
+            .Select(f => new { UserId = f.UserId!, Url = "/uploads/" + f.FileName })
+            .ToListAsync();
+
+        // Also check CreatedByUserId for profile pictures uploaded before UserId was tracked
+        var foundUserIds = files.Select(f => f.UserId).ToHashSet();
+        var missingIds = userIds.Where(id => !foundUserIds.Contains(id)).ToList();
+        if (missingIds.Count > 0)
+        {
+            var fallback = await _db.UploadedFiles
+                .Where(f => f.FileType == FileType.ProfilePicture
+                         && f.CreatedByUserId != null
+                         && missingIds.Contains(f.CreatedByUserId))
+                .Select(f => new { UserId = f.CreatedByUserId!, Url = "/uploads/" + f.FileName })
+                .ToListAsync();
+            files = [.. files, .. fallback];
+        }
+
+        var dict = files.GroupBy(f => f.UserId).ToDictionary(g => g.Key, g => g.First().Url);
+        foreach (var inst in instructors)
+            if (dict.TryGetValue(inst.UserId, out var url))
+                inst.ProfilePictureUrl = url;
     }
 }

@@ -49,6 +49,7 @@ export class LogService {
         if (params.pageSize)   httpParams = httpParams.set('pageSize', params.pageSize.toString());
         if (params.dateFrom)   httpParams = httpParams.set('dateFrom', params.dateFrom);
         if (params.dateTo)     httpParams = httpParams.set('dateTo', params.dateTo);
+        console.log('LogService.getLogs HttpParams:', httpParams.toString());
         return this.http.get<PaginatedLogsResponse>(this.API_URL, { params: httpParams });
     }
 }

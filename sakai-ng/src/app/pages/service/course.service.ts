@@ -20,6 +20,7 @@ export interface CourseInstructor {
     firstName?: string;
     lastName?: string;
     role: string;
+    profilePictureUrl?: string;
 }
 
 export interface CourseResourceFile {
@@ -230,6 +231,18 @@ export class CourseService {
 
     createVouchers(courseId: string, payload: { isMultiUse: boolean; count: number }): Observable<CourseVoucher[]> {
         return this.http.post<CourseVoucher[]>(`${this.apiUrl}/${courseId}/vouchers`, payload);
+    }
+
+    joinAsInstructor(courseId: string): Observable<Course> {
+        return this.http.post<Course>(`${this.apiUrl}/${courseId}/instructors/me`, {}).pipe(
+            tap((course) => this.upsertCourse(course))
+        );
+    }
+
+    leaveAsInstructor(courseId: string): Observable<Course> {
+        return this.http.delete<Course>(`${this.apiUrl}/${courseId}/instructors/me`).pipe(
+            tap((course) => this.upsertCourse(course))
+        );
     }
 
     static slugify(title: string): string {
