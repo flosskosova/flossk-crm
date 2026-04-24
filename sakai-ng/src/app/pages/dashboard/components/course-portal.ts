@@ -498,7 +498,9 @@ interface SessionFormState {
                                 Schedule
                                 <span *ngIf="getSessionCount(selectedCourse) > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ getSessionCount(selectedCourse) }}</span>
                             </p-tab>
-                            <p-tab value="members">Members</p-tab>
+                            <p-tab value="members">Members
+                                <span *ngIf="portalCourseMembers().length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ portalCourseMembers().length }}</span>
+                            </p-tab>
                             <p-tab value="vouchers">Vouchers
                                 <span *ngIf="courseVouchers.length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ courseVouchers.length }}</span>
                             </p-tab>
@@ -671,6 +673,35 @@ interface SessionFormState {
                                     </div>
                                 </div>
                             </p-tabpanel>
+                            <p-tabpanel value="members">
+                                <div class="pt-3">
+                                    <ng-container *ngIf="portalCourseMembers() as members">
+                                        <div *ngIf="members.length === 0" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-lg">
+                                            <i class="pi pi-users text-4xl mb-3 opacity-40"></i>
+                                            <p class="m-0 text-sm">No members have redeemed a voucher yet.</p>
+                                        </div>
+
+                                        <div *ngIf="members.length > 0">
+                                            <p class="text-sm font-medium mb-3">{{ members.length }} enrolled member{{ members.length !== 1 ? 's' : '' }}</p>
+                                            <div class="flex flex-col gap-2">
+                                                <div *ngFor="let member of members" class="flex items-center gap-3 p-3 border border-surface-100 dark:border-surface-700 rounded-lg">
+                                                    <p-avatar
+                                                        [label]="member.initials"
+                                                        shape="circle"
+                                                        size="normal"
+                                                        [style]="{ 'background-color': member.color, 'color': 'white', 'font-weight': '700' }"
+                                                    ></p-avatar>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="font-medium text-sm m-0">{{ member.name }}</p>
+                                                        <p class="text-xs text-muted-color m-0 font-mono truncate">{{ member.email }}</p>
+                                                    </div>
+                                                    <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-800 text-muted-color">{{ member.voucherCode }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                </div>
+                            </p-tabpanel>
                             <p-tabpanel value="vouchers">
                                 <div class="pt-3">
                                     <div class="flex justify-end items-center mb-4">
@@ -828,6 +859,31 @@ export class CoursePortal implements OnInit {
 
     getModuleCount(course: Course): number {
         return course.modules.length;
+    }
+
+    private static readonly MEMBER_COLORS = [
+        '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6'
+    ];
+
+    portalCourseMembers(): { email: string; name: string; initials: string; color: string; voucherCode: string }[] {
+        if (!this.selectedCourse?.vouchers) return [];
+        const seen = new Set<string>();
+        const result: { email: string; name: string; initials: string; color: string; voucherCode: string }[] = [];
+        for (const voucher of this.selectedCourse.vouchers) {
+            for (const email of voucher.redeemedByEmails ?? []) {
+                if (seen.has(email)) continue;
+                seen.add(email);
+                const local = email.split('@')[0];
+                const parts = local.split(/[._-]/).filter(Boolean);
+                const name = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') || email;
+                const initials = parts.length >= 2
+                    ? (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+                    : local.substring(0, 2).toUpperCase();
+                const color = CoursePortal.MEMBER_COLORS[result.length % CoursePortal.MEMBER_COLORS.length];
+                result.push({ email, name, initials, color, voucherCode: voucher.code });
+            }
+        }
+        return result;
     }
 
     getResourceCount(course: Course): number {
