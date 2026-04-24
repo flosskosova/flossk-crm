@@ -645,12 +645,13 @@ interface SessionFormState {
                                     <h5 class="text-sm text-muted-color mb-4 tracking-wide">Course Schedule</h5>
                                     <div class="flex flex-col lg:flex-row gap-6">
                                         <div class="shrink-0">
-                                            <p class="text-sm text-muted-color mb-2">Click a calendar date to open the session details modal.</p>
+                                            <p class="text-sm text-muted-color mb-2">Click a calendar date to schedule a session</p>
                                             <p-datepicker
                                                 [(ngModel)]="scheduleCalendarDate"
                                                 [inline]="true"
                                                 [showButtonBar]="true"
                                                 dateFormat="yy-mm-dd"
+                                                [minDate]="today"
                                                 (onSelect)="onScheduleDateSelect()"
                                             >
                                                 <ng-template #date let-date>
@@ -672,15 +673,16 @@ interface SessionFormState {
                                             <div *ngIf="selectedCourse.sessions.length > 0">
                                                 <p class="text-sm font-medium mb-3">{{ selectedCourse.sessions.length }} session{{ selectedCourse.sessions.length !== 1 ? 's' : '' }} scheduled:</p>
                                                 <div class="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1">
-                                                    <div *ngFor="let session of sortedSessions(); let i = index" class="flex items-start gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl">
-                                                        <div class="shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center leading-none">
-                                                            <span class="text-xs  text-primary">{{ sessionDate(session) | date: 'MMM' }}</span>
-                                                            <span class="text-lg  text-primary leading-tight">{{ sessionDate(session) | date: 'd' }}</span>
+                                                    <div *ngFor="let session of sortedSessions(); let i = index" class="flex items-start gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl" [class.opacity-50]="isSessionPast(session)" [class.pointer-events-none]="isSessionPast(session)">
+                                                        <div class="shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center leading-none" [ngClass]="isSessionPast(session) ? 'bg-surface-200 dark:bg-surface-700' : 'bg-primary/10'">
+                                                            <span class="text-xs" [ngClass]="isSessionPast(session) ? 'text-muted-color' : 'text-primary'">{{ sessionDate(session) | date: 'MMM' }}</span>
+                                                            <span class="text-lg leading-tight" [ngClass]="isSessionPast(session) ? 'text-muted-color' : 'text-primary'">{{ sessionDate(session) | date: 'd' }}</span>
                                                         </div>
                                                         <div class="flex-1 min-w-0">
                                                             <div class="flex items-center gap-2 flex-wrap">
                                                                 <p class="m-0">Session {{ i + 1 }}</p>
                                                                 <span class="text-xs bg-surface-100 dark:bg-surface-800 text-muted-color px-2 py-0.5 rounded-full">{{ session.type }}</span>
+                                                                <span *ngIf="isSessionPast(session)" class="text-xs bg-surface-100 dark:bg-surface-800 text-muted-color px-2 py-0.5 rounded-full">Past</span>
                                                             </div>
                                                             <p class="text-sm text-muted-color m-0 mt-1">{{ sessionDate(session) | date: 'EEEE, MMMM d, y' }} at {{ sessionDate(session) | date: 'shortTime' }}</p>
                                                             <p class="text-sm text-muted-color m-0 mt-1">{{ session.location }}</p>
@@ -826,6 +828,7 @@ export class CoursePortal implements OnInit {
     editingSession: CourseSession | null = null;
     sessionForm: SessionFormState = this.emptySessionForm();
     scheduleCalendarDate: Date | null = null;
+    today = new Date();
 
     courseVouchers: CourseVoucher[] = [];
     loadingVouchers = false;
@@ -992,6 +995,12 @@ export class CoursePortal implements OnInit {
             const d = new Date(`${session.date}T00:00:00`);
             return d.getFullYear() === date.year && d.getMonth() === date.month && d.getDate() === date.day;
         });
+    }
+
+    isSessionPast(session: CourseSession): boolean {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return this.sessionDate(session) < today;
     }
 
     sortedSessions(): CourseSession[] {
