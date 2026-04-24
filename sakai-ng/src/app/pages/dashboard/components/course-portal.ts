@@ -699,6 +699,7 @@ interface SessionFormState {
                                                         <span class="text-xs text-muted-color">Created {{ voucher.createdAt | date: 'MMM d, y' }}</span>
                                                     </div>
                                                 </div>
+                                                <p-button *ngIf="!voucher.isUsed" icon="pi pi-copy" severity="secondary" [text]="true" size="small" (onClick)="copyVoucherCode(voucher.code)" pTooltip="Copy code" tooltipPosition="top" />
                                             </div>
                                             <div *ngIf="voucher.redeemedByEmails && voucher.redeemedByEmails.length > 0" class="flex flex-wrap gap-1.5 pt-1 border-t border-surface-100 dark:border-surface-700">
                                                 <span *ngFor="let email of voucher.redeemedByEmails"
@@ -779,6 +780,10 @@ export class CoursePortal implements OnInit {
 
     get paginatedVouchers(): CourseVoucher[] {
         return this.courseVouchers.slice(this.voucherPage * this.voucherPageSize, (this.voucherPage + 1) * this.voucherPageSize);
+    }
+
+    copyVoucherCode(code: string): void {
+        navigator.clipboard.writeText(code);
     }
 
     projectOptions: SelectOption[] = [];

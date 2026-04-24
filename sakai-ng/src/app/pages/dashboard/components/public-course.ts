@@ -18,74 +18,118 @@ import { environment } from '@environments/environment.prod';
     standalone: true,
     imports: [CommonModule, FormsModule, RouterModule, ButtonModule, DividerModule, TabsModule, AvatarModule, TooltipModule, DatePickerModule, DialogModule],
     template: `
-    <div class="card max-w-5xl my-6 mx-4 lg:mx-auto">
-        <div *ngIf="!loading && !course" class="flex flex-col items-center justify-center py-20 text-muted-color">
-            <i class="pi pi-book text-6xl mb-4 opacity-40"></i>
-            <h2 class="text-2xl mb-2">Course not found</h2>
-            <p class="text-sm mb-6">The course you're looking for doesn't exist or has been removed.</p>
+    <div class="max-w-7xl my-8 mx-4 lg:mx-auto">
+
+        <!-- Not found state -->
+        <div *ngIf="!loading && !course" class="card flex flex-col items-center justify-center py-24 text-muted-color">
+            <i class="pi pi-book text-6xl mb-5 opacity-20"></i>
+            <h2 class="text-2xl font-semibold mb-2">Course not found</h2>
+            <p class="text-sm">The course you're looking for doesn't exist or has been removed.</p>
         </div>
 
-        <div *ngIf="loading" class="flex items-center justify-center py-16 text-muted-color gap-3">
-            <i class="pi pi-spin pi-spinner"></i>
-            <span>Loading course...</span>
+        <!-- Loading state -->
+        <div *ngIf="loading" class="card flex items-center justify-center py-24 text-muted-color gap-3">
+            <i class="pi pi-spin pi-spinner text-xl"></i>
+            <span class="text-base">Loading course...</span>
         </div>
 
+        <!-- Course content -->
         <div *ngIf="course && !loading">
-            <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-2xl font-semibold m-0">{{ course.title }}</h2>
-                    </div>
-                    <p class="text-sm text-muted-color mt-1 mb-0">{{ course.projectTitle }}</p>
-                </div>
 
-                <div *ngIf="currentUser()" class="flex items-start gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 shrink-0">
-                    <p-avatar
-                        [label]="currentUserInitials()"
-                        shape="circle"
-                        [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
-                    ></p-avatar>
-                    <div class="min-w-0">
-                        <p class="font-semibold text-sm m-0 leading-tight">{{ currentUser()!.firstName }} {{ currentUser()!.lastName }}</p>
-                        <p class="text-xs text-muted-color m-0 truncate">{{ currentUser()!.email }}</p>
-                        <span *ngIf="currentUser()!.role" class="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{{ currentUser()!.role }}</span>
+            <!-- Hero banner -->
+            <div class="rounded-2xl overflow-hidden mb-6 relative" style="background: linear-gradient(135deg, var(--p-primary-700, #3730a3) 0%, var(--p-primary-400, #818cf8) 100%);">
+                <div class="absolute inset-0 opacity-[0.07]" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 28px 28px;"></div>
+                <div class="relative px-8 py-10 lg:py-12">
+                    <div class="flex items-start justify-between gap-8 flex-wrap">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold tracking-widest uppercase text-white/60 m-0 mb-3">{{ course.projectTitle }}</p>
+                            <h1 class="text-3xl lg:text-4xl font-bold text-white! m-0 mb-5 leading-tight">{{ course.title }}</h1>
+                            <div class="flex items-center gap-5 flex-wrap">
+                                <div class="flex items-center gap-2 text-white/75 text-sm font-medium">
+                                    <div class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                                        <i class="pi pi-book text-xs"></i>
+                                    </div>
+                                    <span>{{ course.modules.length }} Module{{ course.modules.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-white/75 text-sm font-medium">
+                                    <div class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                                        <i class="pi pi-calendar text-xs"></i>
+                                    </div>
+                                    <span>{{ course.sessions.length }} Session{{ course.sessions.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                                <div *ngIf="course.instructors.length > 0" class="flex items-center gap-2 text-white/75 text-sm font-medium">
+                                    <div class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                                        <i class="pi pi-users text-xs"></i>
+                                    </div>
+                                    <span>{{ course.instructors.length }} Instructor{{ course.instructors.length !== 1 ? 's' : '' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="currentUser()" class="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4 shrink-0">
+                            <p-avatar
+                                [label]="currentUserInitials()"
+                                shape="circle"
+                                size="large"
+                                [style]="{ 'background-color': 'rgba(255,255,255,0.2)', 'color': 'white', 'font-weight': '700', 'border': '2px solid rgba(255,255,255,0.3)' }"
+                            ></p-avatar>
+                            <div class="min-w-0">
+                                <p class="font-bold text-sm text-white m-0 leading-tight">{{ currentUser()!.firstName }} {{ currentUser()!.lastName }}</p>
+                                <p class="text-xs text-white/60 m-0 truncate mt-0.5">{{ currentUser()!.email }}</p>
+                                <span *ngIf="currentUser()!.role" class="inline-block mt-1.5 text-xs bg-white/15 text-white px-2.5 py-0.5 rounded-full font-medium">{{ currentUser()!.role }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Main content card -->
+            <div class="card">
             <p-tabs [(value)]="activeTab">
                 <p-tablist>
-                    <p-tab value="overview">Overview</p-tab>
+                    <p-tab value="overview"><i class="pi pi-info-circle mr-2 text-sm"></i>Overview</p-tab>
                     <p-tab value="modules">
-                        Modules
-                        <span class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ course.modules.length }}</span>
+                        <i class="pi pi-list mr-2 text-sm"></i>Modules
+                        <span class="ml-2 text-xs bg-primary text-white rounded-full px-2 py-0.5 font-semibold">{{ course.modules.length }}</span>
                     </p-tab>
                     <p-tab value="schedule">
-                        Schedule
-                        <span *ngIf="course.sessions.length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ course.sessions.length }}</span>
+                        <i class="pi pi-calendar mr-2 text-sm"></i>Schedule
+                        <span *ngIf="course.sessions.length > 0" class="ml-2 text-xs bg-primary text-white rounded-full px-2 py-0.5 font-semibold">{{ course.sessions.length }}</span>
+                    </p-tab>
+                    <p-tab value="members">
+                        <i class="pi pi-users mr-2 text-sm"></i>Members
+                        <span *ngIf="courseMembers().length > 0" class="ml-2 text-xs bg-primary text-white rounded-full px-2 py-0.5 font-semibold">{{ courseMembers().length }}</span>
                     </p-tab>
                 </p-tablist>
 
                 <p-tabpanels>
                     <!-- Overview -->
                     <p-tabpanel value="overview">
-                        <div class="flex flex-col gap-5 pt-3">
-                            <div *ngIf="course.description">
-                                <h5 class="text-sm font-semibold text-muted-color mb-2 tracking-wide">Description</h5>
-                                <p class="text-surface-700 dark:text-surface-300 leading-relaxed m-0 whitespace-pre-wrap">{{ course.description }}</p>
-                            </div>
-                            <div *ngIf="!course.description" class="text-muted-color text-sm">No description provided.</div>
-
-                            <div>
-                                <div class="flex justify-between items-center mb-3">
-                                    <h5 class="text-sm font-semibold text-muted-color m-0 tracking-wide">Instructors</h5>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-5">
+                            <!-- Main: Description -->
+                            <div class="lg:col-span-2 flex flex-col gap-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-bold tracking-widest uppercase text-muted-color">About this course</span>
+                                    <div class="flex-1 h-px bg-surface-200 dark:bg-surface-700"></div>
                                 </div>
-                                <div *ngIf="course.instructors.length === 0" class="text-muted-color text-sm py-4 flex flex-col items-center bg-surface-50 dark:bg-surface-800 rounded-lg">
-                                    <i class="pi pi-users text-2xl mb-2"></i>
-                                    <p class="m-0">No instructors assigned.</p>
+                                <div *ngIf="course.description" class="text-surface-700 dark:text-surface-300 leading-relaxed whitespace-pre-wrap">{{ course.description }}</div>
+                                <div *ngIf="!course.description" class="flex flex-col items-center justify-center py-12 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-2xl border border-dashed border-surface-200 dark:border-surface-700">
+                                    <i class="pi pi-align-left text-3xl mb-3 opacity-30"></i>
+                                    <p class="m-0 text-sm">No description provided.</p>
+                                </div>
+                            </div>
+
+                            <!-- Sidebar: Instructors -->
+                            <div class="lg:col-span-1 flex flex-col gap-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-bold tracking-widest uppercase text-muted-color">Instructors</span>
+                                    <div class="flex-1 h-px bg-surface-200 dark:bg-surface-700"></div>
+                                </div>
+                                <div *ngIf="course.instructors.length === 0" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-2xl border border-dashed border-surface-200 dark:border-surface-700">
+                                    <i class="pi pi-users text-2xl mb-2 opacity-30"></i>
+                                    <p class="m-0 text-sm">No instructors assigned.</p>
                                 </div>
                                 <div *ngIf="course.instructors.length > 0" class="flex flex-col gap-2">
-                                    <div *ngFor="let inst of course.instructors" class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
+                                    <div *ngFor="let inst of course.instructors" class="flex items-center gap-3 p-3.5 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl transition-colors hover:border-primary/40">
                                         <p-avatar
                                             [label]="getInstructorInitials(inst)"
                                             shape="circle"
@@ -93,8 +137,8 @@ import { environment } from '@environments/environment.prod';
                                             [style]="{ 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
                                         ></p-avatar>
                                         <div>
-                                            <p class="font-semibold m-0">{{ getInstructorName(inst) }}</p>
-                                            <p class="text-sm text-muted-color m-0">{{ inst.role || 'Instructor' }}</p>
+                                            <p class="font-semibold text-sm m-0">{{ getInstructorName(inst) }}</p>
+                                            <p class="text-xs text-muted-color m-0 mt-0.5">{{ inst.role || 'Instructor' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -104,55 +148,58 @@ import { environment } from '@environments/environment.prod';
 
                     <!-- Modules -->
                     <p-tabpanel value="modules">
-                        <div class="pt-3">
-                            <div *ngIf="course.modules.length === 0" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-lg">
-                                <i class="pi pi-list text-4xl mb-3 opacity-40"></i>
+                        <div class="pt-5">
+                            <div *ngIf="course.modules.length === 0" class="flex flex-col items-center justify-center py-16 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-2xl border border-dashed border-surface-200 dark:border-surface-700">
+                                <i class="pi pi-list text-4xl mb-3 opacity-25"></i>
                                 <p class="m-0">No modules added yet.</p>
                             </div>
 
-                            <div *ngIf="course.modules.length > 0" class="flex flex-col gap-4">
-                                <div *ngFor="let mod of course.modules; let i = index" class="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden">
+                            <div *ngIf="course.modules.length > 0" class="flex flex-col gap-5">
+                                <div *ngFor="let mod of course.modules; let i = index" class="border border-surface-200 dark:border-surface-700 rounded-2xl overflow-hidden shadow-sm">
                                     <!-- Module header -->
-                                    <div class="flex items-start gap-3 p-4 bg-surface-50 dark:bg-surface-800">
-                                        <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
+                                    <div class="flex items-start gap-4 p-5 bg-surface-50 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700">
+                                        <div class="shrink-0 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center text-sm font-bold shadow-sm">
                                             {{ i + 1 }}
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="font-semibold m-0 mb-1">{{ mod.title }}</p>
-                                            <p *ngIf="mod.description" class="text-sm text-muted-color m-0">{{ mod.description }}</p>
+                                            <p class="font-bold text-base m-0 mb-1">{{ mod.title }}</p>
+                                            <p *ngIf="mod.description" class="text-sm text-muted-color m-0 leading-relaxed">{{ mod.description }}</p>
                                         </div>
+                                        <span class="shrink-0 text-xs text-muted-color bg-surface-200 dark:bg-surface-700 px-3 py-1 rounded-full font-semibold">
+                                            {{ mod.resources.length }} resource{{ mod.resources.length !== 1 ? 's' : '' }}
+                                        </span>
                                     </div>
 
                                     <!-- Module resources -->
-                                    <div class="p-4">
-                                        <div *ngIf="mod.resources.length === 0" class="text-sm text-muted-color py-3 text-center bg-surface-50 dark:bg-surface-900 rounded-lg">
+                                    <div class="p-5">
+                                        <div *ngIf="mod.resources.length === 0" class="text-sm text-muted-color py-5 text-center bg-surface-50 dark:bg-surface-900 rounded-xl border border-dashed border-surface-200 dark:border-surface-700">
                                             No resources yet.
                                         </div>
 
-                                        <div *ngIf="mod.resources.length > 0" class="flex flex-row flex-wrap gap-2">
-                                            <div *ngFor="let res of mod.resources" class="flex gap-3 p-3 border border-surface-100 dark:border-surface-700 rounded-lg w-full sm:w-[calc(50%-0.25rem)] lg:w-[calc(33.333%-0.375rem)]">
-                                                <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" [ngClass]="getResourceIconBg(res.type)">
-                                                    <i [class]="getResourceIcon(res.type) + ' text-white text-sm'"></i>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="font-medium m-0 mb-0.5 text-sm">{{ res.title }}</p>
-                                                    <div *ngIf="res.urls.length > 0" class="flex flex-col gap-0.5 mt-0.5">
-                                                        <a *ngFor="let url of res.urls" [href]="url" target="_blank" rel="noopener noreferrer" class="text-primary text-xs hover:underline flex items-center gap-1 truncate">
-                                                            <i class="pi pi-external-link text-xs"></i>
-                                                            <span class="truncate">{{ url }}</span>
-                                                        </a>
+                                        <div *ngIf="mod.resources.length > 0" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                                            <div *ngFor="let res of mod.resources" class="group flex flex-col gap-3 p-4 border border-surface-100 dark:border-surface-700 rounded-xl bg-surface-0 dark:bg-surface-900 hover:border-primary/40 hover:shadow-md transition-all">
+                                                <div class="flex items-start gap-3">
+                                                    <div class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" [ngClass]="getResourceIconBg(res.type)">
+                                                        <i [class]="getResourceIcon(res.type) + ' text-white text-sm'"></i>
                                                     </div>
-                                                    <div *ngIf="res.files.length > 0" class="flex flex-col gap-0.5 mt-0.5">
-                                                        <a *ngFor="let file of res.files" [href]="getFileDownloadUrl(file.fileId)" target="_blank" rel="noopener noreferrer" class="text-primary text-xs hover:underline flex items-center gap-1 truncate">
-                                                            <i class="pi pi-download text-xs"></i>
-                                                            <span class="truncate">{{ file.originalFileName }}</span>
-                                                        </a>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="font-semibold m-0 text-sm leading-snug">{{ res.title }}</p>
+                                                        <span class="inline-block mt-1 text-xs bg-surface-100 dark:bg-surface-800 text-muted-color px-2 py-0.5 rounded-full">{{ res.type }}</span>
                                                     </div>
-                                                    <p *ngIf="res.description" class="text-xs text-muted-color m-0 mt-0.5">{{ res.description }}</p>
-                                                    <span class="inline-block mt-1 text-xs bg-surface-100 dark:bg-surface-800 text-muted-color px-2 py-0.5 rounded-full">{{ res.type }}</span>
+                                                    <p-button icon="pi pi-arrow-up-right" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openViewResourceDialog(res)" />
                                                 </div>
-                                                <div class="shrink-0">
-                                                    <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openViewResourceDialog(res)" />
+                                                <p *ngIf="res.description" class="text-xs text-muted-color m-0 leading-relaxed">{{ res.description }}</p>
+                                                <div *ngIf="res.urls.length > 0" class="flex flex-col gap-1">
+                                                    <a *ngFor="let url of res.urls" [href]="url" target="_blank" rel="noopener noreferrer" class="text-primary text-xs hover:underline flex items-center gap-1.5 truncate">
+                                                        <i class="pi pi-external-link text-xs shrink-0"></i>
+                                                        <span class="truncate">{{ url }}</span>
+                                                    </a>
+                                                </div>
+                                                <div *ngIf="res.files.length > 0" class="flex flex-col gap-1">
+                                                    <a *ngFor="let file of res.files" [href]="getFileDownloadUrl(file.fileId)" target="_blank" rel="noopener noreferrer" class="text-primary text-xs hover:underline flex items-center gap-1.5 truncate">
+                                                        <i class="pi pi-download text-xs shrink-0"></i>
+                                                        <span class="truncate">{{ file.originalFileName }}</span>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -164,9 +211,8 @@ import { environment } from '@environments/environment.prod';
 
                     <!-- Schedule -->
                     <p-tabpanel value="schedule">
-                        <div class="pt-3">
-                            <h5 class="text-sm font-semibold text-muted-color mb-4 tracking-wide">Course Schedule</h5>
-                            <div class="flex flex-col lg:flex-row gap-6">
+                        <div class="pt-5">
+                            <div class="flex flex-col lg:flex-row gap-8">
                                 <div class="shrink-0">
                                     <p-datepicker
                                         [(ngModel)]="scheduleCalendarDate"
@@ -178,7 +224,7 @@ import { environment } from '@environments/environment.prod';
                                         <ng-template #date let-date>
                                             <div class="flex flex-col items-center gap-px">
                                                 <span [class.text-primary]="isSessionDate(date)" [class.font-bold]="isSessionDate(date)">{{ date.day }}</span>
-                                                <span *ngIf="isSessionDate(date)" class="block w-1 h-1 rounded-full bg-primary"></span>
+                                                <span *ngIf="isSessionDate(date)" class="block w-1.5 h-1.5 rounded-full bg-primary"></span>
                                                 <span *ngIf="!isSessionDate(date)" class="block w-1 h-1"></span>
                                             </div>
                                         </ng-template>
@@ -186,27 +232,42 @@ import { environment } from '@environments/environment.prod';
                                 </div>
 
                                 <div class="flex-1 min-w-0">
-                                    <div *ngIf="course.sessions.length === 0" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-lg">
-                                        <i class="pi pi-calendar text-4xl mb-3 opacity-40"></i>
+                                    <div *ngIf="course.sessions.length === 0" class="flex flex-col items-center justify-center h-full py-16 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-2xl border border-dashed border-surface-200 dark:border-surface-700">
+                                        <i class="pi pi-calendar text-4xl mb-3 opacity-25"></i>
                                         <p class="m-0 text-sm">No sessions scheduled yet.</p>
                                     </div>
 
                                     <div *ngIf="course.sessions.length > 0">
-                                        <p class="text-sm font-medium mb-3">{{ course.sessions.length }} session{{ course.sessions.length !== 1 ? 's' : '' }} scheduled:</p>
-                                        <div class="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1">
-                                            <div *ngFor="let session of sortedSessions(); let i = index" class="flex items-start gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl">
-                                                <div class="shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center leading-none">
-                                                    <span class="text-xs font-bold text-primary">{{ sessionDate(session) | date: 'MMM' }}</span>
-                                                    <span class="text-lg font-bold text-primary leading-tight">{{ sessionDate(session) | date: 'd' }}</span>
+                                        <div class="flex items-center gap-3 mb-5">
+                                            <span class="text-xs font-bold tracking-widest uppercase text-muted-color">{{ course.sessions.length }} Session{{ course.sessions.length !== 1 ? 's' : '' }} Scheduled</span>
+                                            <div class="flex-1 h-px bg-surface-200 dark:bg-surface-700"></div>
+                                        </div>
+                                        <div class="flex flex-col gap-3 max-h-120 overflow-y-auto pr-1">
+                                            <div *ngFor="let session of sortedSessions(); let i = index" class="flex items-start gap-4 p-4 border border-surface-200 dark:border-surface-700 rounded-xl bg-surface-0 dark:bg-surface-900 hover:border-primary/40 hover:shadow-sm transition-all">
+                                                <div class="shrink-0 w-14 h-14 rounded-xl bg-primary/10 dark:bg-primary/20 flex flex-col items-center justify-center leading-none border border-primary/20">
+                                                    <span class="text-[10px] font-bold text-primary tracking-wider">{{ sessionDate(session) | date: 'MMM' | uppercase }}</span>
+                                                    <span class="text-2xl font-bold text-primary leading-tight">{{ sessionDate(session) | date: 'd' }}</span>
                                                 </div>
                                                 <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center gap-2 flex-wrap">
-                                                        <p class="font-semibold m-0">Session {{ i + 1 }}</p>
-                                                        <span class="text-xs bg-surface-100 dark:bg-surface-800 text-muted-color px-2 py-0.5 rounded-full">{{ session.type }}</span>
+                                                    <div class="flex items-center gap-2 flex-wrap mb-2">
+                                                        <p class="font-bold text-sm m-0">Session {{ i + 1 }}</p>
+                                                        <span class="text-xs bg-surface-100 dark:bg-surface-800 text-muted-color px-2.5 py-0.5 rounded-full font-medium">{{ session.type }}</span>
                                                     </div>
-                                                    <p class="text-sm text-muted-color m-0 mt-1">{{ sessionDate(session) | date: 'EEEE, MMMM d, y' }} at {{ sessionDate(session) | date: 'shortTime' }}</p>
-                                                    <p class="text-sm text-muted-color m-0 mt-1">{{ session.location }}</p>
-                                                    <p *ngIf="session.notes" class="text-xs text-muted-color m-0 mt-2">{{ session.notes }}</p>
+                                                    <div class="flex flex-col gap-1">
+                                                        <div class="flex items-center gap-2 text-xs text-muted-color">
+                                                            <i class="pi pi-calendar text-xs shrink-0"></i>
+                                                            <span>{{ sessionDate(session) | date: 'EEEE, MMMM d, y' }}</span>
+                                                        </div>
+                                                        <div class="flex items-center gap-2 text-xs text-muted-color">
+                                                            <i class="pi pi-clock text-xs shrink-0"></i>
+                                                            <span>{{ sessionDate(session) | date: 'shortTime' }}</span>
+                                                        </div>
+                                                        <div *ngIf="session.location" class="flex items-center gap-2 text-xs text-muted-color">
+                                                            <i class="pi pi-map-marker text-xs shrink-0"></i>
+                                                            <span>{{ session.location }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <p *ngIf="session.notes" class="text-xs text-muted-color m-0 mt-2 leading-relaxed">{{ session.notes }}</p>
                                                 </div>
                                                 <div class="shrink-0">
                                                     <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" (onClick)="openViewSessionDialog(session, i + 1)" />
@@ -218,8 +279,40 @@ import { environment } from '@environments/environment.prod';
                             </div>
                         </div>
                     </p-tabpanel>
+                    <!-- Members -->
+                    <p-tabpanel value="members">
+                        <div class="pt-5">
+                            <div *ngIf="courseMembers().length === 0" class="flex flex-col items-center justify-center py-16 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-2xl border border-dashed border-surface-200 dark:border-surface-700">
+                                <i class="pi pi-users text-4xl mb-3 opacity-25"></i>
+                                <p class="m-0 text-sm">No members have redeemed a voucher yet.</p>
+                            </div>
+
+                            <div *ngIf="courseMembers().length > 0">
+                                <div class="flex items-center gap-3 mb-5">
+                                    <span class="text-xs font-bold tracking-widest uppercase text-muted-color">{{ courseMembers().length }} Enrolled Member{{ courseMembers().length !== 1 ? 's' : '' }}</span>
+                                    <div class="flex-1 h-px bg-surface-200 dark:bg-surface-700"></div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                                    <div *ngFor="let member of courseMembers()" class="flex items-center gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl bg-surface-0 dark:bg-surface-900 hover:border-primary/40 hover:shadow-sm transition-all">
+                                        <p-avatar
+                                            [label]="member.initials"
+                                            shape="circle"
+                                            size="large"
+                                            [style]="{ 'background-color': member.color, 'color': 'white', 'font-weight': '700', 'flex-shrink': '0' }"
+                                        ></p-avatar>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="font-semibold text-sm m-0 truncate">{{ member.name }}</p>
+                                            <p class="text-xs text-muted-color m-0 truncate mt-0.5">{{ member.email }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </p-tabpanel>
+
                 </p-tabpanels>
             </p-tabs>
+            </div>
         </div>
     </div>
 
@@ -433,5 +526,25 @@ export class Course implements OnInit {
             case 'Reference': return 'bg-green-400';
             default: return 'bg-surface-400';
         }
+    }
+
+    private static readonly AVATAR_COLORS = [
+        '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b',
+        '#10b981', '#3b82f6', '#ef4444', '#14b8a6',
+    ];
+
+    courseMembers(): { email: string; name: string; initials: string; color: string }[] {
+        if (!this.course) return [];
+        const emails = [...new Set(this.course.vouchers.flatMap((v) => v.redeemedByEmails))];
+        return emails.map((email, i) => {
+            const local = email.split('@')[0] ?? '';
+            const parts = local.split(/[._-]/).filter((p) => p.length > 0);
+            const name = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') || email;
+            const initials = parts.length >= 2
+                ? (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+                : local.slice(0, 2).toUpperCase();
+            const color = Course.AVATAR_COLORS[i % Course.AVATAR_COLORS.length];
+            return { email, name, initials, color };
+        });
     }
 }
