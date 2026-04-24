@@ -7,7 +7,6 @@ import { map, switchMap, tap } from 'rxjs/operators';
 export interface UploadedFileResult {
     fileId: string;
     fileName: string;
-    originalFileName: string;
     contentType: string;
     fileSize: number;
 }
@@ -27,7 +26,6 @@ export interface CourseResourceFile {
     id: string;
     fileId: string;
     fileName: string;
-    originalFileName: string;
     contentType: string;
     fileSize: number;
     filePath: string;
@@ -178,7 +176,7 @@ export class CourseService {
     uploadFiles(files: File[]): Observable<UploadedFileResult[]> {
         const form = new FormData();
         files.forEach((f) => form.append('files', f, f.name));
-        return this.http.post<{ results: { success: boolean; fileId: string; fileName: string; originalFileName: string; contentType: string; fileSize: number }[] }>(
+        return this.http.post<{ results: { success: boolean; fileId: string; fileName: string; contentType: string; fileSize: number }[] }>(
             `${environment.apiUrl}/Files/upload-multiple`, form
         ).pipe(
             map((res) =>
@@ -187,7 +185,6 @@ export class CourseService {
                     .map((r) => ({
                         fileId: r.fileId,
                         fileName: r.fileName,
-                        originalFileName: r.originalFileName,
                         contentType: r.contentType,
                         fileSize: r.fileSize
                     }))

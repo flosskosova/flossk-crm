@@ -1147,8 +1147,7 @@ public class AuthService(
 
         return new OkObjectResult(new
         {
-            CVUrl = $"/uploads/{cvFile.FileName}",
-            OriginalFileName = cvFile.OriginalFileName
+            CVUrl = $"/uploads/{cvFile.FileName}"
         });
     }
 
@@ -1175,9 +1174,7 @@ public class AuthService(
             return new NotFoundObjectResult(new { Error = "CV file not found on server." });
         }
 
-        var fileName = !string.IsNullOrEmpty(cvFile.OriginalFileName) 
-            ? cvFile.OriginalFileName 
-            : $"{user.FirstName}_{user.LastName}_CV.pdf";
+        var fileName = $"{user.FirstName}_{user.LastName}_CV.pdf";
 
         using var memoryStream = new MemoryStream();
         await fileStream.CopyToAsync(memoryStream);

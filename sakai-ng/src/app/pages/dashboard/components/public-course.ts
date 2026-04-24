@@ -192,7 +192,7 @@ import { environment } from '@environments/environment.prod';
                                                 <div *ngIf="res.files.length > 0" class="flex flex-col gap-1">
                                                     <a *ngFor="let file of res.files" [href]="getFileDownloadUrl(file.fileId)" target="_blank" rel="noopener noreferrer" class="text-primary text-xs hover:underline flex items-center gap-1.5 truncate">
                                                         <i class="pi pi-download text-xs shrink-0"></i>
-                                                        <span class="truncate">{{ file.originalFileName }}</span>
+                                                        <span class="truncate">{{ file.fileName }}</span>
                                                     </a>
                                                 </div>
                                             </div>
@@ -343,7 +343,7 @@ import { environment } from '@environments/environment.prod';
                         target="_blank" rel="noopener noreferrer"
                         class="flex items-center gap-2 text-sm text-primary hover:underline">
                         <i class="pi pi-download shrink-0"></i>
-                        <span class="truncate">{{ file.originalFileName }}</span>
+                        <span class="truncate">{{ file.fileName }}</span>
                     </a>
                 </div>
             </div>

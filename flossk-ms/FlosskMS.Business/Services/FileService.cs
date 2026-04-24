@@ -84,7 +84,6 @@ public class FileService : IFileService
             {
                 Id = Guid.NewGuid(),
                 FileName = uniqueFileName,
-                OriginalFileName = file.FileName,
                 ContentType = file.ContentType,
                 FileSize = file.Length,
                 FilePath = $"{_settings.UploadPath}/{uniqueFileName}",
@@ -101,7 +100,6 @@ public class FileService : IFileService
             result.Success = true;
             result.FileId = uploadedFile.Id;
             result.FileName = uploadedFile.FileName;
-            result.OriginalFileName = uploadedFile.OriginalFileName;
             result.FileSize = uploadedFile.FileSize;
             result.ContentType = uploadedFile.ContentType;
             result.UploadedAt = uploadedFile.UploadedAt;
@@ -189,7 +187,7 @@ public class FileService : IFileService
         }
 
         var stream = new FileStream(file.FilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
-        return (stream, file.ContentType, file.OriginalFileName);
+        return (stream, file.ContentType, file.FileName);
     }
 
     public async Task<bool> DeleteFileAsync(Guid fileId, string userId, bool isAdmin = false, CancellationToken cancellationToken = default)
@@ -249,7 +247,6 @@ public class FileService : IFileService
         {
             Id = file.Id,
             FileName = file.FileName,
-            OriginalFileName = file.OriginalFileName,
             ContentType = file.ContentType,
             FileSize = file.FileSize,
             UploadedAt = file.UploadedAt,

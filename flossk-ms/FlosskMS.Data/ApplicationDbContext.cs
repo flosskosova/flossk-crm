@@ -71,7 +71,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.FileName).HasMaxLength(255).IsRequired();
-            entity.Property(e => e.OriginalFileName).HasMaxLength(255).IsRequired();
             entity.Property(e => e.ContentType).HasMaxLength(100).IsRequired();
             entity.Property(e => e.FilePath).HasMaxLength(500).IsRequired();
             entity.Property(e => e.ScanResult).HasMaxLength(500);

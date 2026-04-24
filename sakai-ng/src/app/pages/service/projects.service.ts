@@ -73,7 +73,6 @@ export interface Member {
 export interface ResourceFile {
     id: string;
     fileName: string;
-    originalFileName: string;
     contentType: string;
     fileSize: number;
     uploadedAt: string;

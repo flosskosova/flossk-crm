@@ -714,7 +714,6 @@ public class MembershipRequestService : IMembershipRequestService
         {
             Id = Guid.NewGuid(),
             FileName = uniqueFileName,
-            OriginalFileName = file.FileName,
             ContentType = file.ContentType,
             FileSize = file.Length,
             FilePath = filePath,

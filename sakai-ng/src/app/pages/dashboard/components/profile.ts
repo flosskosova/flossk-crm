@@ -96,7 +96,7 @@ import { environment } from '@environments/environment.prod';
                                 accept="image/*"
                                 [maxFileSize]="1000000"
                                 (onSelect)="onFileSelect($event)"
-                                [auto]="true"
+                                customUpload="true"
                             ></p-fileupload>
                             <p-button 
                                 icon="pi pi-trash" 
@@ -230,7 +230,7 @@ import { environment } from '@environments/environment.prod';
                                 accept="image/*"
                                 [maxFileSize]="5000000"
                                 (onSelect)="onBannerSelect($event)"
-                                [auto]="true"
+                                customUpload="true"
                                 styleClass="!text-white !border-0"
                             />
                             <button
@@ -592,7 +592,7 @@ import { environment } from '@environments/environment.prod';
                                         accept=".pdf"
                                         [maxFileSize]="5000000"
                                         (onSelect)="onCVSelect($event)"
-                                        [auto]="true"
+                                        customUpload="true"
                                         styleClass="w-full"
                                     ></p-fileupload>
                                     <p-button 
@@ -1228,6 +1228,8 @@ export class Profile implements OnInit {
         if (!file) return;
         const formData = new FormData();
         formData.append('bannerFile', file);
+        // Clear existing banner immediately to avoid a 404 while the old file is being replaced
+        this.userProfile.bannerUrl = '';
         this.http.post<any>(`${environment.apiUrl}/Auth/me/banner`, formData).subscribe({
             next: (response) => {
                 if (response.bannerUrl) {

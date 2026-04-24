@@ -1521,17 +1521,17 @@ public class ProjectService(
         }
 
         // Collect file info before mutations (for logging)
-        var removedFilesInfo = new List<(string OriginalFileName, string FilePath, string ContentType)>();
-        var addedFilesInfo   = new List<(string OriginalFileName, string FilePath, string ContentType)>();
+        var removedFilesInfo = new List<(string FileName, string FilePath, string ContentType)>();
+        var addedFilesInfo   = new List<(string FileName, string FilePath, string ContentType)>();
 
         // Handle file removals
         if (request.FileIdsToRemove != null && request.FileIdsToRemove.Count > 0)
         {
             var rows = await _dbContext.UploadedFiles
                 .Where(f => request.FileIdsToRemove.Contains(f.Id))
-                .Select(f => new { f.OriginalFileName, f.FilePath, f.ContentType })
+                .Select(f => new { f.FileName, f.FilePath, f.ContentType })
                 .ToListAsync();
-            removedFilesInfo = rows.Select(r => (r.OriginalFileName, r.FilePath, r.ContentType)).ToList();
+            removedFilesInfo = rows.Select(r => (r.FileName, r.FilePath, r.ContentType)).ToList();
 
             var filesToRemoveEntities = resource.Files
                 .Where(rf => request.FileIdsToRemove.Contains(rf.FileId))
@@ -1545,9 +1545,9 @@ public class ProjectService(
         {
             var rows = await _dbContext.UploadedFiles
                 .Where(f => request.FileIdsToAdd.Contains(f.Id))
-                .Select(f => new { f.OriginalFileName, f.FilePath, f.ContentType })
+                .Select(f => new { f.FileName, f.FilePath, f.ContentType })
                 .ToListAsync();
-            addedFilesInfo = rows.Select(r => (r.OriginalFileName, r.FilePath, r.ContentType)).ToList();
+            addedFilesInfo = rows.Select(r => (r.FileName, r.FilePath, r.ContentType)).ToList();
 
             foreach (var fileId in request.FileIdsToAdd)
             {
@@ -1622,7 +1622,7 @@ public class ProjectService(
                     var isImage = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
                     await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
                         "Project", logProjectUpdate.Id.ToString(), logProjectUpdate.Title, "File attached",
-                        isImage ? file.FilePath : $"\"{file.OriginalFileName}\" added to Resource: {resource.Title}", userId));
+                        isImage ? file.FilePath : $"File added to Resource: {resource.Title}", userId));
                 }
 
                 foreach (var file in removedFilesInfo)
@@ -1630,7 +1630,7 @@ public class ProjectService(
                     var isImage = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
                     await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
                         "Project", logProjectUpdate.Id.ToString(), logProjectUpdate.Title, "File detached",
-                        isImage ? file.FilePath : $"\"{file.OriginalFileName}\" removed from Resource: {resource.Title}", userId));
+                        isImage ? file.FilePath : $"File removed from Resource: {resource.Title}", userId));
                 }
             }
         }

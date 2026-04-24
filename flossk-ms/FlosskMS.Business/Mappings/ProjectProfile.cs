@@ -116,7 +116,6 @@ public class ProjectProfile : Profile
             {
                 Id = rf.File.Id,
                 FileName = rf.File.FileName,
-                OriginalFileName = rf.File.OriginalFileName,
                 ContentType = rf.File.ContentType,
                 FileSize = rf.File.FileSize,
                 UploadedAt = rf.File.UploadedAt,

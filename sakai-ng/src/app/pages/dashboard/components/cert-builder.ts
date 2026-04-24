@@ -37,7 +37,6 @@ interface CertificateRecord {
 interface CertificateTemplate {
     id: string;
     name: string;
-    originalFileName: string;
     contentType: string;
     fileSize: number;
     uploadedAt: string;

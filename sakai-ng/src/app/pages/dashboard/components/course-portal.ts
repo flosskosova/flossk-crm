@@ -229,7 +229,7 @@ interface SessionFormState {
                         <div *ngIf="resourceForm.uploadedFiles.length > 0" class="flex flex-col gap-1">
                             <div *ngFor="let f of resourceForm.uploadedFiles; let i = index" class="flex items-center gap-2 p-2 bg-surface-50 dark:bg-surface-800 rounded-lg">
                                 <i class="pi pi-file text-muted-color text-sm"></i>
-                                <span class="flex-1 text-sm truncate">{{ f.originalFileName }}</span>
+                                <span class="flex-1 text-sm truncate">{{ f.fileName }}</span>
                                 <span class="text-xs text-muted-color">{{ formatFileSize(f.fileSize) }}</span>
                                 <p-button icon="pi pi-times" [text]="true" [rounded]="true" size="small" severity="danger" (onClick)="removeUploadedFile(i)" />
                             </div>
@@ -297,7 +297,7 @@ interface SessionFormState {
                             target="_blank" rel="noopener noreferrer"
                             class="flex items-center gap-2 text-sm text-primary hover:underline min-w-0">
                             <i class="pi pi-download shrink-0"></i>
-                            <span class="truncate min-w-0">{{ file.originalFileName }}</span>
+                            <span class="truncate min-w-0">{{ file.fileName }}</span>
                             <span class="text-xs text-muted-color shrink-0">({{ formatFileSize(file.fileSize) }})</span>
                         </a>
                     </div>
@@ -422,46 +422,54 @@ interface SessionFormState {
                 <div *ngIf="!loadingCourses && courses.length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div
                         *ngFor="let course of courses"
-                        class="border border-surface-200 dark:border-surface-700 rounded-xl p-5 flex flex-col gap-3 cursor-pointer hover:shadow-md hover:border-primary transition-all"
+                        class="border border-surface-200 dark:border-surface-700 rounded-xl p-5 flex flex-col justify-between h-full cursor-pointer hover:shadow-md hover:border-primary transition-all"
                         (click)="selectCourse(course)"
                     >
-                        <div>
-                            <h3 class="text-lg m-0 line-clamp-2">{{ course.title }}</h3>
-                            <p class="text-xs text-muted-color mt-1 mb-0">{{ course.projectTitle }}</p>
+                        <!-- Top: title, project, description, open button -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <h3 class="text-lg m-0 line-clamp-2">{{ course.title }}</h3>
+                                    <p class="text-xs text-muted-color mt-1 mb-0">{{ course.projectTitle }}</p>
+                                </div>
+                                <div class="shrink-0" (click)="$event.stopPropagation()">
+                                    <p-button label="Open" icon="pi pi-arrow-up-right" size="small" [text]="true" (onClick)="openCourse(course)" />
+                                </div>
+                            </div>
+
+                            <p *ngIf="course.description" class="text-sm text-muted-color m-0 line-clamp-3">{{ course.description }}</p>
                         </div>
 
-                        <p *ngIf="course.description" class="text-sm text-muted-color m-0 line-clamp-3">{{ course.description }}</p>
+                        <!-- Bottom: stats, instructors -->
+                        <div class="flex flex-col gap-3 mt-3">
+                            <p-divider styleClass="my-1" />
 
-                        <p-divider styleClass="my-1" />
+                            <div class="flex items-center gap-4 text-xs text-muted-color flex-wrap">
+                                <span class="flex items-center gap-1">
+                                    <i class="pi pi-list"></i> {{ getModuleCount(course) }} {{ getModuleCount(course) === 1 ? 'module' : 'modules' }}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <i class="pi pi-link"></i> {{ getResourceCount(course) }} {{ getResourceCount(course) === 1 ? 'resource' : 'resources' }}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <i class="pi pi-calendar"></i> {{ getSessionCount(course) }} {{ getSessionCount(course) === 1 ? 'session' : 'sessions' }}
+                                </span>
+                            </div>
 
-                        <div class="flex items-center gap-4 text-xs text-muted-color flex-wrap">
-                            <span class="flex items-center gap-1">
-                                <i class="pi pi-list"></i> {{ getModuleCount(course) }} {{ getModuleCount(course) === 1 ? 'module' : 'modules' }}
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <i class="pi pi-link"></i> {{ getResourceCount(course) }} {{ getResourceCount(course) === 1 ? 'resource' : 'resources' }}
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <i class="pi pi-calendar"></i> {{ getSessionCount(course) }} {{ getSessionCount(course) === 1 ? 'session' : 'sessions' }}
-                            </span>
-                        </div>
-
-                        <div *ngIf="course.instructors.length > 0" class="flex items-center gap-2 flex-wrap">
-                            <span class="text-xs text-muted-color">By:</span>
-                            <span *ngFor="let inst of course.instructors.slice(0, 3)" class="flex items-center gap-1">
-                                <p-avatar
-                                    [image]="inst.profilePictureUrl ? getInstructorProfilePictureUrl(inst.profilePictureUrl) : undefined"
-                                    [label]="inst.profilePictureUrl ? undefined : getInstructorInitials(inst)"
-                                    shape="circle"
-                                    size="normal"
-                                    [style]="inst.profilePictureUrl ? { 'width': '1.6rem', 'height': '1.6rem' } : { 'width': '1.6rem', 'height': '1.6rem', 'font-size': '0.6rem', 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
-                                ></p-avatar>
-                                <span class="text-xs font-medium">{{ getInstructorName(inst) }}</span>
-                            </span>
-                            <span *ngIf="course.instructors.length > 3" class="text-xs text-muted-color">+{{ course.instructors.length - 3 }} more</span>
-                        </div>
-                        <div class="flex justify-end mt-1" (click)="$event.stopPropagation()">
-                            <p-button label="Open" icon="pi pi-arrow-up-right" size="small" [text]="true" (onClick)="openCourse(course)" />
+                            <div *ngIf="course.instructors.length > 0" class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs text-muted-color">By:</span>
+                                <span *ngFor="let inst of course.instructors.slice(0, 3)" class="flex items-center gap-1">
+                                    <p-avatar
+                                        [image]="inst.profilePictureUrl ? getInstructorProfilePictureUrl(inst.profilePictureUrl) : undefined"
+                                        [label]="inst.profilePictureUrl ? undefined : getInstructorInitials(inst)"
+                                        shape="circle"
+                                        size="normal"
+                                        [style]="inst.profilePictureUrl ? { 'width': '1.6rem', 'height': '1.6rem' } : { 'width': '1.6rem', 'height': '1.6rem', 'font-size': '0.6rem', 'background-color': 'var(--primary-color)', 'color': 'var(--primary-color-text)' }"
+                                    ></p-avatar>
+                                    <span class="text-xs font-medium">{{ getInstructorName(inst) }}</span>
+                                </span>
+                                <span *ngIf="course.instructors.length > 3" class="text-xs text-muted-color">+{{ course.instructors.length - 3 }} more</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -613,7 +621,7 @@ interface SessionFormState {
                                                             <div *ngIf="res.files.length > 0" class="flex flex-col gap-0.5 mt-0.5">
                                                                 <span *ngFor="let file of res.files" class="text-xs text-muted-color flex items-center gap-1">
                                                                     <i class="pi pi-paperclip text-xs"></i>
-                                                                    <span class="truncate">{{ file.originalFileName }}</span>
+                                                                    <span class="truncate">{{ file.fileName }}</span>
                                                                 </span>
                                                             </div>
                                                             <p *ngIf="res.description" class="text-xs text-muted-color m-0 mt-0.5">{{ res.description }}</p>
@@ -1353,7 +1361,6 @@ export class CoursePortal implements OnInit {
             uploadedFiles: resource.files.map((f) => ({
                 fileId: f.fileId,
                 fileName: f.fileName,
-                originalFileName: f.originalFileName,
                 contentType: f.contentType,
                 fileSize: f.fileSize
             })),
@@ -1605,7 +1612,13 @@ export class CoursePortal implements OnInit {
         }).subscribe({
             next: ({ projects, users }) => {
                 this.projectOptions = this.mapProjectOptions(projects as Array<{ id: string; title?: string }>);
-                this.userOptions = this.mapUserOptions(users.users);
+                const mappedUsers = this.mapUserOptions(users.users);
+                const currentUser = this.authService.currentUser();
+                if (currentUser && !mappedUsers.some((o) => o.value === currentUser.id)) {
+                    const meLabel = `${currentUser.firstName ?? ''} ${currentUser.lastName ?? ''}`.trim() || currentUser.email;
+                    mappedUsers.unshift({ label: meLabel, value: currentUser.id ?? '' });
+                }
+                this.userOptions = mappedUsers;
             },
             error: (error: unknown) => {
                 this.showError('Unable to load projects or users for course setup.', error);

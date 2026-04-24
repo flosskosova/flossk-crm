@@ -221,7 +221,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 @for (file of currentResource.files; track file.id) {
                                     <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
                                         <i class="pi pi-file"></i>
-                                        <span class="flex-1 truncate">{{ file.originalFileName }}</span>
+                                        <span class="flex-1 truncate">{{ file.fileName }}</span>
                                         <span class="text-surface-500 text-sm">{{ formatFileSize(file.fileSize) }}</span>
                                         <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeExistingResourceFile(file)" />
                                     </div>
@@ -354,12 +354,12 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                     <div *ngFor="let file of resource.files" class="flex items-center gap-2 p-2 bg-white dark:bg-surface-900 rounded">
                                         <i class="pi pi-file text-sm"></i>
                                         <span class="flex-1 truncate text-sm text-surface-900 dark:text-surface-0">
-                                            {{ file.originalFileName }}
+                                            {{ file.fileName }}
                                         </span>
                                         <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
                                         <div class="flex gap-1">
-                                            <p-button *ngIf="!(file.originalFileName ?? '').toLowerCase().endsWith('.pptx')" icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
-                                            <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.originalFileName)" />
+                                            <p-button *ngIf="!(file.fileName ?? '').toLowerCase().endsWith('.pptx')" icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.fileName)" />
+                                            <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.fileName)" />
                                         </div>
                                     </div>
                                 </div>
@@ -448,7 +448,7 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                 @for (file of currentObjectiveResource.files; track file.id) {
                                     <div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded">
                                         <i class="pi pi-file"></i>
-                                        <span class="flex-1 truncate">{{ file.originalFileName }}</span>
+                                        <span class="flex-1 truncate">{{ file.fileName }}</span>
                                         <span class="text-surface-500 text-sm">{{ formatFileSize(file.fileSize) }}</span>
                                         <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeExistingObjectiveFile(file)" />
                                     </div>
@@ -1283,12 +1283,12 @@ import { HistoryLogEntry, LogDto, PaginatedLogsResponse } from '@interfaces/hist
                                             <div *ngFor="let file of resource.files" class="flex items-center gap-2 p-2 bg-white dark:bg-surface-900 rounded">
                                                 <i class="pi pi-file text-sm"></i>
                                                 <span class="flex-1 truncate text-sm text-surface-900 dark:text-surface-0">
-                                                    {{ file.originalFileName }}
+                                                    {{ file.fileName }}
                                                 </span>
                                                 <span class="text-muted-color text-xs">{{ formatFileSize(file.fileSize) }}</span>
                                                 <div class="flex gap-1">
-                                                    <p-button *ngIf="!(file.originalFileName ?? '').toLowerCase().endsWith('.pptx')" icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.originalFileName)" />
-                                                    <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.originalFileName)" />
+                                                    <p-button *ngIf="!(file.fileName ?? '').toLowerCase().endsWith('.pptx')" icon="pi pi-eye" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="View" (onClick)="viewFile(file.id, file.fileName)" />
+                                                    <p-button icon="pi pi-download" [text]="true" [rounded]="true" size="small" severity="secondary" pTooltip="Download" (onClick)="downloadFile(file.id, file.fileName)" />
                                                 </div>
                                             </div>
                                         </div>
