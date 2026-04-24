@@ -232,6 +232,28 @@ export class CourseService {
         return this.http.post<CourseVoucher[]>(`${this.apiUrl}/${courseId}/vouchers`, payload);
     }
 
+    static slugify(title: string): string {
+        return title
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/[\s_]+/g, '-')
+            .replace(/-+/g, '-');
+    }
+
+    getCourseBySlug(slug: string): Observable<Course> {
+        const cached = this._courses().find((c) => CourseService.slugify(c.title) === slug);
+        if (cached) return of(cached);
+
+        return this.loadCourses().pipe(
+            map((courses) => {
+                const found = courses.find((c) => CourseService.slugify(c.title) === slug);
+                if (!found) throw new Error(`Course not found`);
+                return found;
+            })
+        );
+    }
+
     private refreshCourse(courseId: string): Observable<Course> {
         return this.fetchCourse(courseId).pipe(
             tap((course) => this.upsertCourse(course))

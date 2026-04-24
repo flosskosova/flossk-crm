@@ -75,7 +75,7 @@ export const appRoutes: Routes = [
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
     { path: 'notfound', component: Notfound },
-    { path: 'course/:courseId', component: Course },
+    { path: 'course/:slug', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }

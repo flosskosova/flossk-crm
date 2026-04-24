@@ -9,6 +9,7 @@ import { DividerModule } from 'primeng/divider';
 import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
 import { LayoutService } from '@/layout/service/layout.service';
 import { AuthService } from '@/pages/service/auth.service';
+import { CourseService } from '@/pages/service/course.service';
 
 type PageMode = 'join' | 'login';
 
@@ -117,7 +118,7 @@ export class CourseLogin {
     errorMsg = '';
     successMsg = '';
 
-    constructor(public layoutService: LayoutService, private authService: AuthService, private router: Router) {}
+    constructor(public layoutService: LayoutService, private authService: AuthService, private router: Router, private courseService: CourseService) {}
 
     switchMode(m: PageMode) {
         this.mode = m;
@@ -149,8 +150,16 @@ export class CourseLogin {
             voucherCode: this.accessCode.trim()
         }).subscribe({
             next: (res) => {
-                this.loading = false;
-                this.router.navigate(['/course', res.courseId]);
+                this.courseService.getCourse(res.courseId!).subscribe({
+                    next: (course) => {
+                        this.loading = false;
+                        this.router.navigate(['/course', CourseService.slugify(course.title)]);
+                    },
+                    error: () => {
+                        this.loading = false;
+                        this.router.navigate(['/course', res.courseId]);
+                    }
+                });
             },
             error: (err) => {
                 this.loading = false;
@@ -172,8 +181,16 @@ export class CourseLogin {
         this.loading = true;
         this.authService.traineeLogin({ email: this.email.trim() }).subscribe({
             next: (res) => {
-                this.loading = false;
-                this.router.navigate(['/course', res.courseId]);
+                this.courseService.getCourse(res.courseId!).subscribe({
+                    next: (course) => {
+                        this.loading = false;
+                        this.router.navigate(['/course', CourseService.slugify(course.title)]);
+                    },
+                    error: () => {
+                        this.loading = false;
+                        this.router.navigate(['/course', res.courseId]);
+                    }
+                });
             },
             error: (err) => {
                 this.loading = false;

@@ -65,13 +65,7 @@ import { environment } from '@environments/environment.prod';
                                 </div>
                             </div>
                         </div>
-                        <div *ngIf="currentUser()" class="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4 shrink-0">
-                            <p-avatar
-                                [label]="currentUserInitials()"
-                                shape="circle"
-                                size="large"
-                                [style]="{ 'background-color': 'rgba(255,255,255,0.2)', 'color': 'white', 'font-weight': '700', 'border': '2px solid rgba(255,255,255,0.3)' }"
-                            ></p-avatar>
+                        <div *ngIf="currentUser()" class="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-5 py-4 shrink-0">
                             <div class="min-w-0">
                                 <p class="font-bold text-sm text-white m-0 leading-tight">{{ currentUser()!.firstName }} {{ currentUser()!.lastName }}</p>
                                 <p class="text-xs text-white/60 m-0 truncate mt-0.5">{{ currentUser()!.email }}</p>
@@ -294,12 +288,6 @@ import { environment } from '@environments/environment.prod';
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                                     <div *ngFor="let member of courseMembers()" class="flex items-center gap-3 p-4 border border-surface-200 dark:border-surface-700 rounded-xl bg-surface-0 dark:bg-surface-900 hover:border-primary/40 hover:shadow-sm transition-all">
-                                        <p-avatar
-                                            [label]="member.initials"
-                                            shape="circle"
-                                            size="large"
-                                            [style]="{ 'background-color': member.color, 'color': 'white', 'font-weight': '700', 'flex-shrink': '0' }"
-                                        ></p-avatar>
                                         <div class="flex-1 min-w-0">
                                             <p class="font-semibold text-sm m-0 truncate">{{ member.name }}</p>
                                             <p class="text-xs text-muted-color m-0 truncate mt-0.5">{{ member.email }}</p>
@@ -431,13 +419,13 @@ export class Course implements OnInit {
     ) { }
 
     ngOnInit(): void {
-        const id = this.route.snapshot.paramMap.get('courseId');
-        if (!id) {
+        const slug = this.route.snapshot.paramMap.get('slug');
+        if (!slug) {
             this.loading = false;
             return;
         }
 
-        this.courseService.getCourse(id, true).subscribe({
+        this.courseService.getCourseBySlug(slug).subscribe({
             next: (course) => {
                 this.course = course;
                 this.loading = false;
