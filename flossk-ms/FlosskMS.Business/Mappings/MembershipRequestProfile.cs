@@ -26,6 +26,7 @@ public class MembershipRequestProfile : Profile
             .ForMember(dest => dest.ReviewedByUserId, opt => opt.Ignore())
             .ForMember(dest => dest.ReviewedByUser, opt => opt.Ignore())
             .ForMember(dest => dest.BoardMemberSignatureFileId, opt => opt.Ignore())
-            .ForMember(dest => dest.BoardMemberSignatureFile, opt => opt.Ignore());
+            .ForMember(dest => dest.BoardMemberSignatureFile, opt => opt.Ignore())
+            .ForMember(dest => dest.RejectionReason, opt => opt.Ignore());
     }
 }

@@ -38,6 +38,9 @@ public class MembershipRequest
     public Guid? BoardMemberSignatureFileId { get; set; }
     public UploadedFile? BoardMemberSignatureFile { get; set; }
     
+    // Rejection reason (optional, set when request is rejected)
+    public string? RejectionReason { get; set; }
+    
     /// <summary>
     /// Determines if the applicant is under 14 years old based on their date of birth
     /// </summary>

@@ -2,4 +2,5 @@
   <Project Path="FlosskMS.API/FlosskMS.API.csproj" />
   <Project Path="FlosskMS.Business/FlosskMS.Business.csproj" />
   <Project Path="FlosskMS.Data/FlosskMS.Data.csproj" />
+  <Project Path="FlosskMS.Tests/FlosskMS.Tests.csproj" />
 </Solution>

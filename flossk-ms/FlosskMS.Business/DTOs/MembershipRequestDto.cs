@@ -32,6 +32,9 @@ public class MembershipRequestDto
     public string? ReviewedByLastName { get; set; }
     public Guid? BoardMemberSignatureFileId { get; set; }
     
+    // Rejection
+    public string? RejectionReason { get; set; }
+    
     // Computed property
     public bool IsUnder14 { get; set; }
 }

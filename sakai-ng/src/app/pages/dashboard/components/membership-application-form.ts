@@ -106,18 +106,17 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                             type="text"
                             pattern="^[0-9]{10}$"
                             class="w-full"
-                            [class.ng-invalid]="idNumber.invalid && idNumber.touched"
-                            [disabled]="!formData.applicantDateofBirth"
-                            required />
+                            [class.ng-invalid]="idNumber.touched && formData.applicantDateofBirth && (!formData.idNumber || idNumber.errors?.['pattern'])"
+                            [attr.disabled]="!formData.applicantDateofBirth ? true : null" />
                         <small *ngIf="!formData.applicantDateofBirth" class="text-orange-500">
                             Please fill Date of Birth first.
                         </small>
                         <small *ngIf="formData.applicantDateofBirth && isUnder16()" class="text-orange-500">
                             Requires guardian ID number.
                         </small>
-                        <small *ngIf="idNumber.invalid && idNumber.touched && formData.applicantDateofBirth" class="text-red-500">
-                            <span *ngIf="idNumber.errors?.['required']">ID number is required.</span>
-                            <span *ngIf="idNumber.errors?.['pattern']">ID number must be exactly 10 digits.</span>
+                        <small *ngIf="idNumber.touched && formData.applicantDateofBirth" class="text-red-500">
+                            <span *ngIf="!formData.idNumber">ID number is required.</span>
+                            <span *ngIf="formData.idNumber && idNumber.errors?.['pattern']">ID number must be exactly 10 digits.</span>
                         </small>
                     </div>
                 </div>

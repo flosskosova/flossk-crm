@@ -24,6 +24,7 @@ public class MembershipRequestService : IMembershipRequestService
     private readonly IMapper _mapper;
     private readonly ILogger<MembershipRequestService> _logger;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
+    private readonly IEmailService _emailService;
 
     public MembershipRequestService(
         ApplicationDbContext dbContext,
@@ -31,7 +32,8 @@ public class MembershipRequestService : IMembershipRequestService
         IOptions<FileUploadSettings> fileSettings,
         IMapper mapper,
         ILogger<MembershipRequestService> logger,
-        IDomainEventDispatcher domainEventDispatcher)
+        IDomainEventDispatcher domainEventDispatcher,
+        IEmailService emailService)
     {
         _dbContext = dbContext;
         _clamAvService = clamAvService;
@@ -39,6 +41,7 @@ public class MembershipRequestService : IMembershipRequestService
         _mapper = mapper;
         _logger = logger;
         _domainEventDispatcher = domainEventDispatcher;
+        _emailService = emailService;
     }
 
     public async Task<IActionResult> CreateMembershipRequestAsync(
@@ -79,35 +82,43 @@ public class MembershipRequestService : IMembershipRequestService
         if (request.SignatureFile == null || request.SignatureFile.Length == 0)
             return new BadRequestObjectResult(new { Error = "Signature file is required." });
 
-        // Check if email already exists as a registered user
-        var existingUser = await _dbContext.Users
-            .AnyAsync(u => u.Email.ToLower() == request.Email.ToLower(), cancellationToken);
-        
-        if (existingUser)
-            return new BadRequestObjectResult(new { Error = "This email is already registered in the system." });
+        var isDevBypass = string.Equals(
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development",
+            StringComparison.OrdinalIgnoreCase)
+            && string.Equals(request.Email.Trim(), "daorsahyseni@gmail.com", StringComparison.OrdinalIgnoreCase);
 
-        // Check if email is already approved
-        var isEmailApproved = await _dbContext.ApprovedEmails
-            .AnyAsync(e => e.Email.ToLower() == request.Email.ToLower(), cancellationToken);
-        
-        if (isEmailApproved)
-            return new BadRequestObjectResult(new { Error = "This email has already been approved for membership. Please proceed to register your account." });
-
-        // Check for existing membership request
-        var existingRequest = await _dbContext.MembershipRequests
-            .Where(r => r.Email.ToLower() == request.Email.ToLower())
-            .FirstOrDefaultAsync(cancellationToken);
-        
-        if (existingRequest != null)
+        if (!isDevBypass)
         {
-            if (existingRequest.Status == MembershipRequestStatus.Pending)
-                return new BadRequestObjectResult(new { Error = "A pending membership request with this email already exists." });
-            
-            if (existingRequest.Status == MembershipRequestStatus.Approved)
-                return new BadRequestObjectResult(new { Error = "A membership request with this email has already been approved. Please proceed to register your account." });
-            
-            if (existingRequest.Status == MembershipRequestStatus.Rejected)
-                return new BadRequestObjectResult(new { Error = "A membership request with this email has been rejected. Please contact administration for more information." });
+            // Check if email already exists as a registered user
+            var existingUser = await _dbContext.Users
+                .AnyAsync(u => u.Email.ToLower() == request.Email.ToLower(), cancellationToken);
+
+            if (existingUser)
+                return new BadRequestObjectResult(new { Error = "This email is already registered in the system." });
+
+            // Check if email is already approved
+            var isEmailApproved = await _dbContext.ApprovedEmails
+                .AnyAsync(e => e.Email.ToLower() == request.Email.ToLower(), cancellationToken);
+
+            if (isEmailApproved)
+                return new BadRequestObjectResult(new { Error = "This email has already been approved for membership. Please proceed to register your account." });
+
+            // Check for existing membership request
+            var existingRequest = await _dbContext.MembershipRequests
+                .Where(r => r.Email.ToLower() == request.Email.ToLower())
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingRequest != null)
+            {
+                if (existingRequest.Status == MembershipRequestStatus.Pending)
+                    return new BadRequestObjectResult(new { Error = "A pending membership request with this email already exists." });
+
+                if (existingRequest.Status == MembershipRequestStatus.Approved)
+                    return new BadRequestObjectResult(new { Error = "A membership request with this email has already been approved. Please proceed to register your account." });
+
+                if (existingRequest.Status == MembershipRequestStatus.Rejected)
+                    return new BadRequestObjectResult(new { Error = "A membership request with this email has been rejected. Please contact administration for more information." });
+            }
         }
 
         // Determine if applicant is under 14
@@ -262,6 +273,25 @@ public class MembershipRequestService : IMembershipRequestService
         await _domainEventDispatcher.PublishAsync(
             new MembershipRequestApprovedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId, $"{reviewer.FirstName} {reviewer.LastName}".Trim()));
 
+        // Reload with signatures for contract generation
+        var fullRequest = await _dbContext.MembershipRequests
+            .Include(r => r.ApplicantSignatureFile)
+            .Include(r => r.GuardianSignatureFile)
+            .Include(r => r.BoardMemberSignatureFile)
+            .Include(r => r.ReviewedByUser)
+            .FirstAsync(r => r.Id == id, cancellationToken);
+
+        try
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var contractPdf = GenerateContractPdf(fullRequest);
+            await _emailService.SendMembershipApprovedEmailAsync(membershipRequest.Email, membershipRequest.FullName, contractPdf);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send approval email to {Email} for request {RequestId}", membershipRequest.Email, id);
+        }
+
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} approved successfully" });
     }
 
@@ -288,6 +318,7 @@ public class MembershipRequestService : IMembershipRequestService
         membershipRequest.Status = MembershipRequestStatus.Rejected;
         membershipRequest.ReviewedAt = DateTime.UtcNow;
         membershipRequest.ReviewedByUserId = reviewerUserId;
+        membershipRequest.RejectionReason = request.RejectionReason;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
