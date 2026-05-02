@@ -1,11 +1,13 @@
 import { Component, ElementRef, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
+import { TextareaModule } from 'primeng/textarea';
 import SignaturePad from 'signature_pad';
 import { MembershipRequestsService } from '@/pages/service/membership-requests.service';
 
@@ -22,12 +24,13 @@ interface JoinRequest {
     dateOfBirth: string;
     status: string;
     createdAt: string;
+    rejectionReason?: string;
 }
 
 @Component({
     selector: 'app-membership-requests',
     standalone: true,
-    imports: [CommonModule, ButtonModule, TagModule, DialogModule, TableModule, SkeletonModule, TooltipModule],
+    imports: [CommonModule, FormsModule, ButtonModule, TagModule, DialogModule, TableModule, SkeletonModule, TooltipModule, TextareaModule],
     template: `
         <!-- Loading Skeleton -->
         <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">
@@ -184,7 +187,25 @@ interface JoinRequest {
                     </div>
                 </div>
 
+                <ng-container *ngIf="selectedRequest && selectedRequest.status.toLowerCase() === 'rejected' && selectedRequest.rejectionReason">
+                    <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4">
+                        <p class="font-semibold text-red-700 dark:text-red-400 mb-1">Rejection Reason</p>
+                        <p class="text-red-600 dark:text-red-300">{{ selectedRequest.rejectionReason }}</p>
+                    </div>
+                </ng-container>
+
                 <ng-container *ngIf="selectedRequest && selectedRequest.status.toLowerCase() === 'pending'">
+                    <div class="field">
+                        <label for="rejectionReason" class="block font-bold mb-2">Rejection Reason <span class="font-normal text-muted-color">(optional)</span></label>
+                        <textarea
+                            pTextarea
+                            id="rejectionReason"
+                            [(ngModel)]="rejectionReason"
+                            rows="3"
+                            class="w-full"
+                            placeholder="Provide a reason for rejection (will be included in the notification email)..."
+                        ></textarea>
+                    </div>
                     <label for="boardMemberSignature" class="block font-bold">Board Member Signature:</label>
                     <div class="border-2 border-gray-300 rounded-lg bg-white">
                         <canvas
@@ -219,6 +240,7 @@ interface JoinRequest {
                     label="Reject"
                     severity="danger"
                     icon="pi pi-times"
+                    [loading]="isRejecting"
                     (onClick)="selectedRequest && rejectRequest(selectedRequest)"
                 />
                 <p-button
@@ -227,6 +249,7 @@ interface JoinRequest {
                     severity="success"
                     icon="pi pi-check"
                     [disabled]="isSignaturePadEmpty()"
+                    [loading]="isApproving"
                     (onClick)="selectedRequest && approveRequest(selectedRequest)"
                 />
             </div>
@@ -238,6 +261,9 @@ export class MembershipRequests implements OnInit {
     boardMemberSignaturePad!: SignaturePad;
 
     isLoading = true;
+    isApproving = false;
+    isRejecting = false;
+    rejectionReason = '';
     joinRequests: JoinRequest[] = [];
     viewDialogVisible = false;
     selectedRequest: JoinRequest | null = null;
@@ -265,7 +291,8 @@ export class MembershipRequests implements OnInit {
                     statement: req.statement,
                     dateOfBirth: req.dateOfBirth,
                     status: req.status,
-                    createdAt: req.createdAt
+                    createdAt: req.createdAt,
+                    rejectionReason: req.rejectionReason ?? undefined
                 }));
                 this.isLoading = false;
             },
@@ -291,6 +318,7 @@ export class MembershipRequests implements OnInit {
 
     viewRequest(request: JoinRequest) {
         this.selectedRequest = request;
+        this.rejectionReason = '';
         this.viewDialogVisible = true;
         if (request.status?.toLowerCase() === 'pending') {
             this.initializeSignaturePad();
@@ -331,6 +359,7 @@ export class MembershipRequests implements OnInit {
 
         const signatureDataUrl = this.boardMemberSignaturePad.toDataURL('image/png');
 
+        this.isApproving = true;
         fetch(signatureDataUrl)
             .then(res => res.blob())
             .then(signatureBlob => {
@@ -339,24 +368,31 @@ export class MembershipRequests implements OnInit {
 
                 this.membershipRequestsService.approve(request.id, formData).subscribe({
                     next: () => {
+                        this.isApproving = false;
                         this.viewDialogVisible = false;
                         this.loadMembershipRequests();
                     },
                     error: (err) => {
                         console.error('Failed to approve request:', err);
+                        this.isApproving = false;
                     }
                 });
-            });
+            })
+            .catch(() => { this.isApproving = false; });
     }
 
     rejectRequest(request: JoinRequest) {
-        this.membershipRequestsService.reject(request.id).subscribe({
+        this.isRejecting = true;
+        this.membershipRequestsService.reject(request.id, this.rejectionReason || undefined).subscribe({
             next: () => {
+                this.isRejecting = false;
+                this.rejectionReason = '';
                 this.viewDialogVisible = false;
                 this.loadMembershipRequests();
             },
             error: (err) => {
                 console.error('Failed to reject request:', err);
+                this.isRejecting = false;
             }
         });
     }

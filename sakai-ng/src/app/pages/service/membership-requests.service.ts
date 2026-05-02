@@ -46,8 +46,8 @@ export class MembershipRequestsService {
         return this.http.post(`${this.API_URL}/approve/${id}`, boardMemberSignature);
     }
 
-    reject(id: string): Observable<any> {
-        return this.http.post(`${this.API_URL}/reject/${id}`, {});
+    reject(id: string, rejectionReason?: string): Observable<any> {
+        return this.http.post(`${this.API_URL}/reject/${id}`, { rejectionReason: rejectionReason ?? null });
     }
 
     getApproved(page: number = 1, pageSize: number = 10): Observable<any> {

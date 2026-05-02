@@ -116,8 +116,6 @@ public class MembershipRequestService : IMembershipRequestService
                 if (existingRequest.Status == MembershipRequestStatus.Approved)
                     return new BadRequestObjectResult(new { Error = "A membership request with this email has already been approved. Please proceed to register your account." });
 
-                if (existingRequest.Status == MembershipRequestStatus.Rejected)
-                    return new BadRequestObjectResult(new { Error = "A membership request with this email has been rejected. Please contact administration for more information." });
             }
         }
 
@@ -139,13 +137,9 @@ public class MembershipRequestService : IMembershipRequestService
 
         // Set signature based on age
         if (isUnder14)
-        {
             membershipRequest.GuardianSignatureFileId = signatureUploadResult.FileId;
-        }
         else
-        {
             membershipRequest.ApplicantSignatureFileId = signatureUploadResult.FileId;
-        }
 
         _dbContext.MembershipRequests.Add(membershipRequest);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -326,6 +320,15 @@ public class MembershipRequestService : IMembershipRequestService
 
         await _domainEventDispatcher.PublishAsync(
             new MembershipRequestRejectedEvent(membershipRequest.FullName, membershipRequest.Email, reviewerUserId, $"{reviewer.FirstName} {reviewer.LastName}".Trim()));
+
+        try
+        {
+            await _emailService.SendMembershipRejectedEmailAsync(membershipRequest.Email, membershipRequest.FullName, membershipRequest.RejectionReason);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send rejection email to {Email} for request {RequestId}", membershipRequest.Email, id);
+        }
 
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} rejected successfully" });
     }
@@ -766,9 +769,9 @@ public class MembershipRequestService : IMembershipRequestService
         var file = await _dbContext.UploadedFiles.FindAsync([fileId], cancellationToken);
         if (file != null)
         {
-            if (System.IO.File.Exists(file.FilePath))
+            if (File.Exists(file.FilePath))
             {
-                System.IO.File.Delete(file.FilePath);
+                File.Delete(file.FilePath);
             }
             _dbContext.UploadedFiles.Remove(file);
             await _dbContext.SaveChangesAsync(cancellationToken);

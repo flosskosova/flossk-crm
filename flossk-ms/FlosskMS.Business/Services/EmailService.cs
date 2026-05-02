@@ -12,6 +12,7 @@ public class EmailService : IEmailService
     private readonly string _password = Environment.GetEnvironmentVariable("SmtpSettings__Password") ?? string.Empty;
     private readonly string _fromEmail = Environment.GetEnvironmentVariable("SmtpSettings__FromEmail") ?? string.Empty;
     private readonly string _fromName = Environment.GetEnvironmentVariable("SmtpSettings__FromName") ?? "FlosskMS";
+    private readonly string _frontendBaseUrl = Environment.GetEnvironmentVariable("SmtpSettings__FrontendBaseUrl") ?? "";
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string toName, string resetLink)
     {
@@ -39,15 +40,36 @@ public class EmailService : IEmailService
         message.To.Add(new MailboxAddress(toName, toEmail));
         message.Subject = "Your FLOSSK membership has been approved!";
 
+        var loginUrl = $"{_frontendBaseUrl}/auth/login";
+
         var builder = new BodyBuilder
         {
-            HtmlBody = EmailTemplates.MembershipApproved(_fromName, toName)
+            HtmlBody = EmailTemplates.MembershipApproved(_fromName, toName, loginUrl)
         };
 
         var fileName = $"FLOSSK_Membership_Contract_{toName.Replace(" ", "_")}.pdf";
         builder.Attachments.Add(fileName, contractPdf, new ContentType("application", "pdf"));
 
         message.Body = builder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_host, _port, SecureSocketOptions.StartTls);
+        await client.AuthenticateAsync(_username, _password);
+        await client.SendAsync(message);
+        await client.DisconnectAsync(true);
+    }
+
+    public async Task SendMembershipRejectedEmailAsync(string toEmail, string toName, string? rejectionReason)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_fromName, _fromEmail));
+        message.To.Add(new MailboxAddress(toName, toEmail));
+        message.Subject = "Update on your FLOSSK membership application";
+
+        message.Body = new BodyBuilder
+        {
+            HtmlBody = EmailTemplates.MembershipRejected(_fromName, toName, rejectionReason)
+        }.ToMessageBody();
 
         using var client = new SmtpClient();
         await client.ConnectAsync(_host, _port, SecureSocketOptions.StartTls);
