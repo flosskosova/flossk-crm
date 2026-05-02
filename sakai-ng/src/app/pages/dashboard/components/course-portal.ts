@@ -1020,6 +1020,7 @@ export class CoursePortal implements OnInit {
                 this.scheduleCalendarDate = null;
                 this.activeTab = 'overview';
                 this.loadingSelectedCourse = false;
+                this.loadVouchers(selectedCourse.id);
             },
             error: (error: unknown) => {
                 this.loadingSelectedCourse = false;
