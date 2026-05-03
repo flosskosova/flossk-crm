@@ -195,6 +195,7 @@ builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection(
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
 builder.Services.Configure<VapidSettings>(builder.Configuration.GetSection("VapidSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IFormResponseService, FormResponseService>();
 
 var app = builder.Build();
 

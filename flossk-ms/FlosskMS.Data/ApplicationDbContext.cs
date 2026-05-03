@@ -50,6 +50,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseSession> CourseSessions { get; set; }
     public DbSet<CourseVoucher> CourseVouchers { get; set; }
     public DbSet<CourseVoucherRedemption> CourseVoucherRedemptions { get; set; }
+    public DbSet<FormResponse> FormResponses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
