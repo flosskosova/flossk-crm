@@ -3,17 +3,19 @@ using FlosskMS.Data;
 using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NotificationDispatchRequest = FlosskMS.Business.Services.FactoryPattern.NotificationDispatchRequest;
+using NotificationFactory = FlosskMS.Business.Services.FactoryPattern.NotificationFactory;
 
 namespace FlosskMS.Business.Services;
 
 public class NotificationService(
     ApplicationDbContext dbContext,
     IRealtimeNotificationService realtimeService,
-    IPushNotificationService pushService) : INotificationService
+    NotificationFactory notificationFactory) : INotificationService
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly IRealtimeNotificationService _realtimeService = realtimeService;
-    private readonly IPushNotificationService _pushService = pushService;
+    private readonly NotificationFactory _notificationFactory = notificationFactory;
 
     public async Task<NotificationDto> SendAsync(string userId, NotificationType type, string title, string body,
         string? metadata = null, NotificationPriority priority = NotificationPriority.Normal)
@@ -35,6 +37,14 @@ public class NotificationService(
         await _dbContext.SaveChangesAsync();
 
         var dto = MapToDto(notification);
+        var dispatchRequest = new NotificationDispatchRequest(
+            userId,
+            title,
+            body,
+            metadata,
+            priority,
+            NotificationType: type
+        );
 
         // Channel selection: deliver via available channels
         var userIsConnected = _realtimeService.IsUserConnected(userId);
@@ -42,14 +52,15 @@ public class NotificationService(
         if (userIsConnected)
         {
             // User has the app open — deliver via SignalR
-            await _realtimeService.SendToUserAsync(userId, dto);
+            var realtimeNotification = _notificationFactory.createNotification("realtime");
+            await realtimeNotification.SendAsync(dispatchRequest);
         }
 
-        // For Important notifications, always send Web Push (even if connected — tab might be buried)
-        // For Normal notifications, only send Web Push if user is NOT connected via SignalR
-        if (priority == NotificationPriority.Important || !userIsConnected)
+        // Send Web Push only when the user is not connected in real time.
+        if (!userIsConnected)
         {
-            await _pushService.SendToUserAsync(userId, dto);
+            var pushNotification = _notificationFactory.createNotification("push");
+            await pushNotification.SendAsync(dispatchRequest);
         }
 
         return dto;
