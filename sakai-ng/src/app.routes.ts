@@ -58,7 +58,7 @@ export const appRoutes: Routes = [
             { path: 'user-settings/:userId', component: UserSettings },
             { path: 'projects', component: Projects },
             { path: 'plugins', component: Plugins },
-            { path: 'projects/:projectId', component: ProjectDetails },
+            { path: 'projects/:projectSlug', component: ProjectDetails },
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
             { path: 'audit-logs', component: AuditLogs, canActivate: [roleGuard(['Admin'])]  },

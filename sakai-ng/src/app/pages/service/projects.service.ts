@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment.prod';
-import { Observable } from 'rxjs';
+import { map, Observable, switchMap, throwError } from 'rxjs';
 
 export interface TeamMember {
     id: string;
@@ -136,8 +136,22 @@ export interface Project {
 export class ProjectsService {
     private readonly API_URL = `${environment.apiUrl}/Projects`;
     private readonly AUTH_API_URL = `${environment.apiUrl}/Auth`;
+    private static readonly GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
     constructor(private http: HttpClient) {}
+
+    static slugify(title: string): string {
+        return title
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/[\s_]+/g, '-')
+            .replace(/-+/g, '-');
+    }
+
+    static isGuid(value: string): boolean {
+        return ProjectsService.GUID_PATTERN.test(value);
+    }
 
     getProjects(status?: 'Upcoming' | 'InProgress' | 'Completed'): Observable<any[]> {
         if (status) {
@@ -148,6 +162,27 @@ export class ProjectsService {
 
     getProjectById(id: number | string): Observable<any> {
         return this.http.get<any>(`${this.API_URL}/${id}`);
+    }
+
+    getProjectBySlug(slug: string): Observable<any> {
+        return this.getProjects().pipe(
+            map((projects) => projects.find((project) => ProjectsService.slugify(project.title) === slug)),
+            switchMap((project) => {
+                if (!project) {
+                    return throwError(() => new Error('Project not found'));
+                }
+
+                return this.getProjectById(project.id);
+            })
+        );
+    }
+
+    getProjectByRouteKey(routeKey: string): Observable<any> {
+        if (ProjectsService.isGuid(routeKey)) {
+            return this.getProjectById(routeKey);
+        }
+
+        return this.getProjectBySlug(routeKey);
     }
 
     getProjectsByUserId(userId: string): Observable<any[]> {

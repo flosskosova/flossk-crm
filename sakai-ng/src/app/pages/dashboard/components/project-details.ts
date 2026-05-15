@@ -641,6 +641,10 @@ import { Projects } from './projects';
 
             <!-- Project Details Modal/Section -->
             <div *ngIf="selectedProject" class="card">
+                <div class="mb-4">
+                    <p-button label="Back to Projects" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="goBackToProjects()" />
+                </div>
+
                 <!-- Project Banner -->
                 <div class="relative h-48 bg-linear-to-r from-primary-300 via-primary-500 to-primary-700 overflow-hidden rounded-xl mb-6 group">
                     <img
@@ -688,7 +692,6 @@ import { Projects } from './projects';
                         <p-button *ngIf="isAdminOrModerator(selectedProject) && selectedProject.status !== 'completed'" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteProject(selectedProject)" />
                         <p-button *ngIf="isAdmin() && selectedProject.status !== 'completed'" label="Moderator" icon="pi pi-shield" severity="warn" [outlined]="true" (onClick)="openAssignModeratorDialog()" />
                         <p-button label="History" icon="pi pi-history" severity="info" [outlined]="true" (onClick)="openHistoryDialog(selectedProject)" />
-                        <p-button icon="pi pi-times" [text]="true" [rounded]="true" (onClick)="goBackToProjects()"></p-button>
                     </div>
                 </div>
 
@@ -1233,16 +1236,16 @@ export class ProjectDetails extends Projects implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.routeSub = this.route.paramMap.subscribe(params => {
-            const rawProjectId = params.get('projectId');
+            const rawProjectSlug = params.get('projectSlug');
 
-            if (!rawProjectId) {
+            if (!rawProjectSlug) {
                 this.selectedProject = null;
                 this.errorMessage = 'Project not found.';
                 this.loading = false;
                 return;
             }
 
-            this.loadProject(rawProjectId);
+            this.loadProject(rawProjectSlug);
         });
     }
 
@@ -1254,13 +1257,19 @@ export class ProjectDetails extends Projects implements OnInit, OnDestroy {
         this.detailsRouter.navigate(['/dashboard/projects']);
     }
 
-    private loadProject(projectId: string): void {
+    private loadProject(projectRouteKey: string): void {
         this.loading = true;
         this.errorMessage = '';
 
-        this.projectDetailsService.getProjectById(projectId).subscribe({
+        this.projectDetailsService.getProjectByRouteKey(projectRouteKey).subscribe({
             next: (projectData) => {
                 this.selectedProject = this.mapProjectFromApi(projectData);
+                const canonicalSlug = ProjectsService.slugify(this.selectedProject.title);
+
+                if (projectRouteKey !== canonicalSlug) {
+                    this.detailsRouter.navigate(['/dashboard/projects', canonicalSlug], { replaceUrl: true });
+                }
+
                 if (this.selectedProject.githubRepo) {
                     this.loadGithubCommits(this.selectedProject);
                 }

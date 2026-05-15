@@ -3279,7 +3279,7 @@ export class Projects {
     }
 
     selectProject(project: Project) {
-        this.router.navigate(['/dashboard/projects', project.id]);
+        this.router.navigate(['/dashboard/projects', ProjectsService.slugify(project.title)]);
     }
 
     // Map single project from API response
