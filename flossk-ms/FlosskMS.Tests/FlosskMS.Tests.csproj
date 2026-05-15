@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FlosskMS.Business\FlosskMS.Business.csproj" />
     <ProjectReference Include="..\FlosskMS.Data\FlosskMS.Data.csproj" />
+    <ProjectReference Include="..\FlosskMS.API\FlosskMS.API.csproj" />
   </ItemGroup>
 
 </Project>

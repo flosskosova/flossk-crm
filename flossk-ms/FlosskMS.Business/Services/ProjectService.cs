@@ -72,6 +72,12 @@ public class ProjectService(
 
         _logger.LogInformation("Project {ProjectId} created by user {UserId}", project.Id, userId);
 
+        await _domainEventDispatcher.PublishAsync(new ProjectCreatedEvent(
+            project.Id.ToString(),
+            project.Title,
+            userId,
+            $"{user.FirstName} {user.LastName}".Trim()));
+
         await _domainEventDispatcher.PublishAsync(new ProjectLogEvent(
             "Project", project.Id.ToString(), project.Title, "Project created", null, userId));
 

@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/push"
+  },
+  "response": {
+    "status": 201,
+    "jsonBody": {
+      "ok": true,
+      "message": "mock push accepted"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

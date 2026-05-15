@@ -1,5 +1,12 @@
 namespace FlosskMS.Business.DomainEvents.Projects;
 
+public sealed record ProjectCreatedEvent(
+    string ProjectId,
+    string ProjectTitle,
+    string CreatedByUserId,
+    string? CreatedByName
+) : IDomainEvent;
+
 public sealed record TeamMemberAddedToProjectEvent(
     string UserId,
     string ProjectTitle,

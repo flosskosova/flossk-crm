@@ -1,7 +1,35 @@
 using FlosskMS.Business.Services;
+using FlosskMS.Data;
 using FlosskMS.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlosskMS.Business.DomainEvents.Projects;
+
+public sealed class ProjectCreatedNotificationHandler(INotificationService notificationService, ApplicationDbContext dbContext)
+    : IDomainEventHandler<ProjectCreatedEvent>
+{
+    private readonly INotificationService _notificationService = notificationService;
+    private readonly ApplicationDbContext _dbContext = dbContext;
+
+    public async Task HandleAsync(ProjectCreatedEvent domainEvent, CancellationToken ct = default)
+    {
+         var userIds = await _dbContext.Users
+            .Where(u => u.Id != domainEvent.CreatedByUserId)
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+
+        var body = string.IsNullOrWhiteSpace(domainEvent.CreatedByName)
+            ? $"A new project has been created: \"{domainEvent.ProjectTitle}\"."
+            : $"{domainEvent.CreatedByName} created a new project: \"{domainEvent.ProjectTitle}\".";
+
+        await _notificationService.SendToManyAsync(
+            userIds,
+            NotificationType.ProjectUpdate,
+            "New project created",
+            body,
+            metadata: domainEvent.ProjectId);
+    }
+}
 
 public sealed class TeamMemberAddedNotificationHandler(INotificationService notificationService)
     : IDomainEventHandler<TeamMemberAddedToProjectEvent>

@@ -10,9 +10,27 @@ public class EmailService : IEmailService
     private readonly int _port = int.TryParse(Environment.GetEnvironmentVariable("SmtpSettings__Port"), out var p) ? p : 587;
     private readonly string _username = Environment.GetEnvironmentVariable("SmtpSettings__Username") ?? string.Empty;
     private readonly string _password = Environment.GetEnvironmentVariable("SmtpSettings__Password") ?? string.Empty;
+    private readonly bool _useStartTls = !bool.TryParse(Environment.GetEnvironmentVariable("SmtpSettings__DisableStartTls"), out var disableStartTls) || !disableStartTls;
+    private readonly bool _useSslOnConnect = bool.TryParse(Environment.GetEnvironmentVariable("SmtpSettings__UseSslOnConnect"), out var useSslOnConnect) && useSslOnConnect;
     private readonly string _fromEmail = Environment.GetEnvironmentVariable("SmtpSettings__FromEmail") ?? string.Empty;
     private readonly string _fromName = Environment.GetEnvironmentVariable("SmtpSettings__FromName") ?? "FlosskMS";
     private readonly string _frontendBaseUrl = Environment.GetEnvironmentVariable("SmtpSettings__FrontendBaseUrl") ?? "";
+
+    private SecureSocketOptions GetSocketOptions()
+    {
+        if (_useSslOnConnect)
+            return SecureSocketOptions.SslOnConnect;
+
+        return _useStartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None;
+    }
+
+    private async Task ConnectAndAuthenticateAsync(SmtpClient client)
+    {
+        await client.ConnectAsync(_host, _port, GetSocketOptions());
+
+        if (!string.IsNullOrWhiteSpace(_username) && !string.IsNullOrWhiteSpace(_password))
+            await client.AuthenticateAsync(_username, _password);
+    }
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string toName, string resetLink)
     {
@@ -27,8 +45,7 @@ public class EmailService : IEmailService
         }.ToMessageBody();
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(_host, _port, SecureSocketOptions.StartTls);
-        await client.AuthenticateAsync(_username, _password);
+        await ConnectAndAuthenticateAsync(client);
         await client.SendAsync(message);
         await client.DisconnectAsync(true);
     }
@@ -53,8 +70,7 @@ public class EmailService : IEmailService
         message.Body = builder.ToMessageBody();
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(_host, _port, SecureSocketOptions.StartTls);
-        await client.AuthenticateAsync(_username, _password);
+        await ConnectAndAuthenticateAsync(client);
         await client.SendAsync(message);
         await client.DisconnectAsync(true);
     }
@@ -72,8 +88,7 @@ public class EmailService : IEmailService
         }.ToMessageBody();
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(_host, _port, SecureSocketOptions.StartTls);
-        await client.AuthenticateAsync(_username, _password);
+        await ConnectAndAuthenticateAsync(client);
         await client.SendAsync(message);
         await client.DisconnectAsync(true);
     }

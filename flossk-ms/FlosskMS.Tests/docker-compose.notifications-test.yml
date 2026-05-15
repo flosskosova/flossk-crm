@@ -1,0 +1,27 @@
+services:
+  smtp4dev:
+    image: rnwood/smtp4dev:latest
+    container_name: flossk-smtp4dev
+    restart: unless-stopped
+    ports:
+      - "2525:25"
+      - "5000:80"
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: flossk-mailhog
+    restart: unless-stopped
+    profiles: ["mailhog"]
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  push-mock:
+    image: wiremock/wiremock:3.9.2
+    container_name: flossk-push-mock
+    restart: unless-stopped
+    command: ["--global-response-templating", "--verbose"]
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./flossk-ms/FlosskMS.Tests/Integration/WireMock:/home/wiremock

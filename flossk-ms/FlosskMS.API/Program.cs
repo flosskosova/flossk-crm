@@ -180,6 +180,7 @@ builder.Services.AddScoped<NotificationFactory>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+builder.Services.AddScoped<IDomainEventHandler<ProjectCreatedEvent>, ProjectCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberRemovedFromProjectEvent>, TeamMemberRemovedFromProjectNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAssignedToObjectiveEvent>, TeamMemberAssignedToObjectiveNotificationHandler>();
