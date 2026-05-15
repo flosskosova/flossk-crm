@@ -146,7 +146,7 @@ export class ProjectsService {
         return this.http.get<any[]>(this.API_URL);
     }
 
-    getProjectById(id: number): Observable<any> {
+    getProjectById(id: number | string): Observable<any> {
         return this.http.get<any>(`${this.API_URL}/${id}`);
     }
 

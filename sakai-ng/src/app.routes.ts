@@ -33,6 +33,7 @@ import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
 import { CoursePortal } from './app/pages/dashboard/components/course-portal';
 import { CourseLogin } from '@/pages/auth/course-login';
 import { Course } from './app/pages/dashboard/components/public-course';
+import { ProjectDetails } from '@/pages/dashboard/components/project-details';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -57,6 +58,7 @@ export const appRoutes: Routes = [
             { path: 'user-settings/:userId', component: UserSettings },
             { path: 'projects', component: Projects },
             { path: 'plugins', component: Plugins },
+            { path: 'projects/:projectId', component: ProjectDetails },
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
             { path: 'audit-logs', component: AuditLogs, canActivate: [roleGuard(['Admin'])]  },
