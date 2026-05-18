@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProjectModerator> ProjectModerators { get; set; }
     public DbSet<ObjectiveTeamMember> ObjectiveTeamMembers { get; set; }
     public DbSet<CalendarEvent> CalendarEvents { get; set; }
+    public DbSet<Event> Events { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<InventoryItemImage> InventoryItemImages { get; set; }
     public DbSet<InventoryItemCheckout> InventoryItemCheckouts { get; set; }
@@ -415,6 +416,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Event>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EventName).HasMaxLength(200).IsRequired();
+
+            entity.HasOne(e => e.Project)
+                .WithOne(p => p.Event)
+                .HasForeignKey<Event>(e => e.ProjectId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Optional FK is still unique when set because this is 1:1.
+            entity.HasIndex(e => e.ProjectId).IsUnique();
+            entity.HasIndex(e => e.Date);
+            entity.HasIndex(e => e.StartDate);
+            entity.HasIndex(e => e.EndDate);
+            entity.HasIndex(e => e.IsRecurring);
         });
 
         // InventoryItem configuration

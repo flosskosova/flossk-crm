@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -9,61 +8,64 @@ namespace FlosskMS.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class EventsController(ICalendarEventService calendarEventService) : ControllerBase
+public class EventsController(IEventService eventService) : ControllerBase
 {
-    private readonly ICalendarEventService _calendarEventService = calendarEventService;
+    private readonly IEventService _eventService = eventService;
 
     /// <summary>
-    /// Get the current calendar event (available to all authenticated users)
+    /// Get all events.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetCalendarEvent()
+    public async Task<IActionResult> GetEvents()
     {
-        return await _calendarEventService.GetCalendarEventAsync();
+        return await _eventService.GetEventsAsync();
     }
 
     /// <summary>
-    /// Create a new calendar event (Admin only)
+    /// Get an event by ID.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetEvent(Guid id)
+    {
+        return await _eventService.GetEventByIdAsync(id);
+    }
+
+    /// <summary>
+    /// Get an event by project ID.
+    /// </summary>
+    [HttpGet("project/{projectId:guid}")]
+    public async Task<IActionResult> GetEventByProjectId(Guid projectId)
+    {
+        return await _eventService.GetEventByProjectIdAsync(projectId);
+    }
+
+    /// <summary>
+    /// Create a new event.
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<IActionResult> CreateCalendarEvent([FromBody] CreateCalendarEventDto request)
+    public async Task<IActionResult> CreateEvent([FromBody] CreateEventDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _calendarEventService.CreateCalendarEventAsync(request, userId);
+        return await _eventService.CreateEventAsync(request);
     }
 
     /// <summary>
-    /// Update an existing calendar event (Admin only)
+    /// Update an event.
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> UpdateCalendarEvent(Guid id, [FromBody] UpdateCalendarEventDto request)
+    public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] UpdateEventDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _calendarEventService.UpdateCalendarEventAsync(id, request, userId);
+        return await _eventService.UpdateEventAsync(id, request);
     }
 
     /// <summary>
-    /// Delete a calendar event (Admin only)
+    /// Delete an event.
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> DeleteCalendarEvent(Guid id)
+    public async Task<IActionResult> DeleteEvent(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _calendarEventService.DeleteCalendarEventAsync(id, userId);
+        return await _eventService.DeleteEventAsync(id);
     }
 }

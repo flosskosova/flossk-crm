@@ -170,6 +170,7 @@ builder.Services.AddScoped<ICollaborationPadService, CollaborationPadService>();
 builder.Services.AddScoped<IRfidCardService, RfidCardService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
+builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IElectionService, ElectionService>();

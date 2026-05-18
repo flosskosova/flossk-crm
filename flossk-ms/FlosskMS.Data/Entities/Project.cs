@@ -27,6 +27,9 @@ public class Project
     // Optional 1:1 — a Project may become a Course
     public Course? Course { get; set; }
 
+    // Optional 1:1 — a Project may have an Event
+    public Event? Event { get; set; }
+
     // Calculated progress percentage based on completed objectives
     public double ProgressPercentage
     {
