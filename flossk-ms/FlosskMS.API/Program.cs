@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using DotNetEnv;
 using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DomainEvents;
@@ -70,7 +71,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -169,7 +174,6 @@ builder.Services.AddScoped<IMembershipRequestService, MembershipRequestService>(
 builder.Services.AddScoped<ICollaborationPadService, CollaborationPadService>();
 builder.Services.AddScoped<IRfidCardService, RfidCardService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ILogService, LogService>();

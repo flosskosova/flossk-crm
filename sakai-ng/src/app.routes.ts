@@ -1,13 +1,11 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
-import { Dashboard } from './app/pages/dashboard/dashboard';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { Users } from '@/pages/dashboard/components/users';
 import { Inventory } from '@/pages/dashboard/components/inventory';
 import { HackerspacePresence } from '@/pages/dashboard/components/hackerspace-presence';
 import { AdminSettings } from '@/pages/dashboard/components/admin-settings';
-import { Events } from '@/pages/dashboard/components/events';
 import { Announcements } from '@/pages/dashboard/components/announcements';
 import { Profile } from '@/pages/dashboard/components/profile';
 import { Notifications } from '@/pages/dashboard/components/notifications';
@@ -34,6 +32,7 @@ import { CoursePortal } from './app/pages/dashboard/components/course-portal';
 import { CourseLogin } from '@/pages/auth/course-login';
 import { Course } from './app/pages/dashboard/components/public-course';
 import { ProjectDetails } from '@/pages/dashboard/components/project-details';
+import { Dashboard } from '@/pages/dashboard/dashboard';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -54,7 +53,6 @@ export const appRoutes: Routes = [
             { path: 'integrations', component: Integrations },
             // { path: 'hackerspace-presence', component: HackerspacePresence },
             // { path: 'rfid-configurer', component: RfidConfigurer },
-            { path: 'events', component: Events },
             { path: 'user-settings/:userId', component: UserSettings },
             { path: 'projects', component: Projects },
             { path: 'plugins', component: Plugins },

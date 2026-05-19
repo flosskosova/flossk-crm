@@ -26,7 +26,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
     public DbSet<ProjectModerator> ProjectModerators { get; set; }
     public DbSet<ObjectiveTeamMember> ObjectiveTeamMembers { get; set; }
-    public DbSet<CalendarEvent> CalendarEvents { get; set; }
     public DbSet<Event> Events { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<InventoryItemImage> InventoryItemImages { get; set; }
@@ -406,22 +405,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => new { e.ObjectiveId, e.UserId }).IsUnique();
         });
 
-        builder.Entity<CalendarEvent>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.CalendarUrl).HasMaxLength(2000).IsRequired();
-            entity.Property(e => e.Title).HasMaxLength(200);
-            
-            entity.HasOne(e => e.CreatedByUser)
-                .WithMany()
-                .HasForeignKey(e => e.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
         builder.Entity<Event>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.EventName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.RecurringType)
+                .HasConversion<string>()
+                .HasMaxLength(20);
 
             entity.HasOne(e => e.Project)
                 .WithOne(p => p.Event)
@@ -431,7 +421,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             // Optional FK is still unique when set because this is 1:1.
             entity.HasIndex(e => e.ProjectId).IsUnique();
-            entity.HasIndex(e => e.Date);
             entity.HasIndex(e => e.StartDate);
             entity.HasIndex(e => e.EndDate);
             entity.HasIndex(e => e.IsRecurring);

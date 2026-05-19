@@ -37,7 +37,6 @@ export class AppMenu {
                 { label: 'Users', icon: 'pi pi-fw pi-users', routerLink: ['/dashboard/users'] },
                 { label: 'Announcements', icon: 'pi pi-fw pi-megaphone', routerLink: ['/dashboard/announcements'] },
                 { label: 'Inventory', icon: 'pi pi-fw pi-box', routerLink: ['/dashboard/inventory'] },
-                { label: 'Events', icon: 'pi pi-fw pi-calendar', routerLink: ['/dashboard/events'] },
                 { label: 'Elections', icon: 'pi pi-fw pi-vote', routerLink: ['/dashboard/elections'] },
                 { label: 'General Statistics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/statistics'] },
                 { label: 'Leaderboard', icon: 'pi pi-fw pi-graduation-cap', routerLink: ['/dashboard/leaderboard'] },

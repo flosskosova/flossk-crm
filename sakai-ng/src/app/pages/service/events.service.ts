@@ -1,17 +1,47 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
 import { environment } from '@environments/environment.prod';
+import { Observable } from 'rxjs';
 
-export interface CalendarEvent {
-    id?: string;
-    calendarUrl: string;
-    title?: string;
-    createdAt?: string;
-    createdByUserId?: string;
-    createdByFirstName?: string;
-    createdByLastName?: string;
+export type RecurringTypeValue = 'None' | 'Daily' | 'Monthly' | 'Weekly' | 'Annually';
+export type RecurringSelectionValue = Exclude<RecurringTypeValue, 'None'>;
+
+interface EventPayloadBase {
+    eventName: string;
+    projectId?: string | null;
 }
+
+export interface NonRecurringEventPayload extends EventPayloadBase {
+    recurringType: 'None';
+    startDate: string;
+    endDate: string;
+    recurringDate?: null;
+}
+
+export interface RecurringEventPayload extends EventPayloadBase {
+    recurringType: RecurringSelectionValue;
+    recurringDate: string;
+    startDate?: null;
+    endDate?: null;
+}
+
+export interface EventDto {
+    id: string;
+    eventName: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    recurringDate?: string | null;
+    isRecurring?: boolean;
+    recurringType?: RecurringTypeValue | number | null;
+    createdAt: string;
+    updatedAt?: string | null;
+    projectId?: string | null;
+    projectTitle?: string | null;
+}
+
+export type UpdateEventPayload = NonRecurringEventPayload | RecurringEventPayload;
+
+export type CreateEventPayload = NonRecurringEventPayload | RecurringEventPayload;
 
 @Injectable({
     providedIn: 'root'
@@ -21,19 +51,19 @@ export class EventsService {
 
     constructor(private http: HttpClient) {}
 
-    get(): Observable<CalendarEvent | null> {
-        return this.http.get<CalendarEvent | null>(this.API_URL);
+    getEvents(): Observable<EventDto[]> {
+        return this.http.get<EventDto[]>(this.API_URL);
     }
 
-    create(calendarEvent: Partial<CalendarEvent>): Observable<CalendarEvent> {
-        return this.http.post<CalendarEvent>(this.API_URL, calendarEvent);
+    createEvent(payload: CreateEventPayload): Observable<EventDto> {
+        return this.http.post<EventDto>(this.API_URL, payload);
     }
 
-    update(id: string, calendarEvent: Partial<CalendarEvent>): Observable<CalendarEvent> {
-        return this.http.put<CalendarEvent>(`${this.API_URL}/${id}`, calendarEvent);
+    updateEvent(id: string, payload: UpdateEventPayload): Observable<EventDto> {
+        return this.http.put<EventDto>(`${this.API_URL}/${id}`, payload);
     }
 
-    delete(id: string): Observable<any> {
-        return this.http.delete(`${this.API_URL}/${id}`);
+    deleteEvent(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.API_URL}/${id}`);
     }
 }
