@@ -5,6 +5,7 @@ namespace FlosskMS.Business.DTOs;
 /// </summary>
 public class GoogleFormWebhookDto
 {
+    public string FormId { get; set; } = string.Empty;
     public string FormTitle { get; set; } = string.Empty;
     public DateTime SubmittedAt { get; set; }
 
@@ -17,6 +18,8 @@ public class GoogleFormWebhookDto
 public class FormResponseDto
 {
     public Guid Id { get; set; }
+    public Guid CourseId { get; set; }
+    public string GoogleFormId { get; set; } = string.Empty;
     public string FormTitle { get; set; } = string.Empty;
     public DateTime SubmittedAt { get; set; }
     public DateTime ReceivedAt { get; set; }

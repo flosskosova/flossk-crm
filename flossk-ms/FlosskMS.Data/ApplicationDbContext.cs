@@ -690,6 +690,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(10000);
+            entity.Property(e => e.GoogleFormId).HasMaxLength(200);
+            entity.Property(e => e.GoogleFormTitle).HasMaxLength(500);
+            entity.Property(e => e.GoogleFormUrl).HasMaxLength(2000);
             entity.Property(e => e.CommunicationChannels)
                 .HasColumnType("text[]")
                 .HasDefaultValueSql("'{}'");
@@ -706,6 +709,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             // Enforce 1:1 uniqueness with Project
             entity.HasIndex(e => e.ProjectId).IsUnique();
+            entity.HasIndex(e => e.GoogleFormId)
+                .IsUnique()
+                .HasFilter("\"GoogleFormId\" IS NOT NULL");
             entity.HasIndex(e => e.CreatedAt);
         });
 
@@ -861,6 +867,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.CourseVoucherId);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.RedeemedAt);
+        });
+
+        // FormResponse
+        builder.Entity<FormResponse>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FormTitle).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.GoogleFormId).HasMaxLength(200).IsRequired();
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.FormResponses)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.CourseId);
+            entity.HasIndex(e => e.GoogleFormId);
+            entity.HasIndex(e => e.SubmittedAt);
+            entity.HasIndex(e => new { e.CourseId, e.SubmittedAt });
         });
     }
 }

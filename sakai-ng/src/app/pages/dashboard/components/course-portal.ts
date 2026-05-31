@@ -21,6 +21,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import {
     CourseService,
     Course,
+    CourseFormResponse,
     CourseInstructor,
     CourseModule,
     CourseResource,
@@ -47,6 +48,9 @@ interface InstructorFormRow {
 interface CourseFormState {
     title: string;
     description: string;
+    googleFormId: string;
+    googleFormTitle: string;
+    googleFormUrl: string;
     projectId: string;
     instructors: InstructorFormRow[];
 }
@@ -129,6 +133,24 @@ interface SessionFormState {
                     />
                     <div *ngIf="courseDialogMode === 'edit' && selectedCourse" class="text-xs text-muted-color mt-2">
                         Project linkage cannot be changed after the course is created.
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="md:col-span-2">
+                        <label class="block font-medium mb-2">Google Form ID</label>
+                        <input pInputText [(ngModel)]="courseForm.googleFormId" class="w-full" placeholder="e.g. 1FAIpQLSf..." />
+                        <p class="text-xs text-muted-color mt-1 mb-0">Leave empty if this course is not linked to a Google Form.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-medium mb-2">Google Form Title</label>
+                        <input pInputText [(ngModel)]="courseForm.googleFormTitle" class="w-full" placeholder="Optional display title" />
+                    </div>
+
+                    <div>
+                        <label class="block font-medium mb-2">Google Form URL</label>
+                        <input pInputText [(ngModel)]="courseForm.googleFormUrl" class="w-full" placeholder="https://docs.google.com/forms/..." />
                     </div>
                 </div>
 
@@ -524,6 +546,9 @@ interface SessionFormState {
                             <p-tab value="members">Members
                                 <span *ngIf="portalCourseMembers().length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ portalCourseMembers().length }}</span>
                             </p-tab>
+                            <p-tab value="form-responses">Form Responses
+                                <span *ngIf="formResponsesTotal > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ formResponsesTotal }}</span>
+                            </p-tab>
                             <p-tab value="vouchers">Vouchers
                                 <span *ngIf="courseVouchers.length > 0" class="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">{{ courseVouchers.length }}</span>
                             </p-tab>
@@ -728,6 +753,69 @@ interface SessionFormState {
                                     </ng-container>
                                 </div>
                             </p-tabpanel>
+                            <p-tabpanel value="form-responses">
+                                <div class="pt-3">
+                                    <div *ngIf="!selectedCourse.googleFormId" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-lg">
+                                        <i class="pi pi-file-edit text-4xl mb-3 opacity-40"></i>
+                                        <p class="m-0 text-sm">No Google Form is linked to this course yet.</p>
+                                    </div>
+
+                                    <ng-container *ngIf="selectedCourse.googleFormId">
+                                        <div class="flex items-start justify-between gap-3 flex-wrap mb-4 p-3 border border-surface-200 dark:border-surface-700 rounded-xl">
+                                            <div>
+                                                <p class="m-0 font-medium">{{ selectedCourse.googleFormTitle || 'Linked Google Form' }}</p>
+                                                <p class="m-0 text-xs text-muted-color mt-1">Form ID: {{ selectedCourse.googleFormId }}</p>
+                                            </div>
+
+                                            <a
+                                                *ngIf="selectedCourse.googleFormUrl"
+                                                [href]="selectedCourse.googleFormUrl"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="text-sm text-primary hover:underline"
+                                            >
+                                                Open Form
+                                            </a>
+                                        </div>
+
+                                        <div *ngIf="loadingFormResponses" class="flex items-center justify-center py-12 text-muted-color gap-3">
+                                            <i class="pi pi-spin pi-spinner"></i>
+                                            <span>Loading form responses...</span>
+                                        </div>
+
+                                        <div *ngIf="!loadingFormResponses && courseFormResponses.length === 0" class="flex flex-col items-center justify-center py-10 text-muted-color bg-surface-50 dark:bg-surface-800 rounded-lg">
+                                            <i class="pi pi-inbox text-4xl mb-3 opacity-40"></i>
+                                            <p class="m-0 text-sm">No responses received yet.</p>
+                                        </div>
+
+                                        <div *ngIf="!loadingFormResponses && courseFormResponses.length > 0" class="flex flex-col gap-3">
+                                            <div *ngFor="let response of courseFormResponses" class="border border-surface-200 dark:border-surface-700 rounded-xl p-4">
+                                                <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+                                                    <p class="m-0 font-medium">Submission</p>
+                                                    <span class="text-xs text-muted-color">{{ response.submittedAt | date: 'medium' }}</span>
+                                                </div>
+
+                                                <div class="flex flex-col gap-2">
+                                                    <div *ngFor="let entry of response.responses | keyvalue" class="grid grid-cols-1 md:grid-cols-[16rem_1fr] gap-2 text-sm">
+                                                        <span class="text-muted-color">{{ entry.key }}</span>
+                                                        <span>{{ formatFormAnswerValues(entry.value) }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <p-paginator
+                                                *ngIf="formResponsesTotal > formResponsesPageSize"
+                                                [first]="formResponsesPage * formResponsesPageSize"
+                                                [rows]="formResponsesPageSize"
+                                                [totalRecords]="formResponsesTotal"
+                                                [rowsPerPageOptions]="[10, 25, 50]"
+                                                (onPageChange)="onFormResponsesPageChange($event)"
+                                                styleClass="mt-2"
+                                            />
+                                        </div>
+                                    </ng-container>
+                                </div>
+                            </p-tabpanel>
                             <p-tabpanel value="vouchers">
                                 <div class="pt-3">
                                     <div class="flex justify-end items-center mb-4">
@@ -838,6 +926,12 @@ export class CoursePortal implements OnInit {
     voucherType: 'multiuse' | 'singleuse' = 'multiuse';
     voucherCount = 10;
     voucherSaving = false;
+
+    courseFormResponses: CourseFormResponse[] = [];
+    loadingFormResponses = false;
+    formResponsesTotal = 0;
+    formResponsesPage = 0;
+    formResponsesPageSize = 10;
 
     get paginatedVouchers(): CourseVoucher[] {
         return this.courseVouchers.slice(this.voucherPage * this.voucherPageSize, (this.voucherPage + 1) * this.voucherPageSize);
@@ -1019,6 +1113,9 @@ export class CoursePortal implements OnInit {
                 this.selectedCourse = selectedCourse;
                 this.scheduleCalendarDate = null;
                 this.activeTab = 'overview';
+                this.courseFormResponses = [];
+                this.formResponsesTotal = 0;
+                this.formResponsesPage = 0;
                 this.loadingSelectedCourse = false;
                 this.loadVouchers(selectedCourse.id);
             },
@@ -1034,6 +1131,9 @@ export class CoursePortal implements OnInit {
         this.scheduleCalendarDate = null;
         this.activeTab = 'overview';
         this.courseVouchers = [];
+        this.courseFormResponses = [];
+        this.formResponsesTotal = 0;
+        this.formResponsesPage = 0;
     }
 
     openAddCourseDialog(): void {
@@ -1052,6 +1152,9 @@ export class CoursePortal implements OnInit {
         this.courseForm = {
             title: this.selectedCourse.title,
             description: this.selectedCourse.description,
+            googleFormId: this.selectedCourse.googleFormId ?? '',
+            googleFormTitle: this.selectedCourse.googleFormTitle ?? '',
+            googleFormUrl: this.selectedCourse.googleFormUrl ?? '',
             projectId: this.selectedCourse.projectId,
             instructors: this.selectedCourse.instructors.map((instructor) => ({
                 userId: instructor.userId,
@@ -1101,10 +1204,17 @@ export class CoursePortal implements OnInit {
         this.courseDialogError = '';
         this.courseSaving = true;
 
+        const googleFormId = this.normalizeNullableInput(this.courseForm.googleFormId);
+        const googleFormTitle = googleFormId ? this.normalizeNullableInput(this.courseForm.googleFormTitle) : null;
+        const googleFormUrl = googleFormId ? this.normalizeNullableInput(this.courseForm.googleFormUrl) : null;
+
         if (this.courseDialogMode === 'add') {
             this.courseService.createCourse({
                 title: this.courseForm.title.trim(),
                 description: this.courseForm.description.trim(),
+            googleFormId,
+            googleFormTitle,
+            googleFormUrl,
                 projectId: this.courseForm.projectId,
                 instructors,
                 communicationChannels: []
@@ -1133,6 +1243,9 @@ export class CoursePortal implements OnInit {
         this.courseService.updateCourse(this.selectedCourse.id, {
             title: this.courseForm.title.trim(),
             description: this.courseForm.description.trim(),
+            googleFormId,
+            googleFormTitle,
+            googleFormUrl,
             instructors,
             communicationChannels: []
         }).subscribe({
@@ -1555,6 +1668,19 @@ export class CoursePortal implements OnInit {
         if (this.activeTab === 'vouchers' && this.selectedCourse) {
             this.loadVouchers(this.selectedCourse.id);
         }
+
+        if (this.activeTab === 'form-responses' && this.selectedCourse?.googleFormId) {
+            this.loadCourseFormResponses(this.selectedCourse.id, 1, this.formResponsesPageSize);
+        }
+    }
+
+    onFormResponsesPageChange(event: { page?: number; rows?: number }): void {
+        this.formResponsesPage = event.page ?? 0;
+        this.formResponsesPageSize = event.rows ?? this.formResponsesPageSize;
+
+        if (this.selectedCourse?.googleFormId) {
+            this.loadCourseFormResponses(this.selectedCourse.id, this.formResponsesPage + 1, this.formResponsesPageSize);
+        }
     }
 
     openCreateVoucherDialog(): void {
@@ -1600,6 +1726,31 @@ export class CoursePortal implements OnInit {
                 this.showError('Unable to load vouchers.', error);
             }
         });
+    }
+
+    private loadCourseFormResponses(courseId: string, page: number, pageSize: number): void {
+        this.loadingFormResponses = true;
+        this.courseService.getCourseFormResponses(courseId, page, pageSize).subscribe({
+            next: (result) => {
+                this.courseFormResponses = result.responses ?? [];
+                this.formResponsesTotal = result.totalCount ?? 0;
+                this.formResponsesPage = Math.max(0, (result.page ?? page) - 1);
+                this.formResponsesPageSize = result.pageSize ?? pageSize;
+                this.loadingFormResponses = false;
+            },
+            error: (error: unknown) => {
+                this.loadingFormResponses = false;
+                this.showError('Unable to load form responses.', error);
+            }
+        });
+    }
+
+    formatFormAnswerValues(values: string[] | null | undefined): string {
+        if (!values || values.length === 0) {
+            return '-';
+        }
+
+        return values.join(', ');
     }
 
     private loadCourses(): void {
@@ -1658,9 +1809,17 @@ export class CoursePortal implements OnInit {
         return {
             title: '',
             description: '',
+            googleFormId: '',
+            googleFormTitle: '',
+            googleFormUrl: '',
             projectId: '',
             instructors: []
         };
+    }
+
+    private normalizeNullableInput(value: string): string | null {
+        const normalized = value.trim();
+        return normalized.length > 0 ? normalized : null;
     }
 
     private emptyResourceForm(): ResourceFormState {

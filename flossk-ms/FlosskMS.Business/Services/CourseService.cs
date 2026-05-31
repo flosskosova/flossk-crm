@@ -56,6 +56,19 @@ public class CourseService(
         return $"{slug}-{new string(suffix)}";
     }
 
+    private static string? NormalizeNullable(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task<bool> IsGoogleFormIdInUseAsync(string googleFormId, Guid? excludingCourseId = null)
+    {
+        var query = _db.Courses.AsNoTracking().Where(c => c.GoogleFormId == googleFormId);
+
+        if (excludingCourseId.HasValue)
+            query = query.Where(c => c.Id != excludingCourseId.Value);
+
+        return await query.AnyAsync();
+    }
+
     // ── Course CRUD ────────────────────────────────────────────────────────
 
     public async Task<IActionResult> CreateCourseAsync(CreateCourseDto request, string userId)
@@ -80,11 +93,18 @@ public class CourseService(
         if (missing.Count > 0)
             return new BadRequestObjectResult(new { Error = $"User(s) not found: {string.Join(", ", missing)}." });
 
+        var googleFormId = NormalizeNullable(request.GoogleFormId);
+        if (googleFormId is not null && await IsGoogleFormIdInUseAsync(googleFormId))
+            return new ConflictObjectResult(new { Error = "This Google Form is already linked to another course." });
+
         var course = new Course
         {
             Id = Guid.NewGuid(),
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
+            GoogleFormId = googleFormId,
+            GoogleFormTitle = googleFormId is null ? null : NormalizeNullable(request.GoogleFormTitle),
+            GoogleFormUrl = googleFormId is null ? null : NormalizeNullable(request.GoogleFormUrl),
             ProjectId = project.Id,
             CommunicationChannels = request.CommunicationChannels ?? [],
             CreatedByUserId = userId,
@@ -176,8 +196,15 @@ public class CourseService(
         if (missing.Count > 0)
             return new BadRequestObjectResult(new { Error = $"User(s) not found: {string.Join(", ", missing)}." });
 
+        var googleFormId = NormalizeNullable(request.GoogleFormId);
+        if (googleFormId is not null && await IsGoogleFormIdInUseAsync(googleFormId, id))
+            return new ConflictObjectResult(new { Error = "This Google Form is already linked to another course." });
+
         course.Title = request.Title.Trim();
         course.Description = request.Description.Trim();
+        course.GoogleFormId = googleFormId;
+        course.GoogleFormTitle = googleFormId is null ? null : NormalizeNullable(request.GoogleFormTitle);
+        course.GoogleFormUrl = googleFormId is null ? null : NormalizeNullable(request.GoogleFormUrl);
         course.CommunicationChannels = request.CommunicationChannels ?? [];
         course.UpdatedAt = DateTime.UtcNow;
 

@@ -9,9 +9,10 @@ namespace FlosskMS.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class CoursesController(ICourseService courseService) : ControllerBase
+public class CoursesController(ICourseService courseService, IFormResponseService formResponseService) : ControllerBase
 {
     private readonly ICourseService _courseService = courseService;
+    private readonly IFormResponseService _formResponseService = formResponseService;
 
     // ── Course Endpoints ──────────────────────────────────────────────────
 
@@ -262,6 +263,22 @@ public class CoursesController(ICourseService courseService) : ControllerBase
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
         var isAdmin = User.IsInRole("Admin");
         return await _courseService.GetVouchersAsync(courseId, userId, isAdmin);
+    }
+
+    /// <summary>
+    /// Get paginated Google Form responses linked to a course.
+    /// </summary>
+    [HttpGet("{courseId:guid}/form-responses")]
+    public async Task<IActionResult> GetCourseFormResponses(
+        Guid courseId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+        return await _formResponseService.GetResponsesByCourseAsync(courseId, page, pageSize, userId, isAdmin, cancellationToken);
     }
 
     /// <summary>

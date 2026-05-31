@@ -2,7 +2,6 @@ using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 
 namespace FlosskMS.API.Controllers;
 
@@ -42,11 +41,12 @@ public class FormResponsesController(IFormResponseService formResponseService, I
     [HttpGet]
     public async Task<IActionResult> GetResponses(
         [FromQuery] string? formTitle = null,
+        [FromQuery] string? formId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        return await _formResponseService.GetResponsesAsync(formTitle, page, pageSize, cancellationToken);
+        return await _formResponseService.GetResponsesAsync(formTitle, formId, page, pageSize, cancellationToken);
     }
 
     /// <summary>

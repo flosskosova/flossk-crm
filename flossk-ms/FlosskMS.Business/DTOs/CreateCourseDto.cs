@@ -11,6 +11,15 @@ public class CreateCourseDto
     [StringLength(2000)]
     public string Description { get; set; } = string.Empty;
 
+    [StringLength(200)]
+    public string? GoogleFormId { get; set; }
+
+    [StringLength(500)]
+    public string? GoogleFormTitle { get; set; }
+
+    [StringLength(2000)]
+    public string? GoogleFormUrl { get; set; }
+
     /// <summary>ID of the Project this course belongs to. Must be unique (1:1).</summary>
     [Required]
     public Guid ProjectId { get; set; }

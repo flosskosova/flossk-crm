@@ -469,7 +469,7 @@ const colors: {
                             @case (CalendarView.Month) {
                                 <mwl-calendar-month-view
                                     [viewDate]="viewDate"
-                                    [events]="events"
+                                    [events]="monthEvents"
                                     [refresh]="refresh"
                                     [activeDayIsOpen]="activeDayIsOpen"
                                     (dayClicked)="dayClicked($event.day)"
@@ -669,6 +669,7 @@ export class Dashboard implements OnInit {
     activeDayIsOpen = false;
 
     events: CalendarEvent<DashboardEventMeta>[] = [];
+    monthEvents: CalendarEvent<DashboardEventMeta>[] = [];
     eventRows: EventDto[] = [];
     editingEvent: EventDto | null = null;
     eventToDelete: EventDto | null = null;
@@ -702,6 +703,7 @@ export class Dashboard implements OnInit {
             },
             error: () => {
                 this.events = [];
+                this.monthEvents = [];
                 this.eventRows = [];
                 this.isLoading = false;
             }
@@ -760,6 +762,8 @@ export class Dashboard implements OnInit {
 
             return existingEvent;
         });
+
+        this.monthEvents = this.buildMonthEvents(this.events);
 
         this.refresh.next();
     }
@@ -944,7 +948,33 @@ export class Dashboard implements OnInit {
         this.events = sortedEvents
             .map((event) => this.toCalendarEvent(event))
             .filter((event): event is CalendarEvent<DashboardEventMeta> => event !== null);
+        this.monthEvents = this.buildMonthEvents(this.events);
         this.refresh.next();
+    }
+
+    private buildMonthEvents(events: CalendarEvent<DashboardEventMeta>[]): CalendarEvent<DashboardEventMeta>[] {
+        const monthEvents: CalendarEvent<DashboardEventMeta>[] = [];
+
+        for (const event of events) {
+            if (!event.end || isSameDay(event.start, event.end)) {
+                monthEvents.push(event);
+                continue;
+            }
+
+            monthEvents.push({
+                ...event,
+                end: undefined
+            });
+
+            monthEvents.push({
+                ...event,
+                id: `${String(event.id)}-end`,
+                start: event.end,
+                end: undefined
+            });
+        }
+
+        return monthEvents;
     }
 
     private extractEvents(response: unknown): EventDto[] {

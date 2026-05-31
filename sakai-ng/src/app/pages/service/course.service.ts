@@ -69,10 +69,30 @@ export interface CourseVoucher {
     redeemedByEmails: string[];
 }
 
+export interface CourseFormResponse {
+    id: string;
+    courseId: string;
+    googleFormId: string;
+    formTitle: string;
+    submittedAt: string;
+    receivedAt: string;
+    responses: Record<string, string[]>;
+}
+
+export interface CourseFormResponseList {
+    responses: CourseFormResponse[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+}
+
 export interface Course {
     id: string;
     title: string;
     description: string;
+    googleFormId: string | null;
+    googleFormTitle: string | null;
+    googleFormUrl: string | null;
     projectId: string;
     projectTitle: string;
     communicationChannels: string[];
@@ -123,16 +143,25 @@ export class CourseService {
         return this.refreshCourse(id);
     }
 
-    createCourse(payload: Pick<Course, 'title' | 'description' | 'projectId' | 'communicationChannels'> & { instructors: Array<Pick<CourseInstructor, 'userId' | 'role'>> }): Observable<Course> {
+    createCourse(payload: Pick<Course, 'title' | 'description' | 'projectId' | 'communicationChannels' | 'googleFormId' | 'googleFormTitle' | 'googleFormUrl'> & { instructors: Array<Pick<CourseInstructor, 'userId' | 'role'>> }): Observable<Course> {
         return this.http.post<Course>(this.apiUrl, payload).pipe(
             tap((course) => this.upsertCourse(course, true))
         );
     }
 
-    updateCourse(id: string, payload: Pick<Course, 'title' | 'description' | 'communicationChannels'> & { instructors: Array<Pick<CourseInstructor, 'userId' | 'role'>> }): Observable<Course> {
+    updateCourse(id: string, payload: Pick<Course, 'title' | 'description' | 'communicationChannels' | 'googleFormId' | 'googleFormTitle' | 'googleFormUrl'> & { instructors: Array<Pick<CourseInstructor, 'userId' | 'role'>> }): Observable<Course> {
         return this.http.put<Course>(`${this.apiUrl}/${id}`, payload).pipe(
             tap((course) => this.upsertCourse(course))
         );
+    }
+
+    getCourseFormResponses(courseId: string, page: number = 1, pageSize: number = 20): Observable<CourseFormResponseList> {
+        return this.http.get<CourseFormResponseList>(`${this.apiUrl}/${courseId}/form-responses`, {
+            params: {
+                page,
+                pageSize
+            }
+        });
     }
 
     deleteCourse(id: string): Observable<void> {

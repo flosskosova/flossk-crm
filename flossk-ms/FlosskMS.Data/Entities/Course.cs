@@ -6,6 +6,11 @@ public class Course
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
 
+    // Optional Google Form linked to this course. One form can only belong to one course.
+    public string? GoogleFormId { get; set; }
+    public string? GoogleFormTitle { get; set; }
+    public string? GoogleFormUrl { get; set; }
+
     // Communication channels (e.g. Discord invite, Mattermost server URL)
     public List<string> CommunicationChannels { get; set; } = [];
 
@@ -25,4 +30,5 @@ public class Course
     public ICollection<CourseModule> Modules { get; set; } = [];
     public ICollection<CourseSession> Sessions { get; set; } = [];
     public ICollection<CourseVoucher> Vouchers { get; set; } = [];
+    public ICollection<FormResponse> FormResponses { get; set; } = [];
 }
