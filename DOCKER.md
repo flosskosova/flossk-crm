@@ -72,8 +72,8 @@ Then run the API and frontend locally:
 cd flossk-ms
 dotnet run --project FlosskMS.API
 
-# In sakai-ng directory (another terminal)
-cd sakai-ng
+# In flossk-webclient directory (another terminal)
+cd flossk-webclient
 npm install
 npm start
 ```

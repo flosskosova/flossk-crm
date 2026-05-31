@@ -21,7 +21,7 @@ FROM nginx:alpine AS final
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from build stage
-COPY --from=build /app/dist/sakai-ng/browser /usr/share/nginx/html
+COPY --from=build /app/dist/flossk-webclient/browser /usr/share/nginx/html
 
 # Expose port
 EXPOSE 80
