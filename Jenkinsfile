@@ -32,8 +32,18 @@ pipeline {
                 dir('flossk-ms') {
                     sh '''
                         set -euxo pipefail
-                        dotnet restore FlosskMS.slnx
-                        dotnet test FlosskMS.slnx --configuration Release --no-restore --verbosity minimal
+                        DOTNET_CMD="dotnet"
+
+                        if ! command -v dotnet >/dev/null 2>&1; then
+                            echo "dotnet SDK not found on agent. Installing .NET 10 SDK locally in workspace..."
+                            curl -fsSL https://dot.net/v1/dotnet-install.sh -o "$WORKSPACE/dotnet-install.sh"
+                            bash "$WORKSPACE/dotnet-install.sh" --channel 10.0 --install-dir "$WORKSPACE/.dotnet"
+                            DOTNET_CMD="$WORKSPACE/.dotnet/dotnet"
+                        fi
+
+                        "$DOTNET_CMD" --info
+                        "$DOTNET_CMD" restore FlosskMS.slnx
+                        "$DOTNET_CMD" test FlosskMS.slnx --configuration Release --no-restore --verbosity minimal
                     '''
                 }
             }
