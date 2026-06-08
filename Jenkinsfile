@@ -80,21 +80,25 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: env.SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_CREDENTIALS_USER')]) {
+                withCredentials([usernamePassword(credentialsId: env.SSH_CREDENTIALS_ID, usernameVariable: 'SSH_CREDENTIALS_USER', passwordVariable: 'SSH_CREDENTIALS_PASSWORD')]) {
                     sh '''
                         set -euxo pipefail
+
+                        if ! command -v sshpass >/dev/null 2>&1; then
+                            echo "sshpass is required for username/password SSH auth on this Jenkins agent."
+                            echo "Install sshpass in the Jenkins runtime or switch to SSH key credentials."
+                            exit 1
+                        fi
 
                         DEPLOY_USER_EFFECTIVE="${DEPLOY_USER}"
                         if [ -z "$DEPLOY_USER_EFFECTIVE" ]; then
                             DEPLOY_USER_EFFECTIVE="$SSH_CREDENTIALS_USER"
                         fi
 
-                        chmod 600 "$SSH_KEY_FILE"
-
                         deploy_remote() {
                             target_domain="$1"
                             echo "Deploying over SSH to ${DEPLOY_USER_EFFECTIVE}@${DEPLOY_HOST}:${DEPLOY_PORT} for domain ${target_domain}"
-                            ssh -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -p "${DEPLOY_PORT}" -o StrictHostKeyChecking=accept-new "${DEPLOY_USER_EFFECTIVE}@${DEPLOY_HOST}" "set -euxo pipefail; \
+                            sshpass -p "$SSH_CREDENTIALS_PASSWORD" ssh -p "${DEPLOY_PORT}" -o StrictHostKeyChecking=accept-new "${DEPLOY_USER_EFFECTIVE}@${DEPLOY_HOST}" "set -euxo pipefail; \
                                 cd '${REMOTE_APP_DIR}'; \
                                 git fetch --all --prune; \
                                 git checkout '${DEPLOY_BRANCH}'; \
