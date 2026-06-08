@@ -15,6 +15,7 @@ pipeline {
 
     environment {
         STAGING_DOMAIN = 'staging.root.flossk.org'
+        ROOT_DOMAIN = 'root.flossk.org'
         SSH_CREDENTIALS_ID = '0b1e52e8-4bd3-4e2c-a439-3e13cb19adba'
         DOTNET_CLI_TELEMETRY_OPTOUT = '1'
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
@@ -60,7 +61,7 @@ pipeline {
             }
         }
 
-        stage('Deploy To Staging') {
+        stage('Deploy To Staging With Root Fallback') {
             when {
                 allOf {
                     expression { env.BRANCH_NAME == params.DEPLOY_BRANCH }
@@ -71,13 +72,33 @@ pipeline {
                 sshagent(credentials: [env.SSH_CREDENTIALS_ID]) {
                     sh '''
                         set -euxo pipefail
-                        ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" "set -euxo pipefail; \
-                            cd '${REMOTE_APP_DIR}'; \
-                            git fetch --all --prune; \
-                            git checkout '${DEPLOY_BRANCH}'; \
-                            git pull --ff-only origin '${DEPLOY_BRANCH}'; \
-                            DOMAIN='${STAGING_DOMAIN}' docker compose -f docker-compose.prod.yml --env-file .env up -d --build; \
-                            docker compose -f docker-compose.prod.yml ps"
+
+                        deploy_remote() {
+                            target_domain="$1"
+                            ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" "set -euxo pipefail; \
+                                cd '${REMOTE_APP_DIR}'; \
+                                git fetch --all --prune; \
+                                git checkout '${DEPLOY_BRANCH}'; \
+                                git pull --ff-only origin '${DEPLOY_BRANCH}'; \
+                                DOMAIN='${target_domain}' docker compose -f docker-compose.prod.yml --env-file .env up -d --build; \
+                                docker compose -f docker-compose.prod.yml ps"
+                        }
+
+                        staging_ok="false"
+                        if deploy_remote "${STAGING_DOMAIN}"; then
+                            if command -v curl >/dev/null 2>&1 && curl -fsSI "https://${STAGING_DOMAIN}/" --max-time 20 >/dev/null 2>&1; then
+                                echo "Staging deployment and HTTPS check succeeded."
+                                staging_ok="true"
+                            else
+                                echo "Staging deployment succeeded but HTTPS check failed. Falling back to root domain deployment."
+                            fi
+                        else
+                            echo "Staging deployment command failed. Falling back to root domain deployment."
+                        fi
+
+                        if [ "$staging_ok" != "true" ]; then
+                            deploy_remote "${ROOT_DOMAIN}"
+                        fi
                     '''
                 }
             }
@@ -86,10 +107,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully. Staging should be available at https://${env.STAGING_DOMAIN}"
+            echo "Pipeline completed successfully. Primary target: https://${env.STAGING_DOMAIN}. Fallback target: https://${env.ROOT_DOMAIN}."
         }
         failure {
-            echo 'Pipeline failed. Deployment to staging was skipped.'
+            echo 'Pipeline failed. Deployment and fallback were unsuccessful or skipped.'
         }
     }
 }
