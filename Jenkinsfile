@@ -8,15 +8,16 @@ pipeline {
 
     parameters {
         string(name: 'DEPLOY_BRANCH', defaultValue: 'main', description: 'Branch allowed to deploy to staging')
-        string(name: 'DEPLOY_HOST', defaultValue: 'root.flossk.org', description: 'SSH host for deployment (staging points to same server)')
+        string(name: 'DEPLOY_HOST', defaultValue: '46.225.117.19', description: 'Origin SSH host/IP for deployment (do not use Cloudflare-proxied hostname)')
+        string(name: 'DEPLOY_PORT', defaultValue: '22', description: 'SSH port for deployment host')
         string(name: 'DEPLOY_USER', defaultValue: 'deploy', description: 'SSH username on deployment host')
-        string(name: 'REMOTE_APP_DIR', defaultValue: '/opt/flossk', description: 'Absolute path of app repository on deployment host')
+        string(name: 'REMOTE_APP_DIR', defaultValue: '~/flossk-crm', description: 'Path of app repository on deployment host (e.g. ~/flossk-crm)')
     }
 
     environment {
         STAGING_DOMAIN = 'staging.root.flossk.org'
         ROOT_DOMAIN = 'root.flossk.org'
-        SSH_CREDENTIALS_ID = '0b1e52e8-4bd3-4e2c-a439-3e13cb19adba'
+        SSH_CREDENTIALS_ID = '6e54816b-437d-476f-9a32-52bd07a3092a'
         DOTNET_CLI_TELEMETRY_OPTOUT = '1'
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
     }
@@ -64,7 +65,17 @@ pipeline {
         stage('Deploy To Staging With Root Fallback') {
             when {
                 allOf {
-                    expression { env.BRANCH_NAME == params.DEPLOY_BRANCH }
+                    expression {
+                        def candidates = [env.BRANCH_NAME, env.GIT_BRANCH, env.GIT_LOCAL_BRANCH]
+                            .findAll { it?.trim() }
+                            .collect {
+                                it
+                                    .replaceFirst(/^origin\//, '')
+                                    .replaceFirst(/^refs\/heads\//, '')
+                                    .replaceFirst(/^refs\/remotes\/origin\//, '')
+                            }
+                        return candidates.contains(params.DEPLOY_BRANCH)
+                    }
                     not { changeRequest() }
                 }
             }
@@ -75,7 +86,8 @@ pipeline {
 
                         deploy_remote() {
                             target_domain="$1"
-                            ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" "set -euxo pipefail; \
+                            echo "Deploying over SSH to ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT} for domain ${target_domain}"
+                            ssh -p "${DEPLOY_PORT}" -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" "set -euxo pipefail; \
                                 cd '${REMOTE_APP_DIR}'; \
                                 git fetch --all --prune; \
                                 git checkout '${DEPLOY_BRANCH}'; \
