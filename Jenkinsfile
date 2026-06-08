@@ -80,14 +80,21 @@ pipeline {
                 }
             }
             steps {
-                sshagent(credentials: [env.SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: env.SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_CREDENTIALS_USER')]) {
                     sh '''
                         set -euxo pipefail
 
+                        DEPLOY_USER_EFFECTIVE="${DEPLOY_USER}"
+                        if [ -z "$DEPLOY_USER_EFFECTIVE" ]; then
+                            DEPLOY_USER_EFFECTIVE="$SSH_CREDENTIALS_USER"
+                        fi
+
+                        chmod 600 "$SSH_KEY_FILE"
+
                         deploy_remote() {
                             target_domain="$1"
-                            echo "Deploying over SSH to ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT} for domain ${target_domain}"
-                            ssh -p "${DEPLOY_PORT}" -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" "set -euxo pipefail; \
+                            echo "Deploying over SSH to ${DEPLOY_USER_EFFECTIVE}@${DEPLOY_HOST}:${DEPLOY_PORT} for domain ${target_domain}"
+                            ssh -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -p "${DEPLOY_PORT}" -o StrictHostKeyChecking=accept-new "${DEPLOY_USER_EFFECTIVE}@${DEPLOY_HOST}" "set -euxo pipefail; \
                                 cd '${REMOTE_APP_DIR}'; \
                                 git fetch --all --prune; \
                                 git checkout '${DEPLOY_BRANCH}'; \
