@@ -33,6 +33,7 @@ pipeline {
                     sh '''
                         set -euxo pipefail
                         DOTNET_CMD="dotnet"
+                        DOTNET_INFO_LOG="$WORKSPACE/dotnet-info.log"
 
                         if ! command -v dotnet >/dev/null 2>&1; then
                             echo "dotnet SDK not found on agent. Installing .NET 10 SDK locally in workspace..."
@@ -41,7 +42,17 @@ pipeline {
                             DOTNET_CMD="$WORKSPACE/.dotnet/dotnet"
                         fi
 
-                        "$DOTNET_CMD" --info
+                        if ! "$DOTNET_CMD" --info >"$DOTNET_INFO_LOG" 2>&1; then
+                            if grep -qi "Couldn't find a valid ICU package installed on the system" "$DOTNET_INFO_LOG"; then
+                                echo "ICU libraries missing on Jenkins agent. Enabling invariant globalization mode for CI."
+                                export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+                                "$DOTNET_CMD" --info
+                            else
+                                cat "$DOTNET_INFO_LOG"
+                                exit 1
+                            fi
+                        fi
+
                         "$DOTNET_CMD" restore FlosskMS.slnx
                         "$DOTNET_CMD" test FlosskMS.slnx --configuration Release --no-restore --verbosity minimal
                     '''
