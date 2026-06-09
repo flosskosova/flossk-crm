@@ -9,10 +9,16 @@ This folder provides a permanent Jenkins image for this repository with:
 
 ## Start Jenkins
 
-From this `jenkins/` folder:
+From the repository root (`flossk/`), choose one compose file and start Jenkins:
 
 ```bash
-docker compose -f docker-compose.jenkins.yml up -d --build
+docker compose -p flossk-jenkins -f docker-compose.dev.yml up -d --build jenkins
+```
+
+Or with the production compose file:
+
+```bash
+docker compose -p flossk-jenkins -f docker-compose.prod.yml up -d --build jenkins
 ```
 
 Open Jenkins at:
@@ -41,11 +47,23 @@ docker exec -it flossk-jenkins sh -lc 'dotnet --info && sshpass -V && git --vers
 ## Stop Jenkins
 
 ```bash
-docker compose -f docker-compose.jenkins.yml down
+docker compose -p flossk-jenkins -f docker-compose.dev.yml down
+```
+
+Or if you started it with production compose:
+
+```bash
+docker compose -p flossk-jenkins -f docker-compose.prod.yml down
 ```
 
 ## Reset Jenkins Data (Destructive)
 
 ```bash
-docker compose -f docker-compose.jenkins.yml down -v
+docker compose -p flossk-jenkins -f docker-compose.dev.yml down -v
+```
+
+Or if you started it with production compose:
+
+```bash
+docker compose -p flossk-jenkins -f docker-compose.prod.yml down -v
 ```

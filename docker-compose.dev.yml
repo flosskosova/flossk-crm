@@ -1,4 +1,16 @@
 services:
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    container_name: flossk-jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
@@ -35,5 +47,6 @@ services:
       start_period: 120s
 
 volumes:
+  jenkins_home:
   postgres-data:
   clamav-db:

@@ -10,14 +10,14 @@ pipeline {
         string(name: 'DEPLOY_BRANCH', defaultValue: 'main', description: 'Branch allowed to deploy to staging')
         string(name: 'DEPLOY_HOST', defaultValue: '46.225.117.19', description: 'Origin SSH host/IP for deployment (do not use Cloudflare-proxied hostname)')
         string(name: 'DEPLOY_PORT', defaultValue: '22', description: 'SSH port for deployment host')
-        string(name: 'DEPLOY_USER', defaultValue: 'deploy', description: 'SSH username on deployment host')
+        string(name: 'DEPLOY_USER', defaultValue: 'root', description: 'SSH username on deployment host')
         string(name: 'REMOTE_APP_DIR', defaultValue: '~/flossk-crm', description: 'Path of app repository on deployment host (e.g. ~/flossk-crm)')
     }
 
     environment {
         STAGING_DOMAIN = 'staging.root.flossk.org'
         ROOT_DOMAIN = 'root.flossk.org'
-        SSH_CREDENTIALS_ID = '6e54816b-437d-476f-9a32-52bd07a3092a'
+        SSH_CREDENTIALS_ID = '1ce3b31b-1327-41df-95e5-bed0c81720f4'
         DOTNET_CLI_TELEMETRY_OPTOUT = '1'
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
     }
