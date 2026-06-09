@@ -11,7 +11,7 @@ pipeline {
         string(name: 'DEPLOY_HOST', defaultValue: '46.225.117.19', description: 'Origin SSH host/IP for deployment (do not use Cloudflare-proxied hostname)')
         string(name: 'DEPLOY_PORT', defaultValue: '22', description: 'SSH port for deployment host')
         string(name: 'DEPLOY_USER', defaultValue: 'root', description: 'SSH username on deployment host')
-        string(name: 'REMOTE_APP_DIR', defaultValue: '~/flossk-crm', description: 'Path of app repository on deployment host (e.g. ~/flossk-crm)')
+        string(name: 'REMOTE_APP_DIR', defaultValue: 'flossk-crm/', description: 'Path of app repository on deployment host after SSH login (e.g. flossk-crm/)')
     }
 
     environment {
