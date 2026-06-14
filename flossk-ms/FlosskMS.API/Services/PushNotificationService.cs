@@ -15,8 +15,28 @@ public class PushNotificationService(
     ILogger<PushNotificationService> logger) : IPushNotificationService
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
-    private readonly VapidSettings _vapidSettings = vapidSettings.Value;
+    private readonly VapidSettings _vapidSettings = ResolveVapidSettings(vapidSettings.Value);
     private readonly ILogger<PushNotificationService> _logger = logger;
+
+    private static VapidSettings ResolveVapidSettings(VapidSettings fallback)
+    {
+        var subject = ReadEnv("VapidSettings__Subject") ?? fallback.Subject;
+        var publicKey = ReadEnv("VapidSettings__PublicKey") ?? fallback.PublicKey;
+        var privateKey = ReadEnv("VapidSettings__PrivateKey") ?? fallback.PrivateKey;
+
+        return new VapidSettings
+        {
+            Subject = subject,
+            PublicKey = publicKey,
+            PrivateKey = privateKey
+        };
+    }
+
+    private static string? ReadEnv(string key)
+    {
+        var value = Environment.GetEnvironmentVariable(key);
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
 
     public async Task<bool> SendToUserAsync(string userId, NotificationDto notification)
     {
