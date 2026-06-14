@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -97,12 +96,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpGet("my-items")]
     public async Task<IActionResult> GetMyInventoryItems()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.GetInventoryItemsByUserAsync(userId);
+        return await _inventoryService.GetInventoryItemsByUserAsync(User);
     }
 
     /// <summary>
@@ -112,12 +106,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost]
     public async Task<IActionResult> CreateInventoryItem([FromForm] CreateInventoryItemDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.CreateInventoryItemAsync(request, userId);
+        return await _inventoryService.CreateInventoryItemAsync(request, User);
     }
 
     /// <summary>
@@ -127,12 +116,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateInventoryItem(Guid id, [FromForm] UpdateInventoryItemDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.UpdateInventoryItemAsync(id, request, userId);
+        return await _inventoryService.UpdateInventoryItemAsync(id, request, User);
     }
 
     /// <summary>
@@ -142,12 +126,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteInventoryItem(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.DeleteInventoryItemAsync(id, userId);
+        return await _inventoryService.DeleteInventoryItemAsync(id, User);
     }
 
     /// <summary>
@@ -160,12 +139,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> ImportInventoryItems([FromForm] ImportInventoryItemsDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.ImportInventoryItemsAsync(request.File, userId);
+        return await _inventoryService.ImportInventoryItemsAsync(request.File, User);
     }
 
     /// <summary>
@@ -175,12 +149,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("seed")]
     public async Task<IActionResult> SeedInventoryItems()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.SeedInventoryItemsAsync(userId);
+        return await _inventoryService.SeedInventoryItemsAsync(User);
     }
 
     /// <summary>
@@ -203,12 +172,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("{id:guid}/checkout")]
     public async Task<IActionResult> CheckOutInventoryItem(Guid id, [FromBody] CheckOutInventoryItemDto? request = null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.CheckOutInventoryItemAsync(id, userId, request);
+        return await _inventoryService.CheckOutInventoryItemAsync(id, User, request);
     }
 
     /// <summary>
@@ -217,12 +181,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("{id:guid}/checkin")]
     public async Task<IActionResult> CheckInInventoryItem(Guid id, [FromBody] CheckInInventoryItemDto? request = null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.CheckInInventoryItemAsync(id, userId, request);
+        return await _inventoryService.CheckInInventoryItemAsync(id, User, request);
     }
 
     /// <summary>
@@ -231,12 +190,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("{id:guid}/report-damage")]
     public async Task<IActionResult> ReportDamage(Guid id, [FromBody] SubmitRepairReportDto? dto = null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.ReportDamageAsync(id, userId, dto?.Notes);
+        return await _inventoryService.ReportDamageAsync(id, User, dto?.Notes);
     }
 
     /// <summary>
@@ -245,12 +199,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("{id:guid}/report-repair")]
     public async Task<IActionResult> ReportRepair(Guid id, [FromBody] SubmitRepairReportDto? dto = null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.ReportRepairAsync(id, userId, dto?.Notes);
+        return await _inventoryService.ReportRepairAsync(id, User, dto?.Notes);
     }
 
     #endregion
@@ -266,12 +215,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpPost("{id:guid}/images/{fileId:guid}")]
     public async Task<IActionResult> AddImageToInventoryItem(Guid id, Guid fileId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.AddImageToInventoryItemAsync(id, fileId, userId);
+        return await _inventoryService.AddImageToInventoryItemAsync(id, fileId, User);
     }
 
     /// <summary>
@@ -283,12 +227,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpDelete("{id:guid}/images/{imageId:guid}")]
     public async Task<IActionResult> RemoveImageFromInventoryItem(Guid id, Guid imageId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.RemoveImageFromInventoryItemAsync(id, imageId, userId);
+        return await _inventoryService.RemoveImageFromInventoryItemAsync(id, imageId, User);
     }
 
     #endregion
@@ -330,12 +269,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     [HttpGet("checkouts/my-checkouts")]
     public async Task<IActionResult> GetMyCheckouts()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _inventoryService.GetCheckoutsByUserIdAsync(userId);
+        return await _inventoryService.GetCheckoutsByUserIdAsync(User);
     }
 
     /// <summary>
@@ -346,6 +280,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     {
         return await _inventoryService.GetUsersWithCheckoutsAsync();
     }
-}
 
     #endregion
+
+}

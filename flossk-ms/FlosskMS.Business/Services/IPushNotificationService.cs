@@ -9,4 +9,5 @@ namespace FlosskMS.Business.Services;
 public interface IPushNotificationService
 {
     Task<bool> SendToUserAsync(string userId, NotificationDto notification);
+    Task<bool?> ToggleSubscriptionApprovalAsync(string userId, string endpoint);
 }

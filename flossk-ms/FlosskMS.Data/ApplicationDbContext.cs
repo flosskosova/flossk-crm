@@ -672,15 +672,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<PushSubscription>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.IsApproved).HasDefaultValue(false);
             entity.Property(e => e.Endpoint).HasMaxLength(2000).IsRequired();
             entity.Property(e => e.P256dh).HasMaxLength(500).IsRequired();
             entity.Property(e => e.Auth).HasMaxLength(500).IsRequired();
             entity.Property(e => e.UserAgent).HasMaxLength(500);
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.PushSubscriptions)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.IsApproved });
             entity.HasIndex(e => e.Endpoint).IsUnique();
         });
 

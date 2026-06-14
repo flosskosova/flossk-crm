@@ -5,6 +5,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -67,6 +68,133 @@ public class CourseService(
             query = query.Where(c => c.Id != excludingCourseId.Value);
 
         return await query.AnyAsync();
+    }
+
+    private static bool TryGetAuthContext(ClaimsPrincipal currentUser, out string userId, out bool isAdmin)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        isAdmin = currentUser.IsInRole("Admin");
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal currentUser, out string userId)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    public async Task<IActionResult> CreateCourseAsync(CreateCourseDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await CreateCourseAsync(request, userId);
+    }
+
+    public async Task<IActionResult> UpdateCourseAsync(Guid id, UpdateCourseDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await UpdateCourseAsync(id, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> DeleteCourseAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await DeleteCourseAsync(id, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> AddModuleAsync(Guid courseId, CreateCourseModuleDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await AddModuleAsync(courseId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> UpdateModuleAsync(Guid courseId, Guid moduleId, UpdateCourseModuleDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await UpdateModuleAsync(courseId, moduleId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> DeleteModuleAsync(Guid courseId, Guid moduleId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await DeleteModuleAsync(courseId, moduleId, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> ReorderModulesAsync(Guid courseId, List<Guid> orderedModuleIds, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await ReorderModulesAsync(courseId, orderedModuleIds, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> AddResourceAsync(Guid courseId, Guid moduleId, CreateCourseResourceDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await AddResourceAsync(courseId, moduleId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> UpdateResourceAsync(Guid courseId, Guid moduleId, Guid resourceId, UpdateCourseResourceDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await UpdateResourceAsync(courseId, moduleId, resourceId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> DeleteResourceAsync(Guid courseId, Guid moduleId, Guid resourceId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await DeleteResourceAsync(courseId, moduleId, resourceId, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> DeleteReviewAsync(Guid courseId, Guid moduleId, Guid reviewId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await DeleteReviewAsync(courseId, moduleId, reviewId, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> AddSessionAsync(Guid courseId, CreateCourseSessionDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await AddSessionAsync(courseId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> UpdateSessionAsync(Guid courseId, Guid sessionId, UpdateCourseSessionDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await UpdateSessionAsync(courseId, sessionId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> DeleteSessionAsync(Guid courseId, Guid sessionId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await DeleteSessionAsync(courseId, sessionId, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> GenerateVouchersAsync(Guid courseId, GenerateCourseVouchersDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await GenerateVouchersAsync(courseId, request, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> GetVouchersAsync(Guid courseId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await GetVouchersAsync(courseId, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> DeleteVoucherAsync(Guid courseId, Guid voucherId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetAuthContext(currentUser, out var userId, out var isAdmin)) return new UnauthorizedResult();
+        return await DeleteVoucherAsync(courseId, voucherId, userId, isAdmin);
+    }
+
+    public async Task<IActionResult> JoinAsInstructorAsync(Guid courseId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await JoinAsInstructorAsync(courseId, userId);
+    }
+
+    public async Task<IActionResult> LeaveAsInstructorAsync(Guid courseId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await LeaveAsInstructorAsync(courseId, userId);
     }
 
     // ── Course CRUD ────────────────────────────────────────────────────────

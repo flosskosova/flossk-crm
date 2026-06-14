@@ -47,8 +47,3 @@ public class NotificationsController(INotificationService notificationService) :
     public async Task<IActionResult> UnsubscribePush([FromBody] UnsubscribeDto dto)
         => await _notificationService.UnsubscribePushAsync(UserId, dto.Endpoint);
 }
-
-public class UnsubscribeDto
-{
-    public string Endpoint { get; set; } = string.Empty;
-}

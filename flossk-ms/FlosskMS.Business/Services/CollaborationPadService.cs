@@ -5,6 +5,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -22,6 +23,33 @@ public class CollaborationPadService : ICollaborationPadService
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal currentUser, out string userId)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    public async Task<IActionResult> CreateCollaborationPadAsync(CreateCollaborationPadDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await CreateCollaborationPadAsync(request, userId);
+    }
+
+    public async Task<IActionResult> DeleteCollaborationPadAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await DeleteCollaborationPadAsync(id, userId);
+    }
+
+    public async Task<IActionResult> UpdateCollaborationPadAsync(Guid id, UpdateCollaborationPadDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await UpdateCollaborationPadAsync(id, request, userId);
     }
 
     public async Task<IActionResult> CreateCollaborationPadAsync(CreateCollaborationPadDto request, string userId)

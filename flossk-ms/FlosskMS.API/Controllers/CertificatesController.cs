@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -17,9 +16,7 @@ public class CertificatesController(ICertificateService certificateService) : Co
     [HttpPost]
     public async Task<IActionResult> IssueCertificates([FromBody] IssueCertificateDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.IssueCertificatesAsync(request, userId);
+        return await _certificateService.IssueCertificatesAsync(request, User);
     }
 
     [HttpGet]
@@ -33,9 +30,7 @@ public class CertificatesController(ICertificateService certificateService) : Co
     [HttpGet("my")]
     public async Task<IActionResult> GetMyCertificates()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.GetUserCertificatesAsync(userId);
+        return await _certificateService.GetUserCertificatesAsync(User);
     }
 
     [HttpGet("user/{userId}")]
@@ -68,18 +63,14 @@ public class CertificatesController(ICertificateService certificateService) : Co
     [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/revoke")]
     public async Task<IActionResult> RevokeCertificate(Guid id)    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.RevokeCertificateAsync(id, userId);
+        return await _certificateService.RevokeCertificateAsync(id, User);
     }
 
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteCertificate(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.DeleteCertificateAsync(id, userId);
+        return await _certificateService.DeleteCertificateAsync(id, User);
     }
 
     [Authorize(Roles = "Admin")]
@@ -95,9 +86,7 @@ public class CertificatesController(ICertificateService certificateService) : Co
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadExternalCertificate([FromForm] UploadExternalCertificateDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.UploadExternalCertificateAsync(request, userId);
+        return await _certificateService.UploadExternalCertificateAsync(request, User);
     }
 
     // ── Templates ────────────────────────────────────────────────────────────
@@ -108,9 +97,7 @@ public class CertificatesController(ICertificateService certificateService) : Co
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadTemplate([FromForm] UploadCertificateTemplateDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.UploadTemplateAsync(request.File, request.Name, userId);
+        return await _certificateService.UploadTemplateAsync(request.File, request.Name, User);
     }
 
     [HttpGet("templates")]
@@ -123,9 +110,7 @@ public class CertificatesController(ICertificateService certificateService) : Co
     [HttpDelete("templates/{id:guid}")]
     public async Task<IActionResult> DeleteTemplate(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _certificateService.DeleteTemplateAsync(id, userId);
+        return await _certificateService.DeleteTemplateAsync(id, User);
     }
 
     [Authorize(Roles = "Admin")]

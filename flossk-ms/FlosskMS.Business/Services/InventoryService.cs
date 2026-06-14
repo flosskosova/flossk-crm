@@ -11,6 +11,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -27,6 +28,90 @@ public class InventoryService : IInventoryService
         _mapper = mapper;
         _fileService = fileService;
         _domainEventDispatcher = domainEventDispatcher;
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal currentUser, out string userId)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    public async Task<IActionResult> GetInventoryItemsByUserAsync(ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await GetInventoryItemsByUserAsync(userId);
+    }
+
+    public async Task<IActionResult> CreateInventoryItemAsync(CreateInventoryItemDto dto, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await CreateInventoryItemAsync(dto, userId);
+    }
+
+    public async Task<IActionResult> UpdateInventoryItemAsync(Guid id, UpdateInventoryItemDto dto, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await UpdateInventoryItemAsync(id, dto, userId);
+    }
+
+    public async Task<IActionResult> DeleteInventoryItemAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await DeleteInventoryItemAsync(id, userId);
+    }
+
+    public async Task<IActionResult> CheckOutInventoryItemAsync(Guid id, ClaimsPrincipal currentUser, CheckOutInventoryItemDto? dto = null)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await CheckOutInventoryItemAsync(id, userId, dto);
+    }
+
+    public async Task<IActionResult> CheckInInventoryItemAsync(Guid id, ClaimsPrincipal currentUser, CheckInInventoryItemDto? dto = null)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await CheckInInventoryItemAsync(id, userId, dto);
+    }
+
+    public async Task<IActionResult> ReportDamageAsync(Guid id, ClaimsPrincipal currentUser, string? notes = null)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await ReportDamageAsync(id, userId, notes);
+    }
+
+    public async Task<IActionResult> ReportRepairAsync(Guid id, ClaimsPrincipal currentUser, string? notes = null)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await ReportRepairAsync(id, userId, notes);
+    }
+
+    public async Task<IActionResult> AddImageToInventoryItemAsync(Guid id, Guid fileId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await AddImageToInventoryItemAsync(id, fileId, userId);
+    }
+
+    public async Task<IActionResult> RemoveImageFromInventoryItemAsync(Guid id, Guid imageId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await RemoveImageFromInventoryItemAsync(id, imageId, userId);
+    }
+
+    public async Task<IActionResult> SeedInventoryItemsAsync(ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await SeedInventoryItemsAsync(userId);
+    }
+
+    public async Task<IActionResult> ImportInventoryItemsAsync(IFormFile file, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await ImportInventoryItemsAsync(file, userId);
+    }
+
+    public async Task<IActionResult> GetCheckoutsByUserIdAsync(ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId)) return new UnauthorizedResult();
+        return await GetCheckoutsByUserIdAsync(userId);
     }
 
     public async Task<IActionResult> GetAllInventoryItemsAsync(int page = 1, int pageSize = 20, string? category = null, string? status = null, string? condition = null, string? search = null, string? currentUserId = null)

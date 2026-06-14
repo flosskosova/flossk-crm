@@ -22,36 +22,25 @@ public class LogsController(ILogService logService) : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? dateFrom = null,
-        [FromQuery] string? dateTo = null)
-    {
-        return await _logService.GetAllAsync(entityType, entityId, userId, page, pageSize, dateFrom, dateTo);
-    }
+        [FromQuery] string? dateTo = null) => await _logService.GetAllAsync(entityType, entityId, userId, page, pageSize, dateFrom, dateTo);
 
     /// <summary>
     /// Get a single log entry by ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
-    {
-        return await _logService.GetByIdAsync(id);
-    }
+    public async Task<IActionResult> GetById(Guid id) => await _logService.GetByIdAsync(id);
 
     /// <summary>
     /// Get all logs for a specific entity (e.g. entityType=Inventory, entityId=&lt;guid&gt;)
     /// </summary>
     [HttpGet("{entityType}/{entityId}")]
     public async Task<IActionResult> GetByEntity(string entityType, string entityId)
-    {
-        return await _logService.GetByEntityAsync(entityType, entityId);
-    }
+        => await _logService.GetByEntityAsync(entityType, entityId);
 
     /// <summary>
     /// Delete a log entry by ID (Admin only)
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
-    {
-        return await _logService.DeleteAsync(id);
-    }
+    public async Task<IActionResult> Delete(Guid id) => await _logService.DeleteAsync(id);
 }

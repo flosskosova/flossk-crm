@@ -15,6 +15,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -28,6 +29,61 @@ public class CertificateService(
     private readonly IHostEnvironment _env = env;
     private readonly IMapper _mapper = mapper;
     private readonly IConfiguration _config = config;
+
+    private static bool TryGetUserId(ClaimsPrincipal currentUser, out string userId)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    public async Task<IActionResult> IssueCertificatesAsync(IssueCertificateDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await IssueCertificatesAsync(request, userId);
+    }
+
+    public async Task<IActionResult> GetUserCertificatesAsync(ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await GetUserCertificatesAsync(userId);
+    }
+
+    public async Task<IActionResult> RevokeCertificateAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await RevokeCertificateAsync(id, userId);
+    }
+
+    public async Task<IActionResult> DeleteCertificateAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await DeleteCertificateAsync(id, userId);
+    }
+
+    public async Task<IActionResult> UploadExternalCertificateAsync(UploadExternalCertificateDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await UploadExternalCertificateAsync(request, userId);
+    }
+
+    public async Task<IActionResult> UploadTemplateAsync(IFormFile file, string name, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await UploadTemplateAsync(file, name, userId);
+    }
+
+    public async Task<IActionResult> DeleteTemplateAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await DeleteTemplateAsync(id, userId);
+    }
 
     // ── Verification helpers ──────────────────────────────────────────────────
 

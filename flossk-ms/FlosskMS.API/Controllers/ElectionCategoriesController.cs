@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -38,11 +37,7 @@ public class ElectionCategoriesController(IElectionCategoryService electionCateg
     [HttpPost]
     public async Task<IActionResult> CreateElectionCategory([FromBody] CreateElectionCategoryDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionCategoryService.CreateElectionCategoryAsync(request, userId);
+        return await _electionCategoryService.CreateElectionCategoryAsync(request, User);
     }
 
     /// <summary>
@@ -52,11 +47,7 @@ public class ElectionCategoriesController(IElectionCategoryService electionCateg
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateElectionCategory(Guid id, [FromBody] UpdateElectionCategoryDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionCategoryService.UpdateElectionCategoryAsync(id, request, userId);
+        return await _electionCategoryService.UpdateElectionCategoryAsync(id, request, User);
     }
 
     /// <summary>
@@ -66,10 +57,6 @@ public class ElectionCategoriesController(IElectionCategoryService electionCateg
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteElectionCategory(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionCategoryService.DeleteElectionCategoryAsync(id, userId);
+        return await _electionCategoryService.DeleteElectionCategoryAsync(id, User);
     }
 }

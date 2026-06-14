@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -67,6 +68,15 @@ public class ElectionService : IElectionService
         return new OkObjectResult(MapToDto(election, userId));
     }
 
+    public async Task<IActionResult> GetElectionByIdAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await GetElectionByIdAsync(id, userId);
+    }
+
     // -------------------------------------------------------------------------
     // CREATE  (Admin only — enforced in controller)
     // -------------------------------------------------------------------------
@@ -126,6 +136,15 @@ public class ElectionService : IElectionService
             .Include(c => c.User).LoadAsync();
 
         return new OkObjectResult(MapToDto(election, userId));
+    }
+
+    public async Task<IActionResult> CreateElectionAsync(CreateElectionDto request, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await CreateElectionAsync(request, userId);
     }
 
     // -------------------------------------------------------------------------
@@ -198,6 +217,15 @@ public class ElectionService : IElectionService
         return new OkObjectResult(MapToDto(election, userId));
     }
 
+    public async Task<IActionResult> UpdateElectionAsync(Guid id, UpdateElectionDto request, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await UpdateElectionAsync(id, request, userId);
+    }
+
     // -------------------------------------------------------------------------
     // DELETE  (Admin only — enforced in controller)
     // -------------------------------------------------------------------------
@@ -223,6 +251,15 @@ public class ElectionService : IElectionService
         _logger.LogInformation("Election {ElectionId} deleted by user {UserId}", id, userId);
 
         return new OkObjectResult(new { Message = "Election deleted successfully." });
+    }
+
+    public async Task<IActionResult> DeleteElectionAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await DeleteElectionAsync(id, userId);
     }
 
     // -------------------------------------------------------------------------
@@ -277,6 +314,15 @@ public class ElectionService : IElectionService
         _logger.LogInformation("User {UserId} voted in election {ElectionId} for {Count} candidates", userId, id, votes.Count);
 
         return new OkObjectResult(new { Message = "Votes recorded successfully." });
+    }
+
+    public async Task<IActionResult> CastVoteAsync(Guid id, CastVoteDto request, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await CastVoteAsync(id, request, userId);
     }
 
     // -------------------------------------------------------------------------

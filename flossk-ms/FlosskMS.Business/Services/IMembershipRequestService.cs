@@ -1,5 +1,6 @@
 using FlosskMS.Business.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -30,6 +31,12 @@ public interface IMembershipRequestService
     /// Approve a membership request (Board members only)
     /// </summary>
     Task<IActionResult> ApproveMembershipRequestAsync(
+        Guid id,
+        ApproveMembershipRequestDto request,
+        ClaimsPrincipal currentUser,
+        CancellationToken cancellationToken = default);
+
+    Task<IActionResult> ApproveMembershipRequestAsync(
         Guid id, 
         ApproveMembershipRequestDto request,
         string reviewerUserId,
@@ -38,6 +45,12 @@ public interface IMembershipRequestService
     /// <summary>
     /// Reject a membership request (Board members only)
     /// </summary>
+    Task<IActionResult> RejectMembershipRequestAsync(
+        Guid id,
+        RejectMembershipRequestDto request,
+        ClaimsPrincipal currentUser,
+        CancellationToken cancellationToken = default);
+
     Task<IActionResult> RejectMembershipRequestAsync(
         Guid id, 
         RejectMembershipRequestDto request,

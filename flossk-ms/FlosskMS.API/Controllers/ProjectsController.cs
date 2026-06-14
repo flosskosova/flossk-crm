@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -21,14 +20,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateProject([FromBody] CreateProjectDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _projectService.CreateProjectAsync(request, userId);
-    }
+        => await _projectService.CreateProjectAsync(request, User);
 
     /// <summary>
     /// Get all projects with optional status filter
@@ -65,11 +57,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProject(Guid id, [FromBody] UpdateProjectDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.UpdateProjectAsync(id, request, userId, isAdmin);
-    }
+        => await _projectService.UpdateProjectAsync(id, request, User);
 
     /// <summary>
     /// Delete a project (Admin or project moderator)
@@ -77,11 +65,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteProject(Guid id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.DeleteProjectAsync(id, userId, isAdmin);
-    }
+        => await _projectService.DeleteProjectAsync(id, User);
 
     /// <summary>
     /// Update project status (Admin or project moderator)
@@ -91,11 +75,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> UpdateProjectStatus(Guid id, [FromQuery] string status)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.UpdateProjectStatusAsync(id, status, userId, isAdmin);
-    }
+        => await _projectService.UpdateProjectStatusAsync(id, status, User);
 
     /// <summary>
     /// Add a moderator to a project (Admin only).
@@ -103,12 +83,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize(Roles = "Admin")]
     [HttpPost("{id:guid}/moderators")]
     public async Task<IActionResult> AddModerator(Guid id, [FromBody] AssignModeratorDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-        return await _projectService.AddModeratorAsync(id, request, userId);
-    }
+        => await _projectService.AddModeratorAsync(id, request, User);
 
     /// <summary>
     /// Remove a moderator from a project (Admin only).
@@ -116,12 +91,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}/moderators/{moderatorUserId}")]
     public async Task<IActionResult> RemoveModerator(Guid id, string moderatorUserId)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-        return await _projectService.RemoveModeratorAsync(id, moderatorUserId, userId);
-    }
+        => await _projectService.RemoveModeratorAsync(id, moderatorUserId, User);
 
     /// <summary>
     /// Upload or replace a project banner image (Admin or project moderator/creator)
@@ -129,13 +99,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPost("{id:guid}/banner")]
     public async Task<IActionResult> UploadBanner(Guid id, IFormFile bannerFile)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.UploadProjectBannerAsync(id, bannerFile, userId, isAdmin);
-    }
+        => await _projectService.UploadProjectBannerAsync(id, bannerFile, User);
 
     /// <summary>
     /// Delete the project banner image (Admin or project moderator/creator)
@@ -143,13 +107,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpDelete("{id:guid}/banner")]
     public async Task<IActionResult> DeleteBanner(Guid id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.DeleteProjectBannerAsync(id, userId, isAdmin);
-    }
+        => await _projectService.DeleteProjectBannerAsync(id, User);
 
     #endregion
 
@@ -169,10 +127,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// </summary>
     [HttpPost("{projectId:guid}/team-members")]
     public async Task<IActionResult> AddTeamMemberToProject(Guid projectId, [FromBody] AddTeamMemberDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.AddTeamMemberToProjectAsync(projectId, request, userId);
-    }
+        => await _projectService.AddTeamMemberToProjectAsync(projectId, request, User);
 
     /// <summary>
     /// Remove a team member from a project (Project creator only)
@@ -180,15 +135,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpDelete("{projectId:guid}/team-members/{userId}")]
     public async Task<IActionResult> RemoveTeamMemberFromProject(Guid projectId, string userId)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(currentUserId))
-        {
-            return Unauthorized();
-        }
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId, currentUserId, isAdmin);
-    }
+        => await _projectService.RemoveTeamMemberFromProjectAsync(projectId, userId, User);
 
     /// <summary>
     /// Remove multiple team members from a project (Project creator only)
@@ -196,43 +143,21 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPost("{projectId:guid}/team-members/remove")]
     public async Task<IActionResult> RemoveTeamMembersFromProject(Guid projectId, [FromBody] RemoveTeamMembersDto request)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(currentUserId))
-        {
-            return Unauthorized();
-        }
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.RemoveTeamMembersFromProjectAsync(projectId, request, currentUserId, isAdmin);
-    }
+        => await _projectService.RemoveTeamMembersFromProjectAsync(projectId, request, User);
 
     /// <summary>
     /// Join a project (current user)
     /// </summary>
     [HttpPost("{projectId:guid}/join")]
     public async Task<IActionResult> JoinProject(Guid projectId)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _projectService.JoinProjectAsync(projectId, userId);
-    }
+        => await _projectService.JoinProjectAsync(projectId, User);
 
     /// <summary>
     /// Leave a project (current user)
     /// </summary>
     [HttpPost("{projectId:guid}/leave")]
     public async Task<IActionResult> LeaveProject(Guid projectId)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _projectService.LeaveProjectAsync(projectId, userId);
-    }
+        => await _projectService.LeaveProjectAsync(projectId, User);
 
     #endregion
 
@@ -253,15 +178,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPost("objectives")]
     public async Task<IActionResult> CreateObjective([FromBody] CreateObjectiveDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.CreateObjectiveAsync(request, userId, isAdmin);
-    }
+        => await _projectService.CreateObjectiveAsync(request, User);
 
     /// <summary>
     /// Get an objective by ID
@@ -278,11 +195,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPut("objectives/{id:guid}")]
     public async Task<IActionResult> UpdateObjective(Guid id, [FromBody] UpdateObjectiveDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.UpdateObjectiveAsync(id, request, userId, isAdmin);
-    }
+        => await _projectService.UpdateObjectiveAsync(id, request, User);
 
     /// <summary>
     /// Delete an objective (Admin or project moderator)
@@ -290,11 +203,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpDelete("objectives/{id:guid}")]
     public async Task<IActionResult> DeleteObjective(Guid id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.DeleteObjectiveAsync(id, userId, isAdmin);
-    }
+        => await _projectService.DeleteObjectiveAsync(id, User);
 
     /// <summary>
     /// Update objective status (Admin or project moderator)
@@ -304,11 +213,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPatch("objectives/{id:guid}/status")]
     public async Task<IActionResult> UpdateObjectiveStatus(Guid id, [FromQuery] string status)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.UpdateObjectiveStatusAsync(id, status, userId, isAdmin);
-    }
+        => await _projectService.UpdateObjectiveStatusAsync(id, status, User);
 
     #endregion
 
@@ -330,13 +235,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPost("objectives/{objectiveId:guid}/team-members")]
     public async Task<IActionResult> AssignTeamMemberToObjective(Guid objectiveId, [FromBody] AssignObjectiveTeamMemberDto request)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(currentUserId))
-            return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.AssignTeamMemberToObjectiveAsync(objectiveId, request, currentUserId, isAdmin);
-    }
+        => await _projectService.AssignTeamMemberToObjectiveAsync(objectiveId, request, User);
 
     /// <summary>
     /// Remove a team member from an objective (Project creator only)
@@ -344,13 +243,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpDelete("objectives/{objectiveId:guid}/team-members/{userId}")]
     public async Task<IActionResult> RemoveTeamMemberFromObjective(Guid objectiveId, string userId)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(currentUserId))
-            return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId, currentUserId, isAdmin);
-    }
+        => await _projectService.RemoveTeamMemberFromObjectiveAsync(objectiveId, userId, User);
 
     /// <summary>
     /// Join an objective (current user)
@@ -358,28 +251,14 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     /// </summary>
     [HttpPost("objectives/{objectiveId:guid}/join")]
     public async Task<IActionResult> JoinObjective(Guid objectiveId)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _projectService.JoinObjectiveAsync(objectiveId, userId);
-    }
+        => await _projectService.JoinObjectiveAsync(objectiveId, User);
 
     /// <summary>
     /// Leave an objective (current user)
     /// </summary>
     [HttpPost("objectives/{objectiveId:guid}/leave")]
     public async Task<IActionResult> LeaveObjective(Guid objectiveId)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _projectService.LeaveObjectiveAsync(objectiveId, userId);
-    }
+        => await _projectService.LeaveObjectiveAsync(objectiveId, User);
 
     #endregion
 
@@ -409,15 +288,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPost("resources")]
     public async Task<IActionResult> CreateResource([FromBody] CreateResourceDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        return await _projectService.CreateResourceAsync(request, userId);
-    }
+        => await _projectService.CreateResourceAsync(request, User);
 
     /// <summary>
     /// Get a resource by ID
@@ -434,10 +305,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpPut("resources/{id:guid}")]
     public async Task<IActionResult> UpdateResource(Guid id, [FromBody] UpdateResourceDto request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.UpdateResourceAsync(id, request, userId);
-    }
+        => await _projectService.UpdateResourceAsync(id, request, User);
 
     /// <summary>
     /// Delete a resource (Admin only)
@@ -445,10 +313,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize]
     [HttpDelete("resources/{id:guid}")]
     public async Task<IActionResult> DeleteResource(Guid id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.DeleteResourceAsync(id, userId);
-    }
+        => await _projectService.DeleteResourceAsync(id, User);
 
     #endregion
 
@@ -464,10 +329,7 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         Guid projectId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _projectService.GetUsersWithCompletedObjectivesAsync(projectId, currentUserId, page, pageSize);
-    }
+        => await _projectService.GetUsersWithCompletedObjectivesAsync(projectId, User, page, pageSize);
 
     #endregion
 
@@ -479,24 +341,14 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     [Authorize(Roles = "Admin")]
     [HttpPost("seed")]
     public async Task<IActionResult> SeedProjects()
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _projectService.SeedProjectsAsync(userId);
-    }
+        => await _projectService.SeedProjectsAsync(User);
 
     /// <summary>
     /// Delete all projects and related data (Admin only)
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpDelete("all")]
-    public async Task<IActionResult> DeleteAllProjects()
-    {
-        return await _projectService.DeleteAllProjectsAsync();
-    }
+    public async Task<IActionResult> DeleteAllProjects() => await _projectService.DeleteAllProjectsAsync();
 
     #endregion
 }

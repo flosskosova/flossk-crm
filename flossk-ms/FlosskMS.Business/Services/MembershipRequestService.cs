@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -216,6 +217,19 @@ public class MembershipRequestService : IMembershipRequestService
     public async Task<IActionResult> ApproveMembershipRequestAsync(
         Guid id,
         ApproveMembershipRequestDto request,
+        ClaimsPrincipal currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var reviewerUserId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(reviewerUserId))
+            return new UnauthorizedResult();
+
+        return await ApproveMembershipRequestAsync(id, request, reviewerUserId, cancellationToken);
+    }
+
+    public async Task<IActionResult> ApproveMembershipRequestAsync(
+        Guid id,
+        ApproveMembershipRequestDto request,
         string reviewerUserId,
         CancellationToken cancellationToken = default)
     {
@@ -287,6 +301,19 @@ public class MembershipRequestService : IMembershipRequestService
         }
 
         return new OkObjectResult(new { Message = $"User with email: {membershipRequest.Email} approved successfully" });
+    }
+
+    public async Task<IActionResult> RejectMembershipRequestAsync(
+        Guid id,
+        RejectMembershipRequestDto request,
+        ClaimsPrincipal currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var reviewerUserId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(reviewerUserId))
+            return new UnauthorizedResult();
+
+        return await RejectMembershipRequestAsync(id, request, reviewerUserId, cancellationToken);
     }
 
     public async Task<IActionResult> RejectMembershipRequestAsync(

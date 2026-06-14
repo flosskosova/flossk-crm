@@ -47,7 +47,7 @@ public class PushNotificationService(
         }
 
         var subscriptions = await _dbContext.PushSubscriptions
-            .Where(s => s.UserId == userId)
+            .Where(s => s.UserId == userId && s.IsApproved)
             .ToListAsync();
 
         if (subscriptions.Count == 0)
@@ -95,5 +95,25 @@ public class PushNotificationService(
         }
 
         return true;
+    }
+
+    public async Task<bool?> ToggleSubscriptionApprovalAsync(string userId, string endpoint)
+    {
+        var subscription = await _dbContext.PushSubscriptions
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.Endpoint == endpoint);
+
+        if (subscription is null)
+        {
+            _logger.LogWarning(
+                "Push subscription not found for user {UserId} and endpoint {Endpoint}.",
+                userId,
+                endpoint);
+            return null;
+        }
+
+        subscription.IsApproved = !subscription.IsApproved;
+        await _dbContext.SaveChangesAsync();
+
+        return subscription.IsApproved;
     }
 }

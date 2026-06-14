@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -25,6 +26,212 @@ public class ProjectService(
     private readonly IContributionService _contributionService = contributionService;
     private readonly IFileService _fileService = fileService;
     private readonly IDomainEventDispatcher _domainEventDispatcher = domainEventDispatcher;
+
+    private static bool TryGetUserId(ClaimsPrincipal currentUser, out string userId)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    public async Task<IActionResult> CreateProjectAsync(CreateProjectDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await CreateProjectAsync(request, userId);
+    }
+
+    public async Task<IActionResult> UpdateProjectAsync(Guid id, UpdateProjectDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await UpdateProjectAsync(id, request, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> UpdateProjectStatusAsync(Guid id, string status, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await UpdateProjectStatusAsync(id, status, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> DeleteProjectAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await DeleteProjectAsync(id, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> AddModeratorAsync(Guid projectId, AssignModeratorDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await AddModeratorAsync(projectId, request, userId);
+    }
+
+    public async Task<IActionResult> RemoveModeratorAsync(Guid projectId, string moderatorUserId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await RemoveModeratorAsync(projectId, moderatorUserId, userId);
+    }
+
+    public async Task<IActionResult> UploadProjectBannerAsync(Guid projectId, IFormFile bannerFile, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await UploadProjectBannerAsync(projectId, bannerFile, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> DeleteProjectBannerAsync(Guid projectId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await DeleteProjectBannerAsync(projectId, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> AddTeamMemberToProjectAsync(Guid projectId, AddTeamMemberDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await AddTeamMemberToProjectAsync(projectId, request, userId);
+    }
+
+    public async Task<IActionResult> RemoveTeamMemberFromProjectAsync(Guid projectId, string userId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var currentUserId))
+            return new UnauthorizedResult();
+
+        return await RemoveTeamMemberFromProjectAsync(projectId, userId, currentUserId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> RemoveTeamMembersFromProjectAsync(Guid projectId, RemoveTeamMembersDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var currentUserId))
+            return new UnauthorizedResult();
+
+        return await RemoveTeamMembersFromProjectAsync(projectId, request, currentUserId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> JoinProjectAsync(Guid projectId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await JoinProjectAsync(projectId, userId);
+    }
+
+    public async Task<IActionResult> LeaveProjectAsync(Guid projectId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await LeaveProjectAsync(projectId, userId);
+    }
+
+    public async Task<IActionResult> CreateObjectiveAsync(CreateObjectiveDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await CreateObjectiveAsync(request, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> UpdateObjectiveAsync(Guid id, UpdateObjectiveDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await UpdateObjectiveAsync(id, request, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> UpdateObjectiveStatusAsync(Guid id, string status, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await UpdateObjectiveStatusAsync(id, status, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> DeleteObjectiveAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await DeleteObjectiveAsync(id, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> AssignTeamMemberToObjectiveAsync(Guid objectiveId, AssignObjectiveTeamMemberDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await AssignTeamMemberToObjectiveAsync(objectiveId, request, userId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> RemoveTeamMemberFromObjectiveAsync(Guid objectiveId, string userId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var currentUserId))
+            return new UnauthorizedResult();
+
+        return await RemoveTeamMemberFromObjectiveAsync(objectiveId, userId, currentUserId, currentUser.IsInRole("Admin"));
+    }
+
+    public async Task<IActionResult> JoinObjectiveAsync(Guid objectiveId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await JoinObjectiveAsync(objectiveId, userId);
+    }
+
+    public async Task<IActionResult> LeaveObjectiveAsync(Guid objectiveId, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await LeaveObjectiveAsync(objectiveId, userId);
+    }
+
+    public async Task<IActionResult> CreateResourceAsync(CreateResourceDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await CreateResourceAsync(request, userId);
+    }
+
+    public async Task<IActionResult> UpdateResourceAsync(Guid id, UpdateResourceDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await UpdateResourceAsync(id, request, userId);
+    }
+
+    public async Task<IActionResult> DeleteResourceAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await DeleteResourceAsync(id, userId);
+    }
+
+    public async Task<IActionResult> GetUsersWithCompletedObjectivesAsync(Guid projectId, ClaimsPrincipal currentUser, int page = 1, int pageSize = 20)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+
+        return await GetUsersWithCompletedObjectivesAsync(projectId, userId, page, pageSize);
+    }
 
     #region Project Operations
 
@@ -1806,8 +2013,14 @@ public class ProjectService(
 
     #region Seed and Cleanup Operations
 
-    public async Task<IActionResult> SeedProjectsAsync(string userId)
+    public async Task<IActionResult> SeedProjectsAsync(ClaimsPrincipal currentUser)
     {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new UnauthorizedResult();
+        }
+
         var user = await _dbContext.Users.FindAsync(userId);
         if (user == null)
         {

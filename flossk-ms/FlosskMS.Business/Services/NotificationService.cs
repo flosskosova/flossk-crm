@@ -189,6 +189,7 @@ public class NotificationService(
         {
             Id = Guid.NewGuid(),
             UserId = userId,
+            IsApproved = true,
             Endpoint = dto.Endpoint,
             P256dh = dto.P256dh,
             Auth = dto.Auth,

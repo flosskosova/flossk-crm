@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -28,11 +27,7 @@ public class ElectionsController(IElectionService electionService) : ControllerB
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetElection(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionService.GetElectionByIdAsync(id, userId);
+        return await _electionService.GetElectionByIdAsync(id, User);
     }
 
     /// <summary>
@@ -42,11 +37,7 @@ public class ElectionsController(IElectionService electionService) : ControllerB
     [HttpPost]
     public async Task<IActionResult> CreateElection([FromBody] CreateElectionDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionService.CreateElectionAsync(request, userId);
+        return await _electionService.CreateElectionAsync(request, User);
     }
 
     /// <summary>
@@ -57,11 +48,7 @@ public class ElectionsController(IElectionService electionService) : ControllerB
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateElection(Guid id, [FromBody] UpdateElectionDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionService.UpdateElectionAsync(id, request, userId);
+        return await _electionService.UpdateElectionAsync(id, request, User);
     }
 
     /// <summary>
@@ -72,11 +59,7 @@ public class ElectionsController(IElectionService electionService) : ControllerB
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteElection(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionService.DeleteElectionAsync(id, userId);
+        return await _electionService.DeleteElectionAsync(id, User);
     }
 
     /// <summary>
@@ -85,11 +68,7 @@ public class ElectionsController(IElectionService electionService) : ControllerB
     [HttpPost("{id:guid}/vote")]
     public async Task<IActionResult> CastVote(Guid id, [FromBody] CastVoteDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        return await _electionService.CastVoteAsync(id, request, userId);
+        return await _electionService.CastVoteAsync(id, request, User);
     }
 
 }

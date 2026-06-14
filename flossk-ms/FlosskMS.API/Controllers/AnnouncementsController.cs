@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -20,12 +19,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpPost]
     public async Task<IActionResult> CreateAnnouncement([FromBody] CreateAnnouncementDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _announcementService.CreateAnnouncementAsync(request, userId);
+        return await _announcementService.CreateAnnouncementAsync(request, User);
     }
 
     /// <summary>
@@ -38,8 +32,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
         [FromQuery] string? category = null,
         [FromQuery] string? importance = null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _announcementService.GetAnnouncementsAsync(page, pageSize, category, importance, userId);
+        return await _announcementService.GetAnnouncementsAsync(User, page, pageSize, category, importance);
     }
 
     /// <summary>
@@ -48,8 +41,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetAnnouncementById(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _announcementService.GetAnnouncementByIdAsync(id, userId);
+        return await _announcementService.GetAnnouncementByIdAsync(id, User);
     }
 
     /// <summary>
@@ -59,12 +51,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteAnnouncement(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _announcementService.DeleteAnnouncementAsync(id, userId);
+        return await _announcementService.DeleteAnnouncementAsync(id, User);
     }
 
     /// <summary>
@@ -74,12 +61,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateAnnouncement(Guid id, [FromBody] UpdateAnnouncementDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _announcementService.UpdateAnnouncementAsync(id, request, userId);
+        return await _announcementService.UpdateAnnouncementAsync(id, request, User);
     }
 
     /// <summary>
@@ -88,12 +70,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpPost("{id:guid}/view")]
     public async Task<IActionResult> IncrementViewCount(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _announcementService.IncrementViewCountAsync(id, userId);
+        return await _announcementService.IncrementViewCountAsync(id, User);
     }
 
     /// <summary>
@@ -111,12 +88,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpPost("{id:guid}/reactions")]
     public async Task<IActionResult> AddReaction(Guid id, [FromBody] AddReactionDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _announcementService.AddReactionAsync(id, request, userId);
+        return await _announcementService.AddReactionAsync(id, request, User);
     }
 
     /// <summary>
@@ -125,12 +97,7 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpDelete("{id:guid}/reactions/{emoji}")]
     public async Task<IActionResult> RemoveReaction(Guid id, string emoji)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _announcementService.RemoveReactionAsync(id, emoji, userId);
+        return await _announcementService.RemoveReactionAsync(id, emoji, User);
     }
 
     /// <summary>
@@ -139,7 +106,6 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [HttpGet("{id:guid}/reactions")]
     public async Task<IActionResult> GetReactions(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return await _announcementService.GetReactionsAsync(id, userId);
+        return await _announcementService.GetReactionsAsync(id, User);
     }
 }

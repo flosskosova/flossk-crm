@@ -18,4 +18,5 @@ public class ApplicationUser : IdentityUser
     public DateTime? LastActivityAt { get; set; }
     public ICollection<UploadedFile> UploadedFiles { get; set; } = [];
     public ICollection<UserRfidCard> RfidCards { get; set; } = [];
+    public ICollection<PushSubscription> PushSubscriptions { get; set; } = [];
 }

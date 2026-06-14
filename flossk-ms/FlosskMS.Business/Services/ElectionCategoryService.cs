@@ -4,6 +4,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -43,6 +44,15 @@ public class ElectionCategoryService(
             return new NotFoundObjectResult(new { Error = "Election category not found." });
 
         return new OkObjectResult(MapToDto(category));
+    }
+
+    public async Task<IActionResult> CreateElectionCategoryAsync(CreateElectionCategoryDto request, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await CreateElectionCategoryAsync(request, userId);
     }
 
     // -------------------------------------------------------------------------
@@ -108,6 +118,15 @@ public class ElectionCategoryService(
         return new OkObjectResult(MapToDto(category));
     }
 
+    public async Task<IActionResult> UpdateElectionCategoryAsync(Guid id, UpdateElectionCategoryDto request, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await UpdateElectionCategoryAsync(id, request, userId);
+    }
+
     // -------------------------------------------------------------------------
     // DELETE  (Admin only — enforced in controller)
     // -------------------------------------------------------------------------
@@ -124,6 +143,15 @@ public class ElectionCategoryService(
         _logger.LogInformation("Election category {CategoryId} deleted by user {UserId}", id, userId);
 
         return new OkObjectResult(new { Message = "Election category deleted successfully." });
+    }
+
+    public async Task<IActionResult> DeleteElectionCategoryAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await DeleteElectionCategoryAsync(id, userId);
     }
 
     // -------------------------------------------------------------------------

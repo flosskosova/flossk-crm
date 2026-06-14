@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,12 +18,7 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     [HttpPost]
     public async Task<IActionResult> CreateCollaborationPad([FromBody] CreateCollaborationPadDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _collaborationPadService.CreateCollaborationPadAsync(request, userId);
+        return await _collaborationPadService.CreateCollaborationPadAsync(request, User);
     }
 
     /// <summary>
@@ -57,12 +51,7 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteCollaborationPad(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _collaborationPadService.DeleteCollaborationPadAsync(id, userId);
+        return await _collaborationPadService.DeleteCollaborationPadAsync(id, User);
     }
 
     /// <summary>
@@ -72,11 +61,6 @@ public class CollaborationPadsController(ICollaborationPadService collaborationP
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateCollaborationPad(Guid id, [FromBody] UpdateCollaborationPadDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        return await _collaborationPadService.UpdateCollaborationPadAsync(id, request, userId);
+        return await _collaborationPadService.UpdateCollaborationPadAsync(id, request, User);
     }
 }

@@ -5,6 +5,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -103,6 +104,20 @@ public class FormResponseService(ApplicationDbContext dbContext, ILogger<FormRes
             Page = page,
             PageSize = pageSize
         });
+    }
+
+    public async Task<IActionResult> GetResponsesByCourseAsync(
+        Guid courseId,
+        int page,
+        int pageSize,
+        ClaimsPrincipal currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        return await GetResponsesByCourseAsync(courseId, page, pageSize, userId, currentUser.IsInRole("Admin"), cancellationToken);
     }
 
     public async Task<IActionResult> GetResponsesByCourseAsync(

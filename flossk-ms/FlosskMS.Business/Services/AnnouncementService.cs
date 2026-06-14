@@ -7,6 +7,7 @@ using FlosskMS.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -27,6 +28,72 @@ public class AnnouncementService : IAnnouncementService
         _mapper = mapper;
         _logger = logger;
         _domainEventDispatcher = domainEventDispatcher;
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal currentUser, out string userId)
+    {
+        userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return !string.IsNullOrEmpty(userId);
+    }
+
+    public async Task<IActionResult> CreateAnnouncementAsync(CreateAnnouncementDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await CreateAnnouncementAsync(request, userId);
+    }
+
+    public async Task<IActionResult> UpdateAnnouncementAsync(Guid id, UpdateAnnouncementDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await UpdateAnnouncementAsync(id, request, userId);
+    }
+
+    public async Task<IActionResult> GetAnnouncementsAsync(ClaimsPrincipal currentUser, int page = 1, int pageSize = 10, string? category = null, string? importance = null)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await GetAnnouncementsAsync(page, pageSize, category, importance, userId);
+    }
+
+    public async Task<IActionResult> GetAnnouncementByIdAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await GetAnnouncementByIdAsync(id, userId);
+    }
+
+    public async Task<IActionResult> DeleteAnnouncementAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await DeleteAnnouncementAsync(id, userId);
+    }
+
+    public async Task<IActionResult> IncrementViewCountAsync(Guid id, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await IncrementViewCountAsync(id, userId);
+    }
+
+    public async Task<IActionResult> AddReactionAsync(Guid announcementId, AddReactionDto request, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await AddReactionAsync(announcementId, request, userId);
+    }
+
+    public async Task<IActionResult> RemoveReactionAsync(Guid announcementId, string emoji, ClaimsPrincipal currentUser)
+    {
+        if (!TryGetUserId(currentUser, out var userId))
+            return new UnauthorizedResult();
+        return await RemoveReactionAsync(announcementId, emoji, userId);
+    }
+
+    public async Task<IActionResult> GetReactionsAsync(Guid announcementId, ClaimsPrincipal currentUser)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await GetReactionsAsync(announcementId, userId);
     }
 
     public async Task<IActionResult> CreateAnnouncementAsync(CreateAnnouncementDto request, string userId)

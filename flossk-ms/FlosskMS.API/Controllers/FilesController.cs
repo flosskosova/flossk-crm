@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,13 +23,7 @@ public class FilesController : ControllerBase
     [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB
     public async Task<IActionResult> UploadFile(IFormFile file, CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        var result = await _fileService.UploadFileAsync(file, userId, cancellationToken);
+        var result = await _fileService.UploadFileAsync(file, User, cancellationToken);
         
         if (!result.Success)
         {
@@ -47,18 +40,12 @@ public class FilesController : ControllerBase
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB total
     public async Task<IActionResult> UploadMultipleFiles(List<IFormFile> files, CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
         if (files.Count == 0)
         {
             return BadRequest(new { Error = "No files provided." });
         }
 
-        var result = await _fileService.UploadFilesAsync(files, userId, cancellationToken);
+        var result = await _fileService.UploadFilesAsync(files, User, cancellationToken);
         
         if (!result.Success)
         {
@@ -90,13 +77,7 @@ public class FilesController : ControllerBase
     [HttpGet("my-files")]
     public async Task<IActionResult> GetMyFiles(CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        var files = await _fileService.GetFilesByUserIdAsync(userId, cancellationToken);
+        var files = await _fileService.GetFilesByUserIdAsync(User, cancellationToken);
         return Ok(files);
     }
 
@@ -150,14 +131,7 @@ public class FilesController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteFile(Guid id, CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        var isAdmin = User.IsInRole("Admin");
-        var success = await _fileService.DeleteFileAsync(id, userId, isAdmin, cancellationToken);
+        var success = await _fileService.DeleteFileAsync(id, User, cancellationToken);
         
         if (!success)
         {

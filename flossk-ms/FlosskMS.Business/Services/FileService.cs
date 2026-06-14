@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace FlosskMS.Business.Services;
 
@@ -118,6 +119,15 @@ public class FileService : IFileService
         return result;
     }
 
+    public async Task<FileUploadResultDto> UploadFileAsync(IFormFile file, ClaimsPrincipal currentUser, CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return new FileUploadResultDto { Error = "User is not authenticated." };
+
+        return await UploadFileAsync(file, userId, cancellationToken);
+    }
+
     public async Task<MultipleFileUploadResultDto> UploadFilesAsync(IEnumerable<IFormFile> files, string userId, CancellationToken cancellationToken = default)
     {
         var result = new MultipleFileUploadResultDto();
@@ -144,6 +154,23 @@ public class FileService : IFileService
         return result;
     }
 
+    public async Task<MultipleFileUploadResultDto> UploadFilesAsync(IEnumerable<IFormFile> files, ClaimsPrincipal currentUser, CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new MultipleFileUploadResultDto
+            {
+                Success = false,
+                TotalFiles = files.Count(),
+                FailedUploads = files.Count(),
+                Errors = ["User is not authenticated."]
+            };
+        }
+
+        return await UploadFilesAsync(files, userId, cancellationToken);
+    }
+
     public async Task<FileDto?> GetFileByIdAsync(Guid fileId, CancellationToken cancellationToken = default)
     {
         var file = await _dbContext.UploadedFiles
@@ -164,6 +191,15 @@ public class FileService : IFileService
             .ToListAsync(cancellationToken);
 
         return files.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<FileDto>> GetFilesByUserIdAsync(ClaimsPrincipal currentUser, CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return [];
+
+        return await GetFilesByUserIdAsync(userId, cancellationToken);
     }
 
     public async Task<IEnumerable<FileDto>> GetAllFilesAsync(CancellationToken cancellationToken = default)
@@ -218,6 +254,16 @@ public class FileService : IFileService
 
         _logger.LogInformation("File deleted: {FileId} by user {UserId}", fileId, userId);
         return true;
+    }
+
+    public async Task<bool> DeleteFileAsync(Guid fileId, ClaimsPrincipal currentUser, CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return false;
+
+        var isAdmin = currentUser.IsInRole("Admin");
+        return await DeleteFileAsync(fileId, userId, isAdmin, cancellationToken);
     }
 
     private string? ValidateFile(IFormFile file)

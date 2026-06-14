@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -69,13 +68,7 @@ public class MembershipRequestsController(IMembershipRequestService membershipRe
         [FromForm] ApproveMembershipRequestDto request,
         CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        
-        return await _membershipRequestService.ApproveMembershipRequestAsync(id, request, userId, cancellationToken);
+        return await _membershipRequestService.ApproveMembershipRequestAsync(id, request, User, cancellationToken);
     }
 
     /// <summary>
@@ -88,13 +81,7 @@ public class MembershipRequestsController(IMembershipRequestService membershipRe
         [FromBody] RejectMembershipRequestDto request,
         CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-        
-        return await _membershipRequestService.RejectMembershipRequestAsync(id, request, userId, cancellationToken);
+        return await _membershipRequestService.RejectMembershipRequestAsync(id, request, User, cancellationToken);
     }
 
     /// <summary>

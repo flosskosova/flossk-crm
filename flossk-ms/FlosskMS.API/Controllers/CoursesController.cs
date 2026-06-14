@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -22,9 +21,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPost]
     public async Task<IActionResult> CreateCourse([FromBody] CreateCourseDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _courseService.CreateCourseAsync(request, userId);
+        return await _courseService.CreateCourseAsync(request, User);
     }
 
     /// <summary>
@@ -60,10 +57,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateCourse(Guid id, [FromBody] UpdateCourseDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.UpdateCourseAsync(id, request, userId, isAdmin);
+        return await _courseService.UpdateCourseAsync(id, request, User);
     }
 
     /// <summary>
@@ -72,10 +66,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteCourse(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.DeleteCourseAsync(id, userId, isAdmin);
+        return await _courseService.DeleteCourseAsync(id, User);
     }
 
     // ── Module Endpoints ──────────────────────────────────────────────────
@@ -86,10 +77,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPost("{courseId:guid}/modules")]
     public async Task<IActionResult> AddModule(Guid courseId, [FromBody] CreateCourseModuleDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.AddModuleAsync(courseId, request, userId, isAdmin);
+        return await _courseService.AddModuleAsync(courseId, request, User);
     }
 
     /// <summary>
@@ -98,10 +86,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPut("{courseId:guid}/modules/{moduleId:guid}")]
     public async Task<IActionResult> UpdateModule(Guid courseId, Guid moduleId, [FromBody] UpdateCourseModuleDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.UpdateModuleAsync(courseId, moduleId, request, userId, isAdmin);
+        return await _courseService.UpdateModuleAsync(courseId, moduleId, request, User);
     }
 
     /// <summary>
@@ -110,10 +95,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{courseId:guid}/modules/{moduleId:guid}")]
     public async Task<IActionResult> DeleteModule(Guid courseId, Guid moduleId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.DeleteModuleAsync(courseId, moduleId, userId, isAdmin);
+        return await _courseService.DeleteModuleAsync(courseId, moduleId, User);
     }
 
     /// <summary>
@@ -122,10 +104,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPut("{courseId:guid}/modules/reorder")]
     public async Task<IActionResult> ReorderModules(Guid courseId, [FromBody] List<Guid> orderedModuleIds)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.ReorderModulesAsync(courseId, orderedModuleIds, userId, isAdmin);
+        return await _courseService.ReorderModulesAsync(courseId, orderedModuleIds, User);
     }
 
     // ── Resource Endpoints ────────────────────────────────────────────────
@@ -136,10 +115,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPost("{courseId:guid}/modules/{moduleId:guid}/resources")]
     public async Task<IActionResult> AddResource(Guid courseId, Guid moduleId, [FromBody] CreateCourseResourceDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.AddResourceAsync(courseId, moduleId, request, userId, isAdmin);
+        return await _courseService.AddResourceAsync(courseId, moduleId, request, User);
     }
 
     /// <summary>
@@ -148,10 +124,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPut("{courseId:guid}/modules/{moduleId:guid}/resources/{resourceId:guid}")]
     public async Task<IActionResult> UpdateResource(Guid courseId, Guid moduleId, Guid resourceId, [FromBody] UpdateCourseResourceDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.UpdateResourceAsync(courseId, moduleId, resourceId, request, userId, isAdmin);
+        return await _courseService.UpdateResourceAsync(courseId, moduleId, resourceId, request, User);
     }
 
     /// <summary>
@@ -160,10 +133,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{courseId:guid}/modules/{moduleId:guid}/resources/{resourceId:guid}")]
     public async Task<IActionResult> DeleteResource(Guid courseId, Guid moduleId, Guid resourceId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.DeleteResourceAsync(courseId, moduleId, resourceId, userId, isAdmin);
+        return await _courseService.DeleteResourceAsync(courseId, moduleId, resourceId, User);
     }
 
     // ── Review Endpoints (public) ─────────────────────────────────────────
@@ -194,10 +164,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{courseId:guid}/modules/{moduleId:guid}/reviews/{reviewId:guid}")]
     public async Task<IActionResult> DeleteReview(Guid courseId, Guid moduleId, Guid reviewId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.DeleteReviewAsync(courseId, moduleId, reviewId, userId, isAdmin);
+        return await _courseService.DeleteReviewAsync(courseId, moduleId, reviewId, User);
     }
 
     // ── Session Endpoints ─────────────────────────────────────────────────
@@ -208,10 +175,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPost("{courseId:guid}/sessions")]
     public async Task<IActionResult> AddSession(Guid courseId, [FromBody] CreateCourseSessionDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.AddSessionAsync(courseId, request, userId, isAdmin);
+        return await _courseService.AddSessionAsync(courseId, request, User);
     }
 
     /// <summary>
@@ -220,10 +184,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPut("{courseId:guid}/sessions/{sessionId:guid}")]
     public async Task<IActionResult> UpdateSession(Guid courseId, Guid sessionId, [FromBody] UpdateCourseSessionDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.UpdateSessionAsync(courseId, sessionId, request, userId, isAdmin);
+        return await _courseService.UpdateSessionAsync(courseId, sessionId, request, User);
     }
 
     /// <summary>
@@ -232,10 +193,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{courseId:guid}/sessions/{sessionId:guid}")]
     public async Task<IActionResult> DeleteSession(Guid courseId, Guid sessionId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.DeleteSessionAsync(courseId, sessionId, userId, isAdmin);
+        return await _courseService.DeleteSessionAsync(courseId, sessionId, User);
     }
 
     // ── Voucher Endpoints ─────────────────────────────────────────────────
@@ -247,10 +205,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPost("{courseId:guid}/vouchers")]
     public async Task<IActionResult> GenerateVouchers(Guid courseId, [FromBody] GenerateCourseVouchersDto request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.GenerateVouchersAsync(courseId, request, userId, isAdmin);
+        return await _courseService.GenerateVouchersAsync(courseId, request, User);
     }
 
     /// <summary>
@@ -259,10 +214,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpGet("{courseId:guid}/vouchers")]
     public async Task<IActionResult> GetVouchers(Guid courseId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.GetVouchersAsync(courseId, userId, isAdmin);
+        return await _courseService.GetVouchersAsync(courseId, User);
     }
 
     /// <summary>
@@ -275,10 +227,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _formResponseService.GetResponsesByCourseAsync(courseId, page, pageSize, userId, isAdmin, cancellationToken);
+        return await _formResponseService.GetResponsesByCourseAsync(courseId, page, pageSize, User, cancellationToken);
     }
 
     /// <summary>
@@ -287,10 +236,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{courseId:guid}/vouchers/{voucherId:guid}")]
     public async Task<IActionResult> DeleteVoucher(Guid courseId, Guid voucherId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var isAdmin = User.IsInRole("Admin");
-        return await _courseService.DeleteVoucherAsync(courseId, voucherId, userId, isAdmin);
+        return await _courseService.DeleteVoucherAsync(courseId, voucherId, User);
     }
 
     // ── Self-enroll Endpoints ─────────────────────────────────────────────
@@ -301,9 +247,7 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpPost("{courseId:guid}/instructors/me")]
     public async Task<IActionResult> JoinAsInstructor(Guid courseId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _courseService.JoinAsInstructorAsync(courseId, userId);
+        return await _courseService.JoinAsInstructorAsync(courseId, User);
     }
 
     /// <summary>
@@ -312,8 +256,6 @@ public class CoursesController(ICourseService courseService, IFormResponseServic
     [HttpDelete("{courseId:guid}/instructors/me")]
     public async Task<IActionResult> LeaveAsInstructor(Guid courseId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        return await _courseService.LeaveAsInstructorAsync(courseId, userId);
+        return await _courseService.LeaveAsInstructorAsync(courseId, User);
     }
 }
