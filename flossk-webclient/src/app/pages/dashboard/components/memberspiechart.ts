@@ -13,7 +13,12 @@ import { MembershipRequestsService } from '../../service/membership-requests.ser
     template: `
         <div class="card mb-0">
             <div class="font-semibold text-xl mb-4">User Count</div>
-            <p-chart type="pie" [data]="chartData" [options]="chartOptions" class="w-full md:w-80 mx-auto" />
+            <ng-container *ngIf="hasMemberData; else noMemberDataState">
+                <p-chart type="pie" [data]="chartData" [options]="chartOptions" class="w-full md:w-80 mx-auto" />
+            </ng-container>
+            <ng-template #noMemberDataState>
+                <div class="text-center text-color-secondary py-6">No member data available yet.</div>
+            </ng-template>
         </div>
     `
 })
@@ -23,6 +28,7 @@ export class MembersPieChartWidget implements OnInit, OnDestroy {
     approved = 0;
     pending = 0;
     rejected = 0;
+    hasMemberData = false;
 
     subscription!: Subscription;
 
@@ -54,6 +60,9 @@ export class MembersPieChartWidget implements OnInit, OnDestroy {
     initChart() {
         const documentStyle = getComputedStyle(document.documentElement);
         const textColor = documentStyle.getPropertyValue('--text-color');
+        const hasData = this.approved > 0 || this.pending > 0 || this.rejected > 0;
+
+        this.hasMemberData = hasData;
 
         this.chartData = {
             labels: ['Approved', 'Pending', 'Rejected'],

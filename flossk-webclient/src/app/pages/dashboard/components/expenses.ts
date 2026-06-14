@@ -107,15 +107,11 @@ interface DonorEntry {
     `],
     template: `
 
-    <div class="min-h-screen p-0">
+    <div class="min-h-screen card p-0">
 
         <!-- ── Page Header ── -->
         <div class="mb-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-surface-900 dark:text-surface-0 m-0">FLOSSK Finances</h1>
-                    <p class="text-muted-color mt-1">Full transparency on our income, expenses &amp; donations</p>
-                </div>
                 <div class="flex gap-2">
                     <p-button label="Add Transaction" icon="pi pi-plus" (onClick)="openAddDialog()" />
                     <p-button label="Export" icon="pi pi-download" [outlined]="true" (onClick)="exportCSV()" />

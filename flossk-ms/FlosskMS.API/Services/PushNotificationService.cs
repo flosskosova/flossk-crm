@@ -4,7 +4,6 @@ using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WebPush;
 

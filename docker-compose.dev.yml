@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
       POSTGRES_DB: FLOSSK
     ports:
       - "5433:5432"
@@ -32,7 +32,9 @@ services:
 
   # ClamAV Antivirus Scanner
   clamav:
-    image: clamav/clamav:latest
+    build:
+      context: ./clamav
+      dockerfile: Dockerfile
     container_name: flossk-clamav
     restart: unless-stopped
     ports:

@@ -1,4 +1,5 @@
 import { Component, OnDestroy, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import * as L from 'leaflet';
@@ -57,10 +58,14 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
 @Component({
     selector: 'app-kosovo-map-widget',
     standalone: true,
+    imports: [CommonModule],
     template: `
         <div class="card">
             <div class="font-semibold text-xl mb-4">User Distribution</div>
-            <div #mapContainer class="w-full rounded-lg" style="height: clamp(700px, 80vw, 750px);"></div>
+            <div *ngIf="hasLocationData; else noLocationDataState" #mapContainer class="w-full rounded-lg" style="height: clamp(700px, 80vw, 750px);"></div>
+            <ng-template #noLocationDataState>
+                <div class="text-center text-color-secondary py-6">No location data available yet.</div>
+            </ng-template>
         </div>
     `
 })
@@ -68,6 +73,7 @@ export class KosovoMapWidget implements AfterViewInit, OnDestroy {
     @ViewChild('mapContainer') mapContainer!: ElementRef;
 
     private map!: L.Map;
+    hasLocationData = true;
 
     constructor(private http: HttpClient) {}
 
@@ -91,8 +97,10 @@ export class KosovoMapWidget implements AfterViewInit, OnDestroy {
         forkJoin({
             geoJson: this.http.get('/assets/kosovo-geo.json'),
             stats: this.http.get<LocationStat[]>(`${environment.apiUrl}/auth/users/location-stats`)
-        }).subscribe(({ geoJson, stats }) => {
-            console.log('Location stats:', stats);
+        }).subscribe({
+            next: ({ geoJson, stats }) => {
+            const safeStats = Array.isArray(stats) ? stats : [];
+
             const layer = L.geoJSON(geoJson as any, {
                 style: {
                     color: '#3b82f6',
@@ -109,16 +117,39 @@ export class KosovoMapWidget implements AfterViewInit, OnDestroy {
                 this.map.setZoom(this.map.getZoom() + 1);
             }
 
-            const maxCount = Math.max(...stats.map(s => s.count), 1);
+            const statsWithCoordinates = safeStats
+                .map((stat) => {
+                    const location = (stat as any)?.location;
+                    const count = Number((stat as any)?.count ?? 0);
+                    const members = Array.isArray((stat as any)?.members) ? (stat as any).members : [];
 
-            stats.forEach(stat => {
-                const key = stat.location.toLowerCase().trim();
-                const coords = CITY_COORDINATES[key];
-                if (!coords) return;
+                    if (typeof location !== 'string' || !location.trim() || count <= 0) {
+                        return null;
+                    }
 
+                    const key = location.toLowerCase().trim();
+                    const coords = CITY_COORDINATES[key];
+                    if (!coords) {
+                        return null;
+                    }
+
+                    return { location, count, members, coords };
+                })
+                .filter((stat): stat is { location: string; count: number; members: string[]; coords: [number, number] } => !!stat);
+
+            this.hasLocationData = statsWithCoordinates.length > 0;
+
+            if (!this.hasLocationData) {
+                this.map.remove();
+                return;
+            }
+
+            const maxCount = Math.max(...statsWithCoordinates.map(s => s.count), 1);
+
+            statsWithCoordinates.forEach(stat => {
                 const radius = 5 + (stat.count / maxCount) * 8;
 
-                L.circleMarker(coords, {
+                L.circleMarker(stat.coords, {
                     radius,
                     color: 'transparent',
                     weight: 0,
@@ -131,6 +162,10 @@ export class KosovoMapWidget implements AfterViewInit, OnDestroy {
                 )
                 .addTo(this.map);
             });
+            },
+            error: () => {
+                this.hasLocationData = false;
+            }
         });
     }
 
