@@ -202,6 +202,9 @@ builder.Services.AddScoped<IDomainEventHandler<MembershipRequestRejectedEvent>, 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
 builder.Services.Configure<VapidSettings>(builder.Configuration.GetSection("VapidSettings"));
+builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
+builder.Services.AddSingleton<IEncryptionKeyStore, EncryptionKeyStore>();
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IFormResponseService, FormResponseService>();
 
