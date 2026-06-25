@@ -24,6 +24,8 @@ import { Integrations } from '@/pages/dashboard/components/integrations';
 import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
 import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
+import { PrivacyPolicy } from '@/pages/privacy/privacy-policy';
+import { TermsOfService } from '@/pages/terms/terms-of-service';
 import { UserSettings } from '@/pages/dashboard/components/user-settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
@@ -77,6 +79,8 @@ export const appRoutes: Routes = [
     { path: 'notfound', component: Notfound },
     { path: 'course/:slug', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
+    { path: 'privacy', component: PrivacyPolicy },
+    { path: 'terms', component: TermsOfService },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }
 ];
