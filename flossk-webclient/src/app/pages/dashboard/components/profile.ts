@@ -117,23 +117,6 @@ import { environment } from '@environments/environment.prod';
                         <label for="biography" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Biography</label>
                         <textarea pInputTextarea id="biography" [(ngModel)]="editProfile.biography" [rows]="10" class="w-full"></textarea>
                     </div>
-                    
-                    <div>
-                        <label for="phone" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Phone</label>
-                        <input pInputText id="phone" [(ngModel)]="editProfile.phone" class="w-full" />
-                    </div>
-                    
-                    <div>
-                        <label for="location" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Location</label>
-                        <p-select
-                            id="location"
-                            [(ngModel)]="editProfile.location"
-                            [options]="kosovoCities"
-                            placeholder="Select a city"
-                            [showClear]="true"
-                            styleClass="w-full"
-                        />
-                    </div>
 
                     <div>
                         <label for="skills" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Skills (comma-separated)</label>
@@ -1299,8 +1282,6 @@ export class Profile implements OnInit {
         // Prepare FormData for multipart/form-data
         const formData = new FormData();
         formData.append('biography', this.editProfile.biography || '');
-        formData.append('phoneNumber', this.editProfile.phone || '');
-        formData.append('location', this.editProfile.location || '');
         formData.append('websiteUrl', this.editProfile.website || '');
 
         // Append skills as separate entries

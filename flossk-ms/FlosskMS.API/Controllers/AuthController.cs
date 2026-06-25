@@ -225,4 +225,28 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
         => await _authService.ResetPasswordAsync(request);
+
+    /// <summary>
+    /// Get full user settings including profile and membership data (GDPR view)
+    /// </summary>
+    [Authorize]
+    [HttpGet("me/settings")]
+    public async Task<IActionResult> GetUserSettings()
+        => await _authService.GetUserSettingsAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+    /// <summary>
+    /// Export all personal data as JSON (GDPR data portability)
+    /// </summary>
+    [Authorize]
+    [HttpGet("me/export")]
+    public async Task<IActionResult> ExportMyData()
+        => await _authService.ExportMyDataAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+    /// <summary>
+    /// Delete own account (GDPR right to erasure)
+    /// </summary>
+    [Authorize]
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMyAccount()
+        => await _authService.DeleteMyAccountAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
 }

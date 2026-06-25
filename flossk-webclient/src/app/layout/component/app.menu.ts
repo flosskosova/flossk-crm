@@ -32,6 +32,7 @@ export class AppMenu {
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] },
                 { label: 'Collaboration Pads', icon: 'pi pi-fw pi-clipboard', routerLink: ['/dashboard/collaboration-pads'] },
                 { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/dashboard/profile'] },
+                { label: 'Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/settings'] },
                 { label: 'Projects', icon: 'pi pi-fw pi-hammer', routerLink: ['/dashboard/projects'] },
                 { label: 'Notifications', icon: 'pi pi-fw pi-inbox', routerLink: ['/dashboard/notifications'] },
                 { label: 'Users', icon: 'pi pi-fw pi-users', routerLink: ['/dashboard/users'] },

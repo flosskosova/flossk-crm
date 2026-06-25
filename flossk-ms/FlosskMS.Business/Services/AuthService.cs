@@ -22,7 +22,8 @@ public class AuthService(
     ApplicationDbContext dbContext,
     IFileService fileService,
     IEmailService emailService,
-    IOptions<JwtSettings> jwtSettings) : IAuthService
+    IOptions<JwtSettings> jwtSettings,
+    IEncryptionService encryptionService) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<IdentityRole> _roleManager = roleManager;
@@ -31,6 +32,7 @@ public class AuthService(
     private readonly IFileService _fileService = fileService;
     private readonly IEmailService _emailService = emailService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IEncryptionService _encryptionService = encryptionService;
 
     public async Task<IActionResult> RegisterAsync(RegisterRequestDto request)
     {
@@ -1220,6 +1222,136 @@ public class AuthService(
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public async Task<IActionResult> GetUserSettingsAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new NotFoundResult();
+
+        var userDto = await MapToUserDtoAsync(user);
+
+        var membershipRequest = await _dbContext.MembershipRequests
+            .Where(mr => mr.Email == user.Email)
+            .OrderByDescending(mr => mr.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        MembershipRequestDto? membershipDto = null;
+        if (membershipRequest != null)
+        {
+            membershipDto = new MembershipRequestDto
+            {
+                Id = membershipRequest.Id,
+                FullName = membershipRequest.FullName,
+                Address = membershipRequest.Address,
+                City = membershipRequest.City,
+                PhoneNumber = membershipRequest.PhoneNumber,
+                Email = membershipRequest.Email,
+                SchoolOrCompany = membershipRequest.SchoolOrCompany,
+                DateOfBirth = membershipRequest.DateOfBirth,
+                Statement = membershipRequest.Statement,
+                IdCardNumber = new string('*', Math.Min(8, membershipRequest.IdCardNumber.Length)),
+                Status = membershipRequest.Status.ToString(),
+                CreatedAt = membershipRequest.CreatedAt,
+                ReviewedAt = membershipRequest.ReviewedAt,
+                RejectionReason = membershipRequest.RejectionReason
+            };
+        }
+
+        return new OkObjectResult(new UserSettingsDto
+        {
+            User = userDto,
+            MembershipRequest = membershipDto
+        });
+    }
+
+    public async Task<IActionResult> ExportMyDataAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new NotFoundResult();
+
+        var userDto = await MapToUserDtoAsync(user);
+
+        var membershipRequests = await _dbContext.MembershipRequests
+            .Where(mr => mr.Email == user.Email)
+            .OrderByDescending(mr => mr.CreatedAt)
+            .ToListAsync();
+
+        var exportData = new
+        {
+            ExportedAt = DateTime.UtcNow,
+            Profile = userDto,
+            MembershipRequests = membershipRequests.Select(mr => new
+            {
+                mr.Id,
+                mr.FullName,
+                mr.Address,
+                mr.City,
+                mr.PhoneNumber,
+                mr.Email,
+                mr.SchoolOrCompany,
+                mr.DateOfBirth,
+                mr.Statement,
+                IdCardNumber = _encryptionService.Decrypt(mr.IdCardNumber),
+                mr.Status,
+                mr.CreatedAt,
+                mr.ReviewedAt,
+                mr.RejectionReason
+            }).ToList()
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        var bytes = Encoding.UTF8.GetBytes(json);
+
+        return new FileContentResult(bytes, "application/json")
+        {
+            FileDownloadName = $"flossk-export-{user.Email}-{DateTime.UtcNow:yyyy-MM-dd}.json"
+        };
+    }
+
+    public async Task<IActionResult> DeleteMyAccountAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return new NotFoundObjectResult(new { Error = "User not found." });
+
+        var approvedEmail = await _dbContext.ApprovedEmails
+            .FirstOrDefaultAsync(e => e.Email.ToLower() == user.Email!.ToLower());
+        if (approvedEmail != null)
+            _dbContext.ApprovedEmails.Remove(approvedEmail);
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new
+            {
+                Error = "Failed to delete account.",
+                Details = result.Errors.Select(e => e.Description).ToList()
+            });
+        }
+
+        return new OkObjectResult(new { Message = "Your account has been deleted successfully." });
     }
 
     private async Task<UserDto> MapToUserDtoAsync(ApplicationUser user)
