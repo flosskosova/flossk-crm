@@ -7,12 +7,13 @@ import { AppSidebar } from './app.sidebar';
 import { AppFooter } from './app.footer';
 import { AppConfigurator } from './app.configurator';
 import { AppFloatingChat } from './app.floating-chat';
+import { AppFloatingConfigurator } from './app.floatingconfigurator';
 import { LayoutService } from '../service/layout.service';
 
 @Component({
     selector: 'app-layout',
     standalone: true,
-    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter, AppConfigurator, AppFloatingChat],
+    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter, AppConfigurator, AppFloatingChat, AppFloatingConfigurator],
     template: `<div class="layout-wrapper" [ngClass]="containerClass">
         <app-topbar></app-topbar>
         <app-sidebar></app-sidebar>
@@ -24,6 +25,7 @@ import { LayoutService } from '../service/layout.service';
         </div>
         <div class="layout-mask animate-fadein"></div>
         <app-configurator />
+        <app-floating-configurator />
         <app-floating-chat />
     </div> `
 })
