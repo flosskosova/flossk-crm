@@ -79,4 +79,15 @@ public interface IMembershipRequestService
     /// Delete all membership requests (Development only - Admin required)
     /// </summary>
     Task<IActionResult> DeleteAllMembershipRequestsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Encrypt existing plaintext IdCardNumber values (Admin only - one-time migration)
+    /// </summary>
+    Task<IActionResult> EncryptExistingIdCardNumbersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rotate encryption key: generates a new key, re-encrypts all IdCardNumber values with it,
+    /// and removes the old key from the store (Admin only)
+    /// </summary>
+    Task<IActionResult> RotateEncryptionKeyAsync(CancellationToken cancellationToken = default);
 }

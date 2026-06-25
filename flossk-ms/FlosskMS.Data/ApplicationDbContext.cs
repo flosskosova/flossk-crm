@@ -153,7 +153,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.Email).HasMaxLength(256).IsRequired();
             entity.Property(e => e.SchoolOrCompany).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Statement).HasMaxLength(2000).IsRequired();
-            entity.Property(e => e.IdCardNumber).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.IdCardNumber).HasMaxLength(500).IsRequired();
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20);

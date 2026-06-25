@@ -26,6 +26,8 @@ public class MembershipRequestService : IMembershipRequestService
     private readonly ILogger<MembershipRequestService> _logger;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly IEmailService _emailService;
+    private readonly IEncryptionService _encryptionService;
+    private readonly IEncryptionKeyStore _encryptionKeyStore;
 
     public MembershipRequestService(
         ApplicationDbContext dbContext,
@@ -34,7 +36,9 @@ public class MembershipRequestService : IMembershipRequestService
         IMapper mapper,
         ILogger<MembershipRequestService> logger,
         IDomainEventDispatcher domainEventDispatcher,
-        IEmailService emailService)
+        IEmailService emailService,
+        IEncryptionService encryptionService,
+        IEncryptionKeyStore encryptionKeyStore)
     {
         _dbContext = dbContext;
         _clamAvService = clamAvService;
@@ -43,6 +47,8 @@ public class MembershipRequestService : IMembershipRequestService
         _logger = logger;
         _domainEventDispatcher = domainEventDispatcher;
         _emailService = emailService;
+        _encryptionService = encryptionService;
+        _encryptionKeyStore = encryptionKeyStore;
     }
 
     public async Task<IActionResult> CreateMembershipRequestAsync(
@@ -135,6 +141,7 @@ public class MembershipRequestService : IMembershipRequestService
         membershipRequest.Id = Guid.NewGuid();
         membershipRequest.Status = MembershipRequestStatus.Pending;
         membershipRequest.CreatedAt = DateTime.UtcNow;
+        membershipRequest.IdCardNumber = _encryptionService.Encrypt(membershipRequest.IdCardNumber);
 
         // Set signature based on age
         if (isUnder14)
@@ -188,6 +195,9 @@ public class MembershipRequestService : IMembershipRequestService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        foreach (var r in requests)
+            r.IdCardNumber = _encryptionService.Decrypt(r.IdCardNumber);
+
         var result = new MembershipRequestListDto
         {
             Requests = _mapper.Map<List<MembershipRequestDto>>(requests),
@@ -211,6 +221,7 @@ public class MembershipRequestService : IMembershipRequestService
         if (request == null)
             return new NotFoundObjectResult(new { Error = "Membership request not found." });
 
+        request.IdCardNumber = _encryptionService.Decrypt(request.IdCardNumber);
         return new OkObjectResult(_mapper.Map<MembershipRequestDto>(request));
     }
 
@@ -288,6 +299,8 @@ public class MembershipRequestService : IMembershipRequestService
             .Include(r => r.BoardMemberSignatureFile)
             .Include(r => r.ReviewedByUser)
             .FirstAsync(r => r.Id == id, cancellationToken);
+
+        fullRequest.IdCardNumber = _encryptionService.Decrypt(fullRequest.IdCardNumber);
 
         try
         {
@@ -381,6 +394,9 @@ public class MembershipRequestService : IMembershipRequestService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        foreach (var m in approvedMembers)
+            m.IdCardNumber = _encryptionService.Decrypt(m.IdCardNumber);
+
         var result = new MembershipRequestListDto
         {
             Requests = _mapper.Map<List<MembershipRequestDto>>(approvedMembers),
@@ -406,6 +422,8 @@ public class MembershipRequestService : IMembershipRequestService
 
         if (membershipRequest.Status != MembershipRequestStatus.Approved)
             return new BadRequestObjectResult(new { Error = "Contract is only available for approved membership requests." });
+
+        membershipRequest.IdCardNumber = _encryptionService.Decrypt(membershipRequest.IdCardNumber);
 
         // Configure QuestPDF license (Community license for open source)
         QuestPDF.Settings.License = LicenseType.Community;
@@ -675,6 +693,9 @@ public class MembershipRequestService : IMembershipRequestService
             }
         };
 
+        foreach (var r in testRequests)
+            r.IdCardNumber = _encryptionService.Encrypt(r.IdCardNumber);
+
         await _dbContext.MembershipRequests.AddRangeAsync(testRequests, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -707,6 +728,90 @@ public class MembershipRequestService : IMembershipRequestService
             Message = $"Successfully deleted all membership requests",
             Count = count
         });
+    }
+
+    public async Task<IActionResult> EncryptExistingIdCardNumbersAsync(CancellationToken cancellationToken = default)
+    {
+        var requests = await _dbContext.MembershipRequests.ToListAsync(cancellationToken);
+        var encryptedCount = 0;
+
+        foreach (var request in requests)
+        {
+            if (string.IsNullOrEmpty(request.IdCardNumber) || request.IdCardNumber.StartsWith("$AES$"))
+                continue;
+
+            request.IdCardNumber = _encryptionService.Encrypt(request.IdCardNumber);
+            encryptedCount++;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Encrypted IdCardNumber for {Count} existing membership requests", encryptedCount);
+
+        return new OkObjectResult(new
+        {
+            Message = $"Encrypted IdCardNumber for {encryptedCount} out of {requests.Count} membership requests.",
+            Total = requests.Count,
+            Encrypted = encryptedCount
+        });
+    }
+
+    public async Task<IActionResult> RotateEncryptionKeyAsync(CancellationToken cancellationToken = default)
+    {
+        var oldKeyId = _encryptionKeyStore.ActiveKeyId;
+
+        _logger.LogInformation("Starting encryption key rotation. Current active key: {OldKeyId}", oldKeyId);
+
+        var newKeyId = _encryptionKeyStore.AddNewKey();
+
+        try
+        {
+            var requests = await _dbContext.MembershipRequests.ToListAsync(cancellationToken);
+            var reencryptedCount = 0;
+
+            foreach (var request in requests)
+            {
+                if (string.IsNullOrEmpty(request.IdCardNumber))
+                    continue;
+
+                var plaintext = _encryptionService.Decrypt(request.IdCardNumber);
+                request.IdCardNumber = _encryptionService.Encrypt(plaintext);
+                reencryptedCount++;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _encryptionKeyStore.RemoveKey(oldKeyId);
+
+            _logger.LogInformation(
+                "Key rotation complete. New active key: {NewKeyId}. Re-encrypted {Count} records. Old key {OldKeyId} removed.",
+                newKeyId, reencryptedCount, oldKeyId);
+
+            return new OkObjectResult(new
+            {
+                Message = $"Encryption key rotated successfully.",
+                OldKeyId = oldKeyId,
+                NewKeyId = newKeyId,
+                ReencryptedRecords = reencryptedCount
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Key rotation failed after adding new key {NewKeyId}. Old key {OldKeyId} is still in the store.",
+                newKeyId, oldKeyId);
+
+            return new ObjectResult(new
+            {
+                Error = "Key rotation failed partway through. The new key was added but not all records were re-encrypted. " +
+                        "The old key is still available for decryption. Please investigate and retry.",
+                NewKeyId = newKeyId,
+                OldKeyId = oldKeyId,
+                Detail = ex.Message
+            })
+            {
+                StatusCode = 500
+            };
+        }
     }
 
     #region Private Helper Methods

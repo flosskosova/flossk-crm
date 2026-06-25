@@ -131,4 +131,25 @@ public class MembershipRequestsController(IMembershipRequestService membershipRe
     {
         return await _membershipRequestService.DeleteAllMembershipRequestsAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Encrypt existing plaintext IdCardNumber values (Admin only - one-time migration)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("encrypt-existing")]
+    public async Task<IActionResult> EncryptExistingIdCardNumbers(CancellationToken cancellationToken)
+    {
+        return await _membershipRequestService.EncryptExistingIdCardNumbersAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Rotate the encryption key: generates a new key, re-encrypts all IdCardNumber values,
+    /// and removes the old key from the store (Admin only)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("rotate-key")]
+    public async Task<IActionResult> RotateEncryptionKey(CancellationToken cancellationToken)
+    {
+        return await _membershipRequestService.RotateEncryptionKeyAsync(cancellationToken);
+    }
 }
