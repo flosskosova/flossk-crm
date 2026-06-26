@@ -33,6 +33,8 @@ import { CourseLogin } from '@/pages/auth/course-login';
 import { Course } from './app/pages/dashboard/components/public-course';
 import { ProjectDetails } from '@/pages/dashboard/components/project-details';
 import { Dashboard } from '@/pages/dashboard/dashboard';
+import { Terms } from '@/pages/auth/terms';
+import { Privacy } from '@/pages/auth/privacy';
 
 export const appRoutes: Routes = [
     { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -77,6 +79,8 @@ export const appRoutes: Routes = [
     { path: 'notfound', component: Notfound },
     { path: 'course/:slug', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
+    { path: 'terms', component: Terms },
+    { path: 'privacy', component: Privacy },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }
 ];

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.Formats.Cbor;
 
 namespace FlosskMS.Business.Services;
 
@@ -24,6 +26,9 @@ public class MfaService(
     IOptions<JwtSettings> jwtSettings) : IMfaService
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private static readonly ConcurrentDictionary<string, ChallengeData> _challengeStore = new();
+
+    private sealed record ChallengeData(string UserId, string Challenge, DateTime CreatedAt);
 
     public async Task<IActionResult> GetStatusAsync(string? userId)
     {
@@ -306,6 +311,359 @@ public class MfaService(
         await dbContext.SaveChangesAsync();
 
         return new OkObjectResult(new { Message = "Passkey removed successfully." });
+    }
+
+    public async Task<IActionResult> AuthenticatePasskeyStartAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await userManager.FindByIdAsync(userId);
+        if (user == null)
+            return new NotFoundResult();
+
+        var challengeBytes = RandomNumberGenerator.GetBytes(32);
+        var challenge = Convert.ToBase64String(challengeBytes)
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+
+        var key = $"auth:{userId}:{challenge}";
+        _challengeStore[key] = new ChallengeData(userId, challenge, DateTime.UtcNow);
+
+        var rpId = httpContextAccessor.HttpContext?.Request.Host.Host ?? "localhost";
+
+        var allowCredentials = await dbContext.UserPasskeys
+            .Where(p => p.UserId == userId)
+            .Select(p => new PasskeyCredentialDescriptor
+            {
+                Id = p.CredentialId,
+                Type = "public-key"
+            })
+            .ToListAsync();
+
+        if (allowCredentials.Count == 0)
+            return new BadRequestObjectResult(new { Message = "No passkeys registered. Register a passkey first." });
+
+        return new OkObjectResult(new PasskeyAuthenticateStartDto
+        {
+            Challenge = challenge,
+            RpId = rpId,
+            Timeout = 60000,
+            AllowCredentials = allowCredentials
+        });
+    }
+
+    public async Task<IActionResult> AuthenticatePasskeyCompleteAsync(string? userId, PasskeyAuthenticateCompleteDto request)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await userManager.FindByIdAsync(userId);
+        if (user == null)
+            return new NotFoundResult();
+
+        try
+        {
+            var credentialDoc = JsonDocument.Parse(request.CredentialJson);
+            var credentialId = credentialDoc.RootElement.GetProperty("id").GetString() ?? string.Empty;
+
+            var passkey = await dbContext.UserPasskeys
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.CredentialId == credentialId);
+
+            if (passkey == null)
+                return new BadRequestObjectResult(new { Message = "Passkey not found." });
+
+            var storedCredential = JsonDocument.Parse(passkey.CredentialJson);
+            var clientDataJsonBase64 = credentialDoc.RootElement
+                .GetProperty("response").GetProperty("clientDataJSON").GetString() ?? string.Empty;
+            var signatureBase64 = credentialDoc.RootElement
+                .GetProperty("response").GetProperty("signature").GetString() ?? string.Empty;
+            var authenticatorDataBase64 = credentialDoc.RootElement
+                .GetProperty("response").GetProperty("authenticatorData").GetString() ?? string.Empty;
+
+            var clientDataJsonBytes = Convert.FromBase64String(ConvertBase64Url(clientDataJsonBase64));
+            var signature = Convert.FromBase64String(ConvertBase64Url(signatureBase64));
+            var authenticatorData = Convert.FromBase64String(ConvertBase64Url(authenticatorDataBase64));
+
+            var clientDataJson = JsonDocument.Parse(clientDataJsonBytes);
+
+            var challenge = clientDataJson.RootElement.GetProperty("challenge").GetString() ?? string.Empty;
+            var origin = clientDataJson.RootElement.GetProperty("origin").GetString() ?? string.Empty;
+            var type = clientDataJson.RootElement.GetProperty("type").GetString() ?? string.Empty;
+
+            if (type != "webauthn.get")
+                return new BadRequestObjectResult(new { Message = "Invalid assertion type." });
+
+            var challengeKey = $"auth:{userId}:{challenge}";
+            if (!_challengeStore.TryRemove(challengeKey, out var storedChallenge))
+                return new BadRequestObjectResult(new { Message = "Challenge expired or invalid. Try again." });
+
+            if (storedChallenge.CreatedAt < DateTime.UtcNow.AddMinutes(-5))
+                return new BadRequestObjectResult(new { Message = "Challenge expired. Try again." });
+
+            var rpId = httpContextAccessor.HttpContext?.Request.Host.Host ?? "localhost";
+            var expectedOrigin = $"{httpContextAccessor.HttpContext?.Request.Scheme}://{rpId}";
+
+            if (origin != expectedOrigin && origin != $"https://{rpId}" && origin != $"http://{rpId}")
+                return new BadRequestObjectResult(new { Message = $"Invalid origin: {origin}. Expected: {expectedOrigin}" });
+
+            var rpIdHash = SHA256.HashData(Encoding.UTF8.GetBytes(rpId));
+            var actualRpIdHash = authenticatorData[..32];
+            if (!rpIdHash.SequenceEqual(actualRpIdHash))
+                return new BadRequestObjectResult(new { Message = "Invalid relying party ID." });
+
+            var clientDataHash = SHA256.HashData(clientDataJsonBytes);
+            var signedData = new byte[authenticatorData.Length + clientDataHash.Length];
+            authenticatorData.CopyTo(signedData, 0);
+            clientDataHash.CopyTo(signedData, authenticatorData.Length);
+
+            var (publicKey, hashAlgorithm) = ExtractPublicKeyFromStoredCredential(storedCredential);
+            if (publicKey == null)
+                return new BadRequestObjectResult(new { Message = "Unable to extract public key from stored credential." });
+
+            var isValid = publicKey.VerifyData(signedData, signature, hashAlgorithm, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+            if (!isValid)
+            {
+                try
+                {
+                    isValid = publicKey.VerifyData(signedData, signature, hashAlgorithm, DSASignatureFormat.Rfc3279DerSequence);
+                }
+                catch
+                {
+                    // Signature is not valid DER encoding either
+                }
+            }
+            if (!isValid)
+            {
+                return new BadRequestObjectResult(new
+                {
+                    Message = "Invalid passkey signature.",
+                    Debug = new
+                    {
+                        signatureLength = signature.Length,
+                        authenticatorDataLength = authenticatorData.Length,
+                        clientDataJsonLength = clientDataJsonBytes.Length,
+                        hashAlgorithm = hashAlgorithm.Name,
+                        signedDataLength = signedData.Length,
+                        rpId
+                    }
+                });
+            }
+
+            passkey.LastUsedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync();
+
+            var token = await GenerateJwtTokenAsync(user);
+            var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
+
+            return new OkObjectResult(new LoginResponseWithMfaDto
+            {
+                Token = token,
+                Expiration = expiration,
+                User = await MapToUserDtoAsync(user)
+            });
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(new { Message = $"Passkey authentication failed: {ex.Message}" });
+        }
+    }
+
+    private static (ECDsa? PublicKey, HashAlgorithmName HashAlgorithm) ExtractPublicKeyFromStoredCredential(JsonDocument storedCredential)
+    {
+        try
+        {
+            var attestationElement = storedCredential.RootElement
+                .GetProperty("response").GetProperty("attestationObject");
+            var attestationObject = GetBytesFromJsonElement(attestationElement);
+
+            var reader = new CborReader(attestationObject);
+            var count = reader.ReadStartMap();
+            byte[] authData = [];
+            if (count.HasValue)
+            {
+                for (var i = 0; i < count.Value; i++)
+                {
+                    var key = reader.ReadTextString();
+                    if (key == "authData")
+                        authData = reader.ReadByteString();
+                    else
+                        reader.SkipValue();
+                }
+            }
+            else
+            {
+                while (reader.PeekState() != CborReaderState.EndMap)
+                {
+                    var key = reader.ReadTextString();
+                    if (key == "authData")
+                        authData = reader.ReadByteString();
+                    else
+                        reader.SkipValue();
+                }
+            }
+
+            if (authData.Length < 37)
+                return (null, HashAlgorithmName.SHA256);
+
+            var flags = authData[32];
+            var atFlag = (flags & 0x40) != 0;
+            if (!atFlag)
+            {
+                var rawIdElement = storedCredential.RootElement.GetProperty("rawId");
+                var rawIdBytes = GetBytesFromJsonElement(rawIdElement);
+                var rawIdBase64Url = Convert.ToBase64String(rawIdBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+                return ExtractPublicKeyFromCwt(rawIdBase64Url);
+            }
+
+            var offset = 37;
+            var aaguid = authData[offset..(offset + 16)];
+            offset += 16;
+            var credIdLen = (authData[offset] << 8) | authData[offset + 1];
+            offset += 2;
+            offset += credIdLen;
+
+            var coseKeyBytes = authData[offset..];
+            return ParseCoseKey(coseKeyBytes);
+        }
+        catch
+        {
+            return (null, HashAlgorithmName.SHA256);
+        }
+    }
+
+    private static byte[] GetBytesFromJsonElement(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            return element.EnumerateArray().Select(e => (byte)e.GetInt32()).ToArray();
+        }
+        return Convert.FromBase64String(ConvertBase64Url(element.GetString() ?? string.Empty));
+    }
+
+    private static (ECDsa? PublicKey, HashAlgorithmName HashAlgorithm) ExtractPublicKeyFromCwt(string cwtBase64)
+    {
+        try
+        {
+            var cwtBytes = Convert.FromBase64String(ConvertBase64Url(cwtBase64));
+            var reader = new CborReader(cwtBytes);
+            reader.ReadStartArray();
+            reader.ReadInt32();
+            reader.ReadByteString();
+            var count = reader.ReadStartMap();
+            byte[]? x = null;
+            byte[]? y = null;
+            int? crv = null;
+            int? alg = null;
+            void ReadCwtEntry()
+            {
+                var key = reader.ReadInt32();
+                switch (key)
+                {
+                    case 3: alg = reader.ReadInt32(); break;
+                    case -1: crv = reader.ReadInt32(); break;
+                    case -2: x = reader.ReadByteString(); break;
+                    case -3: y = reader.ReadByteString(); break;
+                    default: reader.SkipValue(); break;
+                }
+            }
+            if (count.HasValue)
+            {
+                for (var i = 0; i < count.Value; i++)
+                    ReadCwtEntry();
+            }
+            else
+            {
+                while (reader.PeekState() != CborReaderState.EndMap)
+                    ReadCwtEntry();
+            }
+            if (x == null || y == null) return (null, default);
+            return CreateEcdsaFromCose(x, y, crv, alg);
+        }
+        catch
+        {
+            return (null, default);
+        }
+    }
+
+    private static (ECDsa? PublicKey, HashAlgorithmName HashAlgorithm) ParseCoseKey(byte[] coseKeyBytes)
+    {
+        try
+        {
+            var reader = new CborReader(coseKeyBytes);
+            var count = reader.ReadStartMap();
+            byte[]? x = null;
+            byte[]? y = null;
+            int? crv = null;
+            int? alg = null;
+            void ReadEntry()
+            {
+                var key = reader.ReadInt32();
+                switch (key)
+                {
+                    case 3: alg = reader.ReadInt32(); break;
+                    case -1: crv = reader.ReadInt32(); break;
+                    case -2: x = reader.ReadByteString(); break;
+                    case -3: y = reader.ReadByteString(); break;
+                    default: reader.SkipValue(); break;
+                }
+            }
+            if (count.HasValue)
+            {
+                for (var i = 0; i < count.Value; i++)
+                    ReadEntry();
+            }
+            else
+            {
+                while (reader.PeekState() != CborReaderState.EndMap)
+                    ReadEntry();
+            }
+            if (x == null || y == null) return (null, default);
+            return CreateEcdsaFromCose(x, y, crv, alg);
+        }
+        catch
+        {
+            return (null, default);
+        }
+    }
+
+    private static (ECDsa PublicKey, HashAlgorithmName HashAlgorithm) CreateEcdsaFromCose(byte[] x, byte[] y, int? crv, int? alg)
+    {
+        var curve = crv switch
+        {
+            2 => ECCurve.NamedCurves.nistP384,
+            3 => ECCurve.NamedCurves.nistP521,
+            _ => ECCurve.NamedCurves.nistP256
+        };
+
+        var hashAlg = alg switch
+        {
+            -35 => HashAlgorithmName.SHA384,
+            -36 => HashAlgorithmName.SHA512,
+            _ => HashAlgorithmName.SHA256
+        };
+
+        // Fall back to curve-based hash if alg not specified
+        if (alg == null)
+        {
+            hashAlg = crv switch
+            {
+                2 => HashAlgorithmName.SHA384,
+                3 => HashAlgorithmName.SHA512,
+                _ => HashAlgorithmName.SHA256
+            };
+        }
+
+        var ecParams = new ECParameters
+        {
+            Curve = curve,
+            Q = { X = x, Y = y }
+        };
+        return (ECDsa.Create(ecParams), hashAlg);
+    }
+
+    private static string ConvertBase64Url(string base64Url)
+    {
+        return base64Url.Replace('-', '+').Replace('_', '/') + new string('=', (4 - base64Url.Length % 4) % 4);
     }
 
     private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)

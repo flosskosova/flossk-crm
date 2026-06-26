@@ -675,6 +675,18 @@ export class UserSettings implements OnInit {
     }
 
     // --- Passkeys ---
+    private base64UrlToBase64(s: string): string {
+        return s.replace(/-/g, '+').replace(/_/g, '/');
+    }
+
+    private uint8ArrayToBase64(bytes: Uint8Array): string {
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
+
     async registerPasskey() {
         if (!this.passkeySupported) {
             this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Passkeys are not supported in this browser.' });
@@ -687,10 +699,10 @@ export class UserSettings implements OnInit {
             next: async (options: any) => {
                 try {
                     const publicKey: PublicKeyCredentialCreationOptions = {
-                        challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)),
+                        challenge: Uint8Array.from(atob(this.base64UrlToBase64(options.challenge)), c => c.charCodeAt(0)),
                         rp: { id: options.rpId, name: options.rpName },
                         user: {
-                            id: Uint8Array.from(atob(options.userId), c => c.charCodeAt(0)),
+                            id: new TextEncoder().encode(options.userId),
                             name: options.userName,
                             displayName: options.userDisplayName
                         },
@@ -698,7 +710,7 @@ export class UserSettings implements OnInit {
                         timeout: parseInt(options.timeout),
                         attestation: options.attestation as AttestationConveyancePreference,
                         excludeCredentials: options.excludeCredentials.map((id: string) => ({
-                            id: Uint8Array.from(atob(id), c => c.charCodeAt(0)),
+                            id: Uint8Array.from(atob(this.base64UrlToBase64(id)), c => c.charCodeAt(0)),
                             type: 'public-key' as const
                         }))
                     };
@@ -707,11 +719,11 @@ export class UserSettings implements OnInit {
 
                     const credentialJson = JSON.stringify({
                         id: credential.id,
-                        rawId: Array.from(new Uint8Array(credential.rawId)),
+                        rawId: this.uint8ArrayToBase64(new Uint8Array(credential.rawId)),
                         type: credential.type,
                         response: {
-                            clientDataJSON: Array.from(new Uint8Array(credential.response.clientDataJSON)),
-                            attestationObject: Array.from(new Uint8Array(credential.response.attestationObject))
+                            clientDataJSON: this.uint8ArrayToBase64(new Uint8Array(credential.response.clientDataJSON)),
+                            attestationObject: this.uint8ArrayToBase64(new Uint8Array(credential.response.attestationObject))
                         }
                     });
 
@@ -735,8 +747,10 @@ export class UserSettings implements OnInit {
                     });
                 } catch (err: any) {
                     this.isRegisteringPasskey = false;
-                    if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Passkey registration was cancelled or failed.' });
+                    if (err.name === 'AbortError' || err.name === 'NotAllowedError') {
+                        this.messageService.add({ severity: 'info', summary: 'Cancelled', detail: 'Passkey registration was cancelled.' });
+                    } else {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Passkey registration failed: ' + (err.message || 'Unknown error') + '.' });
                     }
                 }
             },

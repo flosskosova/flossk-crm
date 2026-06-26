@@ -96,7 +96,12 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                         </small>
                     </div>
                     <div class="field">
-                        <label for="idNumber" class="block font-bold mb-2">ID Number:</label>
+                        <label for="idNumber" class="block font-bold mb-2">
+                            ID Number:
+                            <i class="pi pi-info-circle text-primary ml-1" 
+                               pTooltip="We collect your ID number for identity verification purposes as required by FLOSSK's statute. It is stored securely, visible only to board members during review, and never shared with third parties."
+                               tooltipPosition="right"></i>
+                        </label>
                         <input 
                             pInputText 
                             id="idNumber" 
@@ -226,6 +231,22 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                     </div>
                 </div>
 
+                <!-- Age-based sign-off info -->
+                @if (formData.applicantDateofBirth) {
+                    <div class="mb-4 p-3 border-2 rounded-lg" [class.bg-orange-50]="ageCategory === 'under14'" [class.bg-blue-50]="ageCategory === 'under18'" [class.bg-green-50]="ageCategory === 'adult'" [class.border-orange-300]="ageCategory === 'under14'" [class.border-blue-300]="ageCategory === 'under18'" [class.border-green-300]="ageCategory === 'adult'">
+                        <div class="flex items-center gap-2 font-semibold">
+                            <i class="pi" [class.pi-exclamation-triangle]="ageCategory === 'under14'" [class.pi-info-circle]="ageCategory === 'under18'" [class.pi-check-circle]="ageCategory === 'adult'"></i>
+                            @if (ageCategory === 'under14') {
+                                <span class="text-orange-800">You are under 14 — a parent or guardian must sign on your behalf below.</span>
+                            } @else if (ageCategory === 'under18') {
+                                <span class="text-blue-800">You are under 18 — you can sign for yourself, but a parent/guardian ID number is required.</span>
+                            } @else {
+                                <span class="text-green-800">You are 18 or older — please sign for yourself below.</span>
+                            }
+                        </div>
+                    </div>
+                }
+
                 <!-- Statement -->
                 <div class="field mb-4">
                     <label for="statement" class="block font-bold mb-2">
@@ -313,6 +334,12 @@ import { MembershipRequestsService } from '@/pages/service/membership-requests.s
                             </small>
                         }
                     </div>
+                </div>
+
+                <!-- Privacy Notice -->
+                <div class="mb-6 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
+                    <p class="font-semibold text-gray-700 mb-1">Data Handling Notice</p>
+                    <p>The information you provide in this form (including your name, address, ID number, and signature) is collected for the purpose of processing your membership application with FLOSSK. Your data will be stored securely, accessed only by authorized board members during the review process, and retained in accordance with FLOSSK's data retention policy. We do not share your personal data with third parties.</p>
                 </div>
 
                 <!-- Submit Button -->
@@ -483,38 +510,32 @@ export class MembershipApplicationForm implements AfterViewInit {
         }
     }
 
+    get ageCategory(): string | null {
+        if (!this.formData.applicantDateofBirth) return null;
+        const age = this.calculateAge();
+        if (age < 14) return 'under14';
+        if (age < 18) return 'under18';
+        return 'adult';
+    }
+
     isUnder14(): boolean {
-        if (!this.formData.applicantDateofBirth) {
-            return false;
-        }
-
-        const birthDate = new Date(this.formData.applicantDateofBirth);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-
-        return age < 14;
+        return this.ageCategory === 'under14';
     }
 
     isUnder16(): boolean {
-        if (!this.formData.applicantDateofBirth) {
-            return false;
-        }
+        if (!this.formData.applicantDateofBirth) return false;
+        return this.calculateAge() < 16;
+    }
 
+    private calculateAge(): number {
         const birthDate = new Date(this.formData.applicantDateofBirth);
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
-
-        return age < 16;
+        return age;
     }
 
     onSubmit() {

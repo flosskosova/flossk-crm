@@ -75,3 +75,22 @@ public class LoginResponseWithMfaDto
     public UserDto? User { get; set; }
     public List<string> Errors { get; set; } = [];
 }
+
+public class PasskeyAuthenticateStartDto
+{
+    public string Challenge { get; set; } = string.Empty;
+    public string RpId { get; set; } = string.Empty;
+    public int Timeout { get; set; } = 60000;
+    public List<PasskeyCredentialDescriptor> AllowCredentials { get; set; } = [];
+}
+
+public class PasskeyCredentialDescriptor
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = "public-key";
+}
+
+public class PasskeyAuthenticateCompleteDto
+{
+    public string CredentialJson { get; set; } = string.Empty;
+}

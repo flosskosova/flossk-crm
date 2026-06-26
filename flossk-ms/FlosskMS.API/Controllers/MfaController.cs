@@ -65,4 +65,12 @@ public class MfaController(IMfaService mfaService) : ControllerBase
     [HttpDelete("passkeys/{id}")]
     public async Task<IActionResult> RemovePasskey(Guid id)
         => await _mfaService.RemovePasskeyAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), id);
+
+    [HttpPost("passkeys/authenticate-start")]
+    public async Task<IActionResult> AuthenticatePasskeyStart([FromQuery] string userId)
+        => await _mfaService.AuthenticatePasskeyStartAsync(userId);
+
+    [HttpPost("passkeys/authenticate-complete")]
+    public async Task<IActionResult> AuthenticatePasskeyComplete([FromBody] PasskeyAuthenticateCompleteDto request, [FromQuery] string userId)
+        => await _mfaService.AuthenticatePasskeyCompleteAsync(userId, request);
 }

@@ -16,4 +16,6 @@ public interface IMfaService
     Task<IActionResult> RegisterPasskeyStartAsync(string? userId);
     Task<IActionResult> RegisterPasskeyCompleteAsync(string? userId, PasskeyRegistrationCompleteDto request);
     Task<IActionResult> RemovePasskeyAsync(string? userId, Guid passkeyId);
+    Task<IActionResult> AuthenticatePasskeyStartAsync(string? userId);
+    Task<IActionResult> AuthenticatePasskeyCompleteAsync(string? userId, PasskeyAuthenticateCompleteDto request);
 }
