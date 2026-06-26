@@ -22,8 +22,7 @@ public class AuthService(
     ApplicationDbContext dbContext,
     IFileService fileService,
     IEmailService emailService,
-    IOptions<JwtSettings> jwtSettings,
-    IEncryptionService encryptionService) : IAuthService
+    IOptions<JwtSettings> jwtSettings) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<IdentityRole> _roleManager = roleManager;
@@ -32,7 +31,6 @@ public class AuthService(
     private readonly IFileService _fileService = fileService;
     private readonly IEmailService _emailService = emailService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-    private readonly IEncryptionService _encryptionService = encryptionService;
 
     public async Task<IActionResult> RegisterAsync(RegisterRequestDto request)
     {
@@ -104,6 +102,21 @@ public class AuthService(
             {
                 Errors = ["Invalid email or password."]
             });
+        }
+
+        // If 2FA is enabled, return a special response requiring 2FA code
+        if (user.TwoFactorEnabled)
+        {
+            var providers = await _userManager.GetValidTwoFactorProvidersAsync(user);
+            if (providers?.Contains("Authenticator") == true)
+            {
+                return new OkObjectResult(new
+                {
+                    RequiresTwoFactor = true,
+                    UserId = user.Id,
+                    Message = "Two-factor authentication is required."
+                });
+            }
         }
 
         var expireMinutes = request.RememberMe ? 60 * 24 * 10 : _jwtSettings.ExpirationInMinutes;
@@ -1306,7 +1319,7 @@ public class AuthService(
                 mr.SchoolOrCompany,
                 mr.DateOfBirth,
                 mr.Statement,
-                IdCardNumber = _encryptionService.Decrypt(mr.IdCardNumber),
+                IdCardNumber = mr.IdCardNumber,
                 mr.Status,
                 mr.CreatedAt,
                 mr.ReviewedAt,

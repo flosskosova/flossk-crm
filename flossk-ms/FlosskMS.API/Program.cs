@@ -168,6 +168,7 @@ builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationSer
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMfaService, MfaService>();
 builder.Services.AddScoped<IClamAvService, ClamAvService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
