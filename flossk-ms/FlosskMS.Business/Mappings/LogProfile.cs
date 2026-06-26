@@ -19,6 +19,8 @@ public class LogProfile : Profile
                         .Where(f => f.FileType == FileType.ProfilePicture)
                         .Select(f => "/uploads/" + f.FileName)
                         .FirstOrDefault()
-                    : null));
+                    : null))
+            .ForMember(dest => dest.IpAddress, opt => opt.MapFrom(src => src.IpAddress))
+            .ForMember(dest => dest.UserAgent, opt => opt.MapFrom(src => src.UserAgent));
     }
 }

@@ -24,6 +24,8 @@ public class LogService(ApplicationDbContext context, IMapper mapper) : ILogServ
             Action = dto.Action,
             Detail = dto.Detail,
             UserId = dto.UserId,
+            IpAddress = dto.IpAddress,
+            UserAgent = dto.UserAgent,
             Timestamp = DateTime.UtcNow
         };
 

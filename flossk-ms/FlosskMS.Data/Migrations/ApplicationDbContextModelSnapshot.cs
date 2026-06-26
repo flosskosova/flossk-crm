@@ -1208,6 +1208,12 @@ namespace FlosskMS.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EntityId");

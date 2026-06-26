@@ -154,6 +154,14 @@ interface SelectOption { label: string; value: string; }
                                 <i class="pi pi-info-circle text-xs shrink-0"></i>
                                 <span class="truncate">{{ log.detail }}</span>
                             </span>
+                            <span *ngIf="log.ipAddress" class="text-xs text-muted-color flex items-center gap-1" [pTooltip]="'IP Address'" tooltipPosition="top">
+                                <i class="pi pi-globe text-xs"></i>
+                                {{ log.ipAddress }}
+                            </span>
+                            <span *ngIf="log.userAgent" class="text-xs text-muted-color flex items-center gap-1" [pTooltip]="log.userAgent" tooltipPosition="top">
+                                <i class="pi pi-desktop text-xs"></i>
+                                <span class="truncate max-w-32">{{ log.userAgent }}</span>
+                            </span>
                         </div>
                     </div>
 

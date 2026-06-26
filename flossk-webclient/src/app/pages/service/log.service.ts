@@ -14,6 +14,8 @@ export interface LogEntry {
     userFullName: string;
     userProfilePictureUrl?: string;
     timestamp: string;
+    ipAddress?: string;
+    userAgent?: string;
 }
 
 export interface PaginatedLogsResponse {
