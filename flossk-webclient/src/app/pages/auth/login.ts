@@ -1,24 +1,21 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { RippleModule } from 'primeng/ripple';
 import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
 import { LayoutService } from '@/layout/service/layout.service';
 import { AuthService } from '@/pages/service/auth.service';
 import { MessageModule } from 'primeng/message';
 import { CommonModule } from '@angular/common';
-import { environment } from '@environments/environment.prod';
 
 @Component({
     selector: 'app-login',
     standalone: true,
-    imports: [ButtonModule, CheckboxModule, InputTextModule, InputNumberModule, PasswordModule, FormsModule, RouterModule, RippleModule, AppFloatingConfigurator, MessageModule, CommonModule],
+    imports: [ButtonModule, CheckboxModule, InputTextModule, PasswordModule, FormsModule, RouterModule, RippleModule, AppFloatingConfigurator, MessageModule, CommonModule],
     template: `
         <app-floating-configurator />
         <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-screen overflow-hidden">
@@ -28,7 +25,7 @@ import { environment } from '@environments/environment.prod';
                         <div class="text-center mb-8 flex flex-col items-center">  
                             <img class="h-20 sm:h-28 w-auto" [src]="layoutService.isDarkTheme() ? 'assets/images/flossk_logo_dark_mode.png' : 'assets/images/logo.png'" alt="Sorra">
                             <span class="text-muted-color mt-5 font-medium">
-                                {{ isLoginMode ? (isMfaRequired ? 'Enter your authentication code' : 'Log in to continue') : isForgotMode ? 'Reset your password' : 'Create your account' }}
+                                {{ isLoginMode ? 'Log in to continue' : isForgotMode ? 'Reset your password' : 'Create your account' }}
                             </span>
                         </div>
 
@@ -40,7 +37,7 @@ import { environment } from '@environments/environment.prod';
                                 <p-message severity="success" text="Registration successful! Please log in." styleClass="w-full mb-4"></p-message>
                             }
                             
-                            @if (isLoginMode && !isMfaRequired) {
+                            @if (isLoginMode) {
                                 <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
                                 <input pInputText id="email1" type="text" placeholder="Email address" class="w-full md:w-120 mb-8" [(ngModel)]="email" />
 
@@ -59,20 +56,6 @@ import { environment } from '@environments/environment.prod';
                                 <div class="text-center mt-6">
                                     <span class="text-muted-color">Don't have an account yet? </span>
                                     <span class="font-medium cursor-pointer text-primary" (click)="toggleMode()">Sign up</span>
-                                </div>
-                            } @else if (isLoginMode && isMfaRequired) {
-                                <div class="flex flex-col items-center gap-4">
-                                    <p class="text-muted-color text-sm text-center mb-2">Open your authenticator app and enter the 6-digit code.</p>
-                                    <input pInputText id="mfaCode" placeholder="000000" class="w-full text-center text-2xl tracking-widest" maxlength="6" [(ngModel)]="mfaCode" inputmode="numeric" />
-                                    <p-button label="Verify" styleClass="w-full" [loading]="authService.isLoading()" (onClick)="onVerifyMfa()"></p-button>
-                                    <p-button label="Use a recovery code" styleClass="w-full" severity="secondary" [outlined]="true" (onClick)="showRecoveryCode = true"></p-button>
-                                    @if (showRecoveryCode) {
-                                        <input pInputText id="recoveryCode" placeholder="Recovery code" class="w-full" [(ngModel)]="recoveryCode" />
-                                        <p-button label="Verify Recovery Code" styleClass="w-full" [loading]="authService.isLoading()" (onClick)="onVerifyMfa()"></p-button>
-                                    }
-                                    <div class="text-center mt-4">
-                                        <span class="font-medium cursor-pointer text-primary" (click)="cancelMfa()">Cancel</span>
-                                    </div>
                                 </div>
                             } @else if (!isForgotMode) {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -151,18 +134,10 @@ export class Login {
 
     confirmPassword: string = '';
 
-    // MFA
-    isMfaRequired = false;
-    mfaUserId: string | null = null;
-    mfaCode = '';
-    showRecoveryCode = false;
-    recoveryCode = '';
-
     constructor(
         public layoutService: LayoutService,
         public authService: AuthService,
-        private router: Router,
-        private http: HttpClient
+        private router: Router
     ) { }
 
     toggleMode() {
@@ -170,11 +145,6 @@ export class Login {
         this.isForgotMode = false;
         this.registerSuccess = false;
         this.forgotPasswordSent = false;
-        this.isMfaRequired = false;
-        this.mfaUserId = null;
-        this.mfaCode = '';
-        this.showRecoveryCode = false;
-        this.recoveryCode = '';
         this.authService.error.set(null);
     }
 
@@ -183,11 +153,6 @@ export class Login {
         this.isForgotMode = mode === 'forgot';
         this.registerSuccess = false;
         this.forgotPasswordSent = false;
-        this.isMfaRequired = false;
-        this.mfaUserId = null;
-        this.mfaCode = '';
-        this.showRecoveryCode = false;
-        this.recoveryCode = '';
         this.authService.error.set(null);
     }
 
@@ -204,12 +169,7 @@ export class Login {
 
     onLogin() {
         this.authService.login({ email: this.email, password: this.password, rememberMe: this.checked }).subscribe({
-            next: (response: any) => {
-                if (response.requiresTwoFactor) {
-                    this.isMfaRequired = true;
-                    this.mfaUserId = response.userId;
-                    return;
-                }
+            next: () => {
                 this.authService.loadCurrentUser();
                 this.router.navigate(['/dashboard']);
             },
@@ -217,42 +177,6 @@ export class Login {
                 console.error('Login failed:', err);
             }
         });
-    }
-
-    onVerifyMfa() {
-        const code = this.recoveryCode || this.mfaCode;
-        if (!code) {
-            this.authService.error.set('Enter a verification code or recovery code.');
-            return;
-        }
-        this.authService.isLoading.set(true);
-        this.authService.error.set(null);
-        this.http.post(`${environment.apiUrl}/Mfa/login?userId=${this.mfaUserId}`, {
-            code: this.mfaCode,
-            recoveryCode: this.recoveryCode || null
-        }).subscribe({
-            next: (response: any) => {
-                if (response.token) {
-                    localStorage.setItem('auth_token', response.token);
-                    this.authService.loadCurrentUser();
-                    this.router.navigate(['/dashboard']);
-                }
-                this.authService.isLoading.set(false);
-            },
-            error: (err) => {
-                this.authService.isLoading.set(false);
-                this.authService.error.set(err.error?.message || 'Verification failed.');
-            }
-        });
-    }
-
-    cancelMfa() {
-        this.isMfaRequired = false;
-        this.mfaUserId = null;
-        this.mfaCode = '';
-        this.showRecoveryCode = false;
-        this.recoveryCode = '';
-        this.authService.error.set(null);
     }
 
     onRegister() {

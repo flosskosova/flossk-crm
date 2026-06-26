@@ -197,7 +197,7 @@ const ACTION_ICON: Record<string, string> = {
                             </div>
                         </div>
                         <p-divider />
-                        <div class="mt-8 mb-8">
+                        <div class="mt-8">
                             <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0 mb-1">Password</h3>
                             <p class="text-sm text-muted-color mb-4">Choose a strong password you don't use elsewhere.</p>
                             <div class="flex flex-col gap-4 max-w-md">
@@ -205,101 +205,6 @@ const ACTION_ICON: Record<string, string> = {
                                 <div><label class="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-1.5">New Password</label><p-password [(ngModel)]="passwordData.newPassword" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" /></div>
                                 <div><label class="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-1.5">Confirm New Password</label><p-password [(ngModel)]="passwordData.confirmNewPassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" /></div>
                                 <div><p-button label="Update Password" icon="pi pi-check" (onClick)="changePassword()" [loading]="isChangingPassword" /></div>
-                            </div>
-                        </div>
-
-                        <p-divider />
-                        <div class="mt-8 mb-8">
-                            <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0 mb-1">Two-Factor Authentication</h3>
-                            <p class="text-sm text-muted-color mb-4">Add an extra layer of security to your account.</p>
-
-                            @if (mfaStatus === null) {
-                                <p-button label="Check Status" icon="pi pi-refresh" (onClick)="loadMfaStatus()" [loading]="isMfaLoading" />
-                            } @else if (!mfaStatus.twoFactorEnabled) {
-                                @if (!mfaSetup) {
-                                    <div class="flex flex-col gap-4 max-w-md">
-                                        <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                            <p class="text-sm text-muted-color m-0">Status: <span class="text-red-500 font-medium">Disabled</span></p>
-                                        </div>
-                                        <p-button label="Set Up Two-Factor Authentication" icon="pi pi-shield" (onClick)="setupMfa()" [loading]="isMfaLoading" />
-                                    </div>
-                                } @else {
-                                    <div class="flex flex-col gap-4 max-w-md">
-                                        <p class="text-sm text-muted-color">Scan this QR code with your authenticator app (like Google Authenticator or Authy):</p>
-                                        <div class="bg-white dark:bg-surface-800 p-4 rounded-xl flex justify-center">
-                                            <img [src]="mfaQrCodeUrl" class="w-48 h-48" alt="QR Code" />
-                                        </div>
-                                        <p class="text-sm text-muted-color">Or enter this key manually: <code class="text-surface-900 dark:text-surface-0 font-mono text-xs break-all">{{ mfaSetupKey }}</code></p>
-                                        <div>
-                                            <label class="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-1.5">Enter the 6-digit code from your authenticator app</label>
-                                            <input pInputText [(ngModel)]="mfaVerifyCode" class="w-full text-center text-xl tracking-widest" maxlength="6" placeholder="000000" />
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <p-button label="Verify & Enable" icon="pi pi-check" (onClick)="verifyMfa()" [loading]="isMfaVerifying" />
-                                            <p-button label="Cancel" severity="secondary" (onClick)="cancelMfaSetup()" />
-                                        </div>
-                                    </div>
-                                }
-                            } @else {
-                                <div class="flex flex-col gap-4 max-w-md">
-                                    <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                                        <p class="text-sm text-green-700 dark:text-green-300 m-0 font-medium">Enabled</p>
-                                    </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <p-button label="Recovery Codes ({{ mfaRemainingCodes }} remaining)" icon="pi pi-eye" (onClick)="viewRecoveryCodes()" [loading]="isMfaLoading" severity="warn" />
-                                        <p-button label="Generate New Codes" icon="pi pi-refresh" (onClick)="generateRecoveryCodes()" [loading]="isMfaGeneratingCodes" severity="help" />
-                                        <p-button label="Disable 2FA" icon="pi pi-times" (onClick)="showDisableMfa = true" severity="danger" />
-                                    </div>
-                                    @if (showDisableMfa) {
-                                        <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl flex flex-col gap-3">
-                                            <p class="text-sm text-red-700 dark:text-red-300 m-0 font-medium">Enter your password to disable two-factor authentication:</p>
-                                            <p-password [(ngModel)]="mfaDisablePassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" />
-                                            <div class="flex gap-2">
-                                                <p-button label="Confirm Disable" icon="pi pi-check" (onClick)="disableMfa()" [loading]="isMfaDisabling" severity="danger" />
-                                                <p-button label="Cancel" severity="secondary" (onClick)="showDisableMfa = false; mfaDisablePassword = ''" />
-                                            </div>
-                                        </div>
-                                    }
-                                    @if (mfaRecoveryCodes.length > 0) {
-                                        <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                            <p class="text-sm font-medium text-surface-900 dark:text-surface-0 mb-2">Recovery Codes</p>
-                                            <p class="text-xs text-muted-color mb-3">Store these in a safe place. Each code can only be used once.</p>
-                                            <div class="grid grid-cols-2 gap-2">
-                                                @for (code of mfaRecoveryCodes; track code) {
-                                                    <code class="font-mono text-sm bg-surface-100 dark:bg-surface-700 px-3 py-1.5 rounded text-surface-900 dark:text-surface-0">{{ code }}</code>
-                                                }
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        </div>
-
-                        <p-divider />
-                        <div class="mt-8">
-                            <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0 mb-1">Passkeys</h3>
-                            <p class="text-sm text-muted-color mb-4">Use passkeys to sign in quickly and securely without a password.</p>
-
-                            <div class="flex flex-col gap-3 max-w-md">
-                                @if (passkeys.length === 0) {
-                                    <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                        <p class="text-sm text-muted-color m-0">No passkeys registered yet.</p>
-                                    </div>
-                                } @else {
-                                    @for (passkey of passkeys; track passkey.id) {
-                                        <div class="flex items-center justify-between p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                            <div>
-                                                <div class="font-medium text-surface-900 dark:text-surface-0 text-sm">{{ passkey.name }}</div>
-                                                <p class="text-xs text-muted-color m-0 mt-0.5">{{ passkey.deviceType }} &middot; Added {{ passkey.createdAt | date:'mediumDate' }}</p>
-                                            </div>
-                                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removePasskey(passkey.id)" [loading]="removingPasskeyId === passkey.id" />
-                                        </div>
-                                    }
-                                }
-                                <p-button label="Register Passkey" icon="pi pi-lock" (onClick)="registerPasskey()" [loading]="isRegisteringPasskey" [disabled]="!passkeySupported" />
-                                @if (!passkeySupported) {
-                                    <p class="text-xs text-muted-color">Passkeys are supported on modern browsers with secure contexts (HTTPS or localhost).</p>
-                                }
                             </div>
                         </div>
                     </p-tabpanel>
@@ -455,27 +360,6 @@ export class UserSettings implements OnInit {
     passwordData = { currentPassword: '', newPassword: '', confirmNewPassword: '' };
     emailData = { newEmail: '', currentPassword: '' };
 
-    // MFA
-    mfaStatus: any = null;
-    isMfaLoading = false;
-    mfaSetup: any = null;
-    mfaSetupKey = '';
-    mfaQrCodeUrl = '';
-    mfaVerifyCode = '';
-    isMfaVerifying = false;
-    showDisableMfa = false;
-    mfaDisablePassword = '';
-    isMfaDisabling = false;
-    mfaRecoveryCodes: string[] = [];
-    mfaRemainingCodes = 0;
-    isMfaGeneratingCodes = false;
-
-    // Passkeys
-    passkeys: any[] = [];
-    isRegisteringPasskey = false;
-    removingPasskeyId: string | null = null;
-    passkeySupported = typeof navigator !== 'undefined' && typeof navigator.credentials !== 'undefined' && typeof PublicKeyCredential !== 'undefined';
-
     // Privacy
     isExporting = false;
     isDeleting = false;
@@ -566,202 +450,6 @@ export class UserSettings implements OnInit {
         });
     }
 
-    // --- MFA ---
-    loadMfaStatus() {
-        this.isMfaLoading = true;
-        this.http.get(`${environment.apiUrl}/Mfa/status`).subscribe({
-            next: (res: any) => {
-                this.mfaStatus = res;
-                this.mfaRemainingCodes = res.remainingRecoveryCodes;
-                this.passkeys = res.passkeys || [];
-                this.isMfaLoading = false;
-            },
-            error: () => { this.isMfaLoading = false; }
-        });
-    }
-
-    setupMfa() {
-        this.isMfaLoading = true;
-        this.http.post(`${environment.apiUrl}/Mfa/setup`, {}).subscribe({
-            next: (res: any) => {
-                this.mfaSetupKey = res.sharedKey;
-                this.mfaQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(res.authenticatorUri)}`;
-                this.mfaSetup = res;
-                this.isMfaLoading = false;
-            },
-            error: () => {
-                this.isMfaLoading = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to set up 2FA.' });
-            }
-        });
-    }
-
-    verifyMfa() {
-        if (!this.mfaVerifyCode || this.mfaVerifyCode.length < 6) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Enter a valid 6-digit code.' });
-            return;
-        }
-        this.isMfaVerifying = true;
-        this.http.post(`${environment.apiUrl}/Mfa/verify`, { code: this.mfaVerifyCode }).subscribe({
-            next: (res: any) => {
-                this.isMfaVerifying = false;
-                this.mfaRecoveryCodes = res.recoveryCodes || [];
-                this.mfaStatus = { ...this.mfaStatus, twoFactorEnabled: true };
-                this.mfaSetup = null;
-                this.mfaVerifyCode = '';
-                this.messageService.add({ severity: 'success', summary: '2FA Enabled', detail: 'Two-factor authentication is now active.' });
-            },
-            error: (err) => {
-                this.isMfaVerifying = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Invalid code. Try again.' });
-            }
-        });
-    }
-
-    cancelMfaSetup() {
-        this.mfaSetup = null;
-        this.mfaSetupKey = '';
-        this.mfaQrCodeUrl = '';
-        this.mfaVerifyCode = '';
-    }
-
-    disableMfa() {
-        if (!this.mfaDisablePassword) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Enter your password.' });
-            return;
-        }
-        this.isMfaDisabling = true;
-        this.http.post(`${environment.apiUrl}/Mfa/disable`, { currentPassword: this.mfaDisablePassword }).subscribe({
-            next: () => {
-                this.isMfaDisabling = false;
-                this.mfaStatus = { ...this.mfaStatus, twoFactorEnabled: false };
-                this.showDisableMfa = false;
-                this.mfaDisablePassword = '';
-                this.mfaRecoveryCodes = [];
-                this.messageService.add({ severity: 'success', summary: '2FA Disabled', detail: 'Two-factor authentication has been disabled.' });
-            },
-            error: (err) => {
-                this.isMfaDisabling = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Failed to disable 2FA.' });
-            }
-        });
-    }
-
-    viewRecoveryCodes() {
-        this.isMfaLoading = true;
-        this.http.get(`${environment.apiUrl}/Mfa/recovery-codes`).subscribe({
-            next: (res: any) => {
-                this.mfaRemainingCodes = res.remainingCount;
-                this.isMfaLoading = false;
-            },
-            error: () => { this.isMfaLoading = false; }
-        });
-    }
-
-    generateRecoveryCodes() {
-        this.isMfaGeneratingCodes = true;
-        this.http.post(`${environment.apiUrl}/Mfa/recovery-codes`, {}).subscribe({
-            next: (res: any) => {
-                this.mfaRecoveryCodes = res.recoveryCodes || [];
-                this.mfaRemainingCodes = res.remainingCount;
-                this.isMfaGeneratingCodes = false;
-                this.messageService.add({ severity: 'success', summary: 'Codes Generated', detail: 'New recovery codes have been generated.' });
-            },
-            error: () => {
-                this.isMfaGeneratingCodes = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to generate recovery codes.' });
-            }
-        });
-    }
-
-    // --- Passkeys ---
-    async registerPasskey() {
-        if (!this.passkeySupported) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Passkeys are not supported in this browser.' });
-            return;
-        }
-
-        this.isRegisteringPasskey = true;
-
-        this.http.post(`${environment.apiUrl}/Mfa/passkeys/register-start`, {}).subscribe({
-            next: async (options: any) => {
-                try {
-                    const publicKey: PublicKeyCredentialCreationOptions = {
-                        challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)),
-                        rp: { id: options.rpId, name: options.rpName },
-                        user: {
-                            id: Uint8Array.from(atob(options.userId), c => c.charCodeAt(0)),
-                            name: options.userName,
-                            displayName: options.userDisplayName
-                        },
-                        pubKeyCredParams: JSON.parse(options.pubKeyCredParams),
-                        timeout: parseInt(options.timeout),
-                        attestation: options.attestation as AttestationConveyancePreference,
-                        excludeCredentials: options.excludeCredentials.map((id: string) => ({
-                            id: Uint8Array.from(atob(id), c => c.charCodeAt(0)),
-                            type: 'public-key' as const
-                        }))
-                    };
-
-                    const credential = await navigator.credentials.create({ publicKey }) as any;
-
-                    const credentialJson = JSON.stringify({
-                        id: credential.id,
-                        rawId: Array.from(new Uint8Array(credential.rawId)),
-                        type: credential.type,
-                        response: {
-                            clientDataJSON: Array.from(new Uint8Array(credential.response.clientDataJSON)),
-                            attestationObject: Array.from(new Uint8Array(credential.response.attestationObject))
-                        }
-                    });
-
-                    const deviceType = credential.response?.authenticatorData?.[0] === 0 ? 'platform' : 'cross-platform';
-                    const name = `Passkey (${new Date().toLocaleDateString()})`;
-
-                    this.http.post(`${environment.apiUrl}/Mfa/passkeys/register-complete`, {
-                        credentialJson,
-                        name,
-                        deviceType
-                    }).subscribe({
-                        next: () => {
-                            this.isRegisteringPasskey = false;
-                            this.messageService.add({ severity: 'success', summary: 'Passkey Added', detail: 'Your passkey has been registered.' });
-                            this.loadMfaStatus();
-                        },
-                        error: (err) => {
-                            this.isRegisteringPasskey = false;
-                            this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Failed to register passkey.' });
-                        }
-                    });
-                } catch (err: any) {
-                    this.isRegisteringPasskey = false;
-                    if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Passkey registration was cancelled or failed.' });
-                    }
-                }
-            },
-            error: () => {
-                this.isRegisteringPasskey = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to start passkey registration.' });
-            }
-        });
-    }
-
-    removePasskey(id: string) {
-        this.removingPasskeyId = id;
-        this.http.delete(`${environment.apiUrl}/Mfa/passkeys/${id}`).subscribe({
-            next: () => {
-                this.passkeys = this.passkeys.filter(p => p.id !== id);
-                this.removingPasskeyId = null;
-                this.messageService.add({ severity: 'success', summary: 'Removed', detail: 'Passkey has been removed.' });
-            },
-            error: () => {
-                this.removingPasskeyId = null;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to remove passkey.' });
-            }
-        });
-    }
-
     // --- Privacy ---
     exportData() {
         this.isExporting = true;
@@ -824,7 +512,6 @@ export class UserSettings implements OnInit {
             },
             error: () => { this.isLoading = false; this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load settings.' }); }
         });
-        this.loadMfaStatus();
     }
 
     // --- Activity Log ---

@@ -51,7 +51,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseVoucher> CourseVouchers { get; set; }
     public DbSet<CourseVoucherRedemption> CourseVoucherRedemptions { get; set; }
     public DbSet<FormResponse> FormResponses { get; set; }
-    public DbSet<UserPasskey> UserPasskeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -888,23 +887,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.GoogleFormId);
             entity.HasIndex(e => e.SubmittedAt);
             entity.HasIndex(e => new { e.CourseId, e.SubmittedAt });
-        });
-
-        builder.Entity<UserPasskey>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.CredentialId).HasMaxLength(500).IsRequired();
-            entity.Property(e => e.CredentialJson).IsRequired();
-            entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.DeviceType).HasMaxLength(50);
-
-            entity.HasOne(e => e.User)
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasIndex(e => e.UserId);
-            entity.HasIndex(e => e.CredentialId);
         });
     }
 }
