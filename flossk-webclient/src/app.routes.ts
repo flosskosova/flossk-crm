@@ -25,7 +25,6 @@ import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
 import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
 import { UserSettings } from '@/pages/dashboard/components/user-settings';
-import { Settings } from '@/pages/dashboard/components/settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
 import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
@@ -58,7 +57,6 @@ export const appRoutes: Routes = [
             { path: 'projects', component: Projects },
             { path: 'plugins', component: Plugins },
             { path: 'projects/:projectSlug', component: ProjectDetails },
-            { path: 'settings', component: Settings },
             { path: 'statistics', component: Statistics },
             { path: 'leaderboard', component: Leaderboard },
             { path: 'audit-logs', component: AuditLogs, canActivate: [roleGuard(['Admin'])]  },
@@ -67,7 +65,7 @@ export const appRoutes: Routes = [
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
-            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] }
+            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
         ]
     },
     { path: 'onboarding', component: Onboarding },

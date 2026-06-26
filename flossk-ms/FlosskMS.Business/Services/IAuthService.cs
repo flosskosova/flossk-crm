@@ -34,6 +34,8 @@ public interface IAuthService
     Task<IActionResult> DemoteFromAdminAsync(string userId);
     Task<IActionResult> ForgotPasswordAsync(ForgotPasswordDto request);
     Task<IActionResult> ResetPasswordAsync(ResetPasswordDto request);
+    Task<IActionResult> ChangePasswordAsync(string? userId, ChangePasswordDto request);
+    Task<IActionResult> ChangeEmailAsync(string? userId, ChangeEmailDto request);
     Task<IActionResult> GetLocationStatsAsync();
     Task<IActionResult> GetUserSettingsAsync(string? userId);
     Task<IActionResult> ExportMyDataAsync(string? userId);

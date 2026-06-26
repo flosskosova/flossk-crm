@@ -213,6 +213,22 @@ public class AuthController(IAuthService authService) : ControllerBase
         => await _authService.ApproveEmail(request);
 
     /// <summary>
+    /// Change the current user's email (requires current password)
+    /// </summary>
+    [Authorize]
+    [HttpPost("change-email")]
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailDto request)
+        => await _authService.ChangeEmailAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), request);
+
+    /// <summary>
+    /// Change the current user's password (requires current password)
+    /// </summary>
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+        => await _authService.ChangePasswordAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), request);
+
+    /// <summary>
     /// Send a password reset link to the user's email
     /// </summary>
     [HttpPost("forgot-password")]
