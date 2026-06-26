@@ -1402,6 +1402,68 @@ public class AuthService(
         };
     }
 
+    public async Task<IActionResult> ChangeEmailAsync(string? userId, ChangeEmailDto request)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return new NotFoundObjectResult(new { Error = "User not found." });
+
+        if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
+            return new BadRequestObjectResult(new { Message = "Current password is incorrect." });
+
+        var existingUser = await _userManager.FindByEmailAsync(request.NewEmail);
+        if (existingUser != null && existingUser.Id != userId)
+            return new BadRequestObjectResult(new { Message = "This email is already in use." });
+
+        var token = await _userManager.GenerateChangeEmailTokenAsync(user, request.NewEmail);
+        var result = await _userManager.ChangeEmailAsync(user, request.NewEmail, token);
+
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new
+            {
+                Message = "Email change failed.",
+                Errors = result.Errors.Select(e => e.Description).ToList()
+            });
+        }
+
+        user.UserName = request.NewEmail;
+        user.Email = request.NewEmail;
+        user.NormalizedEmail = _userManager.NormalizeEmail(request.NewEmail);
+        user.NormalizedUserName = _userManager.NormalizeName(request.NewEmail);
+        await _userManager.UpdateAsync(user);
+
+        return new OkObjectResult(new { Message = "Email changed successfully.", Email = request.NewEmail });
+    }
+
+    public async Task<IActionResult> ChangePasswordAsync(string? userId, ChangePasswordDto request)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        if (request.NewPassword != request.ConfirmNewPassword)
+            return new BadRequestObjectResult(new { Message = "New passwords do not match." });
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return new NotFoundObjectResult(new { Error = "User not found." });
+
+        var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            return new BadRequestObjectResult(new
+            {
+                Message = "Password change failed.",
+                Errors = result.Errors.Select(e => e.Description).ToList()
+            });
+        }
+
+        return new OkObjectResult(new { Message = "Password changed successfully." });
+    }
+
     public async Task<IActionResult> ForgotPasswordAsync(ForgotPasswordDto request)
     {
         // Always return the same response to avoid leaking whether an email exists
