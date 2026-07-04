@@ -113,6 +113,16 @@ public class MembershipRequestsController(IMembershipRequestService membershipRe
     }
 
     /// <summary>
+    /// Permanently delete a membership request (Admin only)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:guid}/permanent")]
+    public async Task<IActionResult> PermanentlyDeleteMembershipRequest(Guid id, CancellationToken cancellationToken)
+    {
+        return await _membershipRequestService.PermanentlyDeleteMembershipRequestAsync(id, cancellationToken);
+    }
+
+    /// <summary>
     /// Seed test membership requests (Development only - Admin required)
     /// </summary>
     [Authorize(Roles = "Admin")]

@@ -50,6 +50,10 @@ export class MembershipRequestsService {
         return this.http.post(`${this.API_URL}/reject/${id}`, { rejectionReason: rejectionReason ?? null });
     }
 
+    deletePermanently(id: string): Observable<any> {
+        return this.http.delete(`${this.API_URL}/${id}/permanent`);
+    }
+
     getApproved(page: number = 1, pageSize: number = 10): Observable<any> {
         return this.http.get(`${this.API_URL}/approved?page=${page}&pageSize=${pageSize}`);
     }

@@ -4,7 +4,6 @@ using DotNetEnv;
 using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.DomainEvents.Announcements;
-using FlosskMS.Business.DomainEvents.Announcements.Notifications;
 using FlosskMS.Business.DomainEvents.Memberships;
 using FlosskMS.Business.DomainEvents.Inventory;
 using FlosskMS.Business.DomainEvents.Projects;
@@ -19,9 +18,11 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FlosskMS.API.Middleware;
-
+using Prometheus;
 using FlosskMS.API.Hubs;
 using FlosskMS.API.Services;
+using FlosskMS.Business.Mappings;
+using FlosskMS.Business.DomainEvents.Announcements.Notifications;
 
 var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 if (File.Exists(envFile))
@@ -141,7 +142,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-builder.Services.AddAutoMapper(typeof(FlosskMS.Business.Mappings.AnnouncementProfile).Assembly);
+builder.Services.AddAutoMapper(typeof(AnnouncementProfile).Assembly);
 
 builder.Services.AddCors(options =>
 {
@@ -163,9 +164,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
 builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
+
 builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IClamAvService, ClamAvService>();
 builder.Services.AddScoped<IFileService, FileService>();
@@ -184,6 +185,8 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<NotificationFactory>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IFormResponseService, FormResponseService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<ProjectCreatedEvent>, ProjectCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();
@@ -194,6 +197,7 @@ builder.Services.AddScoped<IDomainEventHandler<TeamMemberPromotedToModeratorEven
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberDemotedFromModeratorEvent>, TeamMemberDemotedFromModeratorNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<ProjectLogEvent>, ProjectLogHandler>();
 builder.Services.AddScoped<IDomainEventHandler<InventoryLogEvent>, InventoryLogHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AnnouncementLogEvent>, AnnouncementLogsHandler>();
 builder.Services.AddScoped<IDomainEventHandler<AnnouncementCreatedEvent>, AnnouncementCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipApplicationSubmittedEvent>, MembershipApplicationSubmittedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipRequestApprovedEvent>, MembershipRequestApprovedNotificationHandler>();
@@ -202,8 +206,6 @@ builder.Services.AddScoped<IDomainEventHandler<MembershipRequestRejectedEvent>, 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
 builder.Services.Configure<VapidSettings>(builder.Configuration.GetSection("VapidSettings"));
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IFormResponseService, FormResponseService>();
 
 var app = builder.Build();
 
@@ -249,10 +251,13 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseCors("AllowAngularApp");
 
+app.UseHttpMetrics();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapMetrics();
 
 app.Run();

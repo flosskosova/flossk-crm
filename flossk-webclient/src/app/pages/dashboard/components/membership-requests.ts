@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, OnInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -8,8 +8,11 @@ import { TableModule } from 'primeng/table';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { TextareaModule } from 'primeng/textarea';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 import SignaturePad from 'signature_pad';
 import { MembershipRequestsService } from '@/pages/service/membership-requests.service';
+import { AuthService } from '@/pages/service/auth.service';
 
 interface JoinRequest {
     id: string;
@@ -30,8 +33,11 @@ interface JoinRequest {
 @Component({
     selector: 'app-membership-requests',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TagModule, DialogModule, TableModule, SkeletonModule, TooltipModule, TextareaModule],
+    imports: [CommonModule, FormsModule, ButtonModule, TagModule, DialogModule, TableModule, SkeletonModule, TooltipModule, TextareaModule, ConfirmDialogModule],
+    providers: [ConfirmationService],
     template: `
+        <p-confirmDialog></p-confirmDialog>
+
         <!-- Loading Skeleton -->
         <div *ngIf="isLoading" class="grid grid-cols-12 gap-8">
             <div class="col-span-12">
@@ -109,6 +115,16 @@ interface JoinRequest {
                                             severity="success"
                                             pTooltip="Download Application"
                                             (onClick)="downloadMembershipContract(request)"
+                                        ></p-button>
+                                        <p-button
+                                            *ngIf="isAdmin()"
+                                            icon="pi pi-trash"
+                                            [text]="true"
+                                            [rounded]="true"
+                                            severity="danger"
+                                            pTooltip="Delete Permanently"
+                                            [loading]="deletingRequestId === request.id"
+                                            (onClick)="deleteRequestPermanently(request)"
                                         ></p-button>
                                     </div>
                                 </td>
@@ -252,6 +268,15 @@ interface JoinRequest {
                     [loading]="isApproving"
                     (onClick)="selectedRequest && approveRequest(selectedRequest)"
                 />
+                <p-button
+                    *ngIf="selectedRequest && isAdmin()"
+                    label="Delete Permanently"
+                    severity="danger"
+                    icon="pi pi-trash"
+                    [outlined]="true"
+                    [loading]="deletingRequestId === selectedRequest.id"
+                    (onClick)="deleteRequestPermanently(selectedRequest)"
+                />
             </div>
         </p-dialog>
     `
@@ -263,10 +288,17 @@ export class MembershipRequests implements OnInit {
     isLoading = true;
     isApproving = false;
     isRejecting = false;
+    deletingRequestId: string | null = null;
     rejectionReason = '';
     joinRequests: JoinRequest[] = [];
     viewDialogVisible = false;
     selectedRequest: JoinRequest | null = null;
+    private authService = inject(AuthService);
+    private confirmationService = inject(ConfirmationService);
+    isAdmin = computed(() => {
+        const currentUser = this.authService.currentUser();
+        return currentUser?.role === 'Admin' || currentUser?.roles?.includes('Admin') || false;
+    });
 
     constructor(private membershipRequestsService: MembershipRequestsService) {}
 
@@ -421,6 +453,39 @@ export class MembershipRequests implements OnInit {
             },
             error: (err: any) => {
                 console.error('Failed to view contract:', err);
+            }
+        });
+    }
+
+    deleteRequestPermanently(request: JoinRequest) {
+        if (!request?.id || this.deletingRequestId) {
+            return;
+        }
+
+        this.confirmationService.confirm({
+            header: 'Delete Membership Request',
+            message: `Permanently delete ${request.fullName}'s membership request? This action cannot be undone.`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            acceptLabel: 'Delete Permanently',
+            rejectLabel: 'Cancel',
+            accept: () => {
+                this.deletingRequestId = request.id;
+                this.membershipRequestsService.deletePermanently(request.id).subscribe({
+                    next: () => {
+                        if (this.selectedRequest?.id === request.id) {
+                            this.viewDialogVisible = false;
+                            this.selectedRequest = null;
+                        }
+
+                        this.joinRequests = this.joinRequests.filter(r => r.id !== request.id);
+                        this.deletingRequestId = null;
+                    },
+                    error: (err: any) => {
+                        console.error('Failed to permanently delete request:', err);
+                        this.deletingRequestId = null;
+                    }
+                });
             }
         });
     }

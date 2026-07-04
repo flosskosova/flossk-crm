@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using FlosskMS.API.Services;
@@ -6,7 +5,6 @@ using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DTOs;
 using FlosskMS.Business.Services;
 using FlosskMS.Data;
-using FlosskMS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -70,7 +68,7 @@ public sealed class NotificationIntegrationTests
             PrivateKey = vapidKeys.PrivateKey
         });
 
-        dbContext.PushSubscriptions.Add(new FlosskMS.Data.Entities.PushSubscription
+        dbContext.PushSubscriptions.Add(new Data.Entities.PushSubscription
         {
             Id = Guid.NewGuid(),
             UserId = "integration-user",

@@ -224,15 +224,6 @@ public class MembershipRequestService : IMembershipRequestService
         if (string.IsNullOrEmpty(reviewerUserId))
             return new UnauthorizedResult();
 
-        return await ApproveMembershipRequestAsync(id, request, reviewerUserId, cancellationToken);
-    }
-
-    public async Task<IActionResult> ApproveMembershipRequestAsync(
-        Guid id,
-        ApproveMembershipRequestDto request,
-        string reviewerUserId,
-        CancellationToken cancellationToken = default)
-    {
         if (request.BoardMemberSignature == null || request.BoardMemberSignature.Length == 0)
             return new BadRequestObjectResult(new { Error = "Board member signature is required for approval." });
 
@@ -417,6 +408,42 @@ public class MembershipRequestService : IMembershipRequestService
         {
             FileDownloadName = $"FLOSSK_Membership_Contract_{membershipRequest.FullName.Replace(" ", "_")}_{membershipRequest.Id}.pdf"
         };
+    }
+
+    public async Task<IActionResult> PermanentlyDeleteMembershipRequestAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var membershipRequest = await _dbContext.MembershipRequests
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+        if (membershipRequest == null)
+            return new NotFoundObjectResult(new { Error = "Membership request not found." });
+
+        var fileIdsToDelete = new[]
+        {
+            membershipRequest.ApplicantSignatureFileId,
+            membershipRequest.GuardianSignatureFileId,
+            membershipRequest.BoardMemberSignatureFileId
+        }
+        .Where(fileId => fileId.HasValue)
+        .Select(fileId => fileId!.Value)
+        .Distinct()
+        .ToList();
+
+        _dbContext.MembershipRequests.Remove(membershipRequest);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var fileId in fileIdsToDelete)
+        {
+            await DeleteFileInternalAsync(fileId, cancellationToken);
+        }
+
+        _logger.LogWarning("Permanently deleted membership request {RequestId}", id);
+
+        return new OkObjectResult(new
+        {
+            Message = "Membership request permanently deleted.",
+            Id = id
+        });
     }
 
     private byte[] GenerateContractPdf(MembershipRequest request)

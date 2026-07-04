@@ -36,12 +36,6 @@ public interface IMembershipRequestService
         ClaimsPrincipal currentUser,
         CancellationToken cancellationToken = default);
 
-    Task<IActionResult> ApproveMembershipRequestAsync(
-        Guid id, 
-        ApproveMembershipRequestDto request,
-        string reviewerUserId,
-        CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Reject a membership request (Board members only)
     /// </summary>
@@ -69,6 +63,11 @@ public interface IMembershipRequestService
     /// Download the membership contract PDF for an approved member
     /// </summary>
     Task<IActionResult> DownloadContractAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Permanently delete a membership request (Admin only)
+    /// </summary>
+    Task<IActionResult> PermanentlyDeleteMembershipRequestAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Seed test membership requests (Development only - Admin required)

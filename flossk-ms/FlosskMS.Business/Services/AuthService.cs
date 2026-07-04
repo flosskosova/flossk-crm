@@ -1332,7 +1332,7 @@ public class AuthService(
         string rawToken;
         try
         {
-            rawToken = System.Text.Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+            rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
         }
         catch
         {
