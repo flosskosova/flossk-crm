@@ -17,7 +17,7 @@ pipeline {
     environment {
         STAGING_DOMAIN = 'staging.root.flossk.org'
         ROOT_DOMAIN = 'root.flossk.org'
-        SSH_CREDENTIALS_ID = '1ce3b31b-1327-41df-95e5-bed0c81720f4'
+        SSH_CREDENTIALS_ID = '7880be1e-10a3-42fe-b890-78565a0ce640'
         DOTNET_CLI_TELEMETRY_OPTOUT = '1'
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
     }

@@ -41,7 +41,7 @@ docker exec -it flossk-jenkins sh -lc 'dotnet --info && sshpass -V && git --vers
 
 1. Create or update your Jenkins Pipeline job to read `Jenkinsfile` from Git.
 2. Add server credential in Jenkins Credentials with ID:
-   - `6e54816b-437d-476f-9a32-52bd07a3092a`
+   - `f70d5886-aa97-4e94-bddd-1520f4e1646d`
 3. Run the pipeline.
 
 ## Stop Jenkins
