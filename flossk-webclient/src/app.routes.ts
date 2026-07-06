@@ -30,6 +30,8 @@ import { MembershipRequests } from '@/pages/dashboard/components/membership-requ
 import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
 import { CoursePortal } from './app/pages/dashboard/components/course-portal';
 import { CourseLogin } from '@/pages/auth/course-login';
+import { Terms } from '@/pages/terms/terms';
+import { Privacy } from '@/pages/privacy/privacy';
 import { Course } from './app/pages/dashboard/components/public-course';
 import { ProjectDetails } from '@/pages/dashboard/components/project-details';
 import { Dashboard } from '@/pages/dashboard/dashboard';
@@ -75,6 +77,8 @@ export const appRoutes: Routes = [
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
     { path: 'notfound', component: Notfound },
+    { path: 'terms', component: Terms },
+    { path: 'privacy', component: Privacy },
     { path: 'course/:slug', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },

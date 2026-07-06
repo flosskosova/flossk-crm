@@ -108,6 +108,11 @@ import { CommonModule } from '@angular/common';
                                 <a routerLink="/rent" class="font-medium cursor-pointer text-primary hover:underline">
                                     Rent Prishtina Hackerspace
                                 </a>
+                                <div class="mt-3 flex items-center justify-center gap-4 text-sm">
+                                    <a routerLink="/terms" class="text-muted-color hover:text-primary transition-colors duration-200">Terms</a>
+                                    <span class="text-muted-color">·</span>
+                                    <a routerLink="/privacy" class="text-muted-color hover:text-primary transition-colors duration-200">Privacy</a>
+                                </div>
                             </div>
                         </div>
                     </div>
