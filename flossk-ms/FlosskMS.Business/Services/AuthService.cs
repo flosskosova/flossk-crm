@@ -1186,6 +1186,59 @@ public class AuthService(
         };
     }
 
+    public async Task<IActionResult> GetUserSettingsAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new NotFoundResult();
+
+        MembershipRequestDto? membershipRequestDto = null;
+
+        var pendingRequest = await _dbContext.MembershipRequests
+            .Include(mr => mr.ReviewedByUser)
+            .FirstOrDefaultAsync(mr => mr.Email == user.Email && mr.Status == MembershipRequestStatus.Pending);
+
+        if (pendingRequest != null)
+        {
+            membershipRequestDto = new MembershipRequestDto
+            {
+                Id = pendingRequest.Id,
+                FullName = pendingRequest.FullName,
+                Address = pendingRequest.Address,
+                City = pendingRequest.City,
+                PhoneNumber = pendingRequest.PhoneNumber,
+                Email = pendingRequest.Email,
+                SchoolOrCompany = pendingRequest.SchoolOrCompany,
+                DateOfBirth = pendingRequest.DateOfBirth,
+                Statement = pendingRequest.Statement,
+                IdCardNumber = pendingRequest.IdCardNumber,
+                ApplicantSignatureFileId = pendingRequest.ApplicantSignatureFileId,
+                GuardianSignatureFileId = pendingRequest.GuardianSignatureFileId,
+                Status = pendingRequest.Status.ToString(),
+                CreatedAt = pendingRequest.CreatedAt,
+                ReviewedAt = pendingRequest.ReviewedAt,
+                ReviewedByUserId = pendingRequest.ReviewedByUserId,
+                ReviewedByFirstName = pendingRequest.ReviewedByUser?.FirstName,
+                ReviewedByLastName = pendingRequest.ReviewedByUser?.LastName,
+                BoardMemberSignatureFileId = pendingRequest.BoardMemberSignatureFileId,
+                RejectionReason = pendingRequest.RejectionReason,
+                IsUnder14 = pendingRequest.IsUnder14()
+            };
+        }
+
+        return new OkObjectResult(new UserSettingsDto
+        {
+            User = await MapToUserDtoAsync(user),
+            MembershipRequest = membershipRequestDto
+        });
+    }
+
     private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, int? expirationInMinutes = null)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));

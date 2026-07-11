@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, map } from 'rxjs';
+import { Observable, tap, catchError, of, map, from, switchMap } from 'rxjs';
 import { environment } from '@environments/environment.prod';
 
 // Default avatar URL - kept for backwards compatibility but prefer using initials
@@ -62,6 +62,22 @@ export interface User {
     roles?: string[];
     darkTheme?: boolean;
     profilePictureUrl?: string;
+}
+
+export interface PasskeyAssertionOptionsDto {
+    challenge: string;
+    rpId: string;
+    rpName: string;
+    timeout: number;
+}
+
+export interface PasskeyAssertionCompleteDto {
+    id: string;
+    rawId: string;
+    authenticatorData?: string;
+    clientDataJson?: string;
+    signature?: string;
+    userHandle?: string | null;
 }
 
 export interface AuthResponse {
@@ -180,6 +196,64 @@ export class AuthService {
 
     isAuthenticated(): boolean {
         return !!this.getToken();
+    }
+
+    passkeyLogin(): Observable<AuthResponse> {
+        this.isLoading.set(true);
+        this.error.set(null);
+        const mfaUrl = `${environment.apiUrl}/Mfa`;
+
+        return this.http.post<PasskeyAssertionOptionsDto>(`${mfaUrl}/passkeys/assertion-start`, {}).pipe(
+            switchMap(options =>
+                from(this.getPasskeyAssertion(options))
+            ),
+            switchMap(credential =>
+                this.http.post<AuthResponse>(`${mfaUrl}/passkeys/assertion-complete`, credential)
+            ),
+            tap(response => {
+                if (response.token) {
+                    this.setToken(response.token);
+                }
+                if (response.user) {
+                    this.currentUser.set(response.user);
+                }
+                this.isLoading.set(false);
+            }),
+            catchError(err => {
+                this.isLoading.set(false);
+                this.error.set(err.error?.message || 'Passkey authentication failed');
+                throw err;
+            })
+        );
+    }
+
+    private async getPasskeyAssertion(options: PasskeyAssertionOptionsDto): Promise<PasskeyAssertionCompleteDto> {
+        const credential = await navigator.credentials.get({
+            publicKey: {
+                challenge: Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+                rpId: options.rpId,
+                timeout: options.timeout,
+                userVerification: 'preferred'
+            }
+        }) as PublicKeyCredential;
+
+        const response = credential.response as AuthenticatorAssertionResponse;
+
+        return {
+            id: credential.id,
+            rawId: this.arrayBufferToBase64Url(credential.rawId),
+            authenticatorData: this.arrayBufferToBase64Url(response.authenticatorData),
+            clientDataJson: this.arrayBufferToBase64Url(response.clientDataJSON),
+            signature: this.arrayBufferToBase64Url(response.signature),
+            userHandle: response.userHandle ? this.arrayBufferToBase64Url(response.userHandle) : null
+        };
+    }
+
+    private arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        bytes.forEach(b => binary += String.fromCharCode(b));
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
     forgotPassword(email: string): Observable<any> {

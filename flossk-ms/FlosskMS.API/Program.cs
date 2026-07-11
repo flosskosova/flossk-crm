@@ -24,7 +24,7 @@ using FlosskMS.API.Services;
 using FlosskMS.Business.Mappings;
 using FlosskMS.Business.DomainEvents.Announcements.Notifications;
 
-var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 if (File.Exists(envFile))
     Env.Load(envFile);
 
@@ -187,6 +187,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IFormResponseService, FormResponseService>();
+builder.Services.AddScoped<IMfaService, MfaService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<ProjectCreatedEvent>, ProjectCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();

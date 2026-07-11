@@ -24,14 +24,14 @@ import { Integrations } from '@/pages/dashboard/components/integrations';
 import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
 import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
+import { PrivacyPolicy } from '@/pages/privacy/privacy-policy';
+import { TermsOfService } from '@/pages/terms/terms-of-service';
 import { UserSettings } from '@/pages/dashboard/components/user-settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
 import { AuditLogs } from '@/pages/dashboard/components/audit-logs';
 import { CoursePortal } from './app/pages/dashboard/components/course-portal';
 import { CourseLogin } from '@/pages/auth/course-login';
-import { Terms } from '@/pages/terms/terms';
-import { Privacy } from '@/pages/privacy/privacy';
 import { Course } from './app/pages/dashboard/components/public-course';
 import { ProjectDetails } from '@/pages/dashboard/components/project-details';
 import { Dashboard } from '@/pages/dashboard/dashboard';
@@ -77,8 +77,8 @@ export const appRoutes: Routes = [
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
     { path: 'notfound', component: Notfound },
-    { path: 'terms', component: Terms },
-    { path: 'privacy', component: Privacy },
+    { path: 'privacy', component: PrivacyPolicy },
+    { path: 'terms', component: TermsOfService },
     { path: 'course/:slug', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },

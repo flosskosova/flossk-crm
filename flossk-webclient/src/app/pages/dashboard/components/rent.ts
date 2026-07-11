@@ -482,7 +482,7 @@ interface PricingTier {
                                         <div class="flex items-start gap-3 mt-4">
                                             <p-checkbox [(ngModel)]="application.agreeToTerms" [binary]="true" inputId="terms" />
                                             <label for="terms" class="text-sm">
-                                                I agree to the <a href="#" class="text-primary">Terms and Conditions</a> and <a href="#" class="text-primary">Rental Policy</a> of FLOSSK and Prishtina Hackerspace. *
+                                                I agree to the <a routerLink="/terms" class="text-primary">Terms and Conditions</a> and <a href="#" class="text-primary">Rental Policy</a> of FLOSSK and Prishtina Hackerspace. *
                                             </label>
                                         </div>
                                     </div>

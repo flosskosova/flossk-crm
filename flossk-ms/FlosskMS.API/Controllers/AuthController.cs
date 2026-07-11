@@ -163,6 +163,11 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// Update theme preference for current user
     /// </summary>
     [Authorize]
+    [HttpGet("me/settings")]
+    public async Task<IActionResult> GetSettings()
+        => await _authService.GetUserSettingsAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+    [Authorize]
     [HttpPatch("me/theme")]
     public async Task<IActionResult> UpdateThemePreference([FromBody] UpdateThemePreferenceDto request)
         => await _authService.UpdateThemePreferenceAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), request);

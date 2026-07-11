@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '@/environments/environment';
+import { environment } from '@environments/environment.prod';
 import { CommonModule } from '@angular/common';
 
 interface CertificateVerification {
