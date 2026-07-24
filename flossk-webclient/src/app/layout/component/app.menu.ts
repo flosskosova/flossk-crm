@@ -69,6 +69,15 @@ export class AppMenu {
             ]
         },
         {
+            label: 'Purchasing',
+            items: [
+                { label: 'Purchase Requests', icon: 'pi pi-fw pi-shopping-bag', routerLink: ['/dashboard/purchase-requests'] },
+                ...(this.isBoard() ? [
+                    { label: 'Purchase Approvals', icon: 'pi pi-fw pi-check-square', routerLink: ['/dashboard/purchase-approvals'] },
+                ] : []),
+            ]
+        },
+        {
             label: 'Administration',
             items: this.adminOnly() ? [
                 { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },

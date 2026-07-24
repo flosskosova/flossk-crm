@@ -5,6 +5,7 @@ using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.DomainEvents.Announcements;
 using FlosskMS.Business.DomainEvents.Memberships;
+using FlosskMS.Business.DomainEvents.Purchasing;
 using FlosskMS.Business.DomainEvents.Inventory;
 using FlosskMS.Business.DomainEvents.Projects;
 using FlosskMS.Business.Services;
@@ -207,6 +208,11 @@ builder.Services.AddScoped<IDomainEventHandler<MembershipRequestApprovedEvent>, 
 builder.Services.AddScoped<IDomainEventHandler<MembershipRequestRejectedEvent>, MembershipRequestRejectedNotificationHandler>();
 
 builder.Services.AddScoped<IPosService, PosService>();
+
+builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
+builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestSubmittedEvent>, PurchaseRequestSubmittedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestApprovedEvent>, PurchaseRequestApprovedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestRejectedEvent>, PurchaseRequestRejectedNotificationHandler>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
