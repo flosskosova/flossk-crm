@@ -65,7 +65,9 @@ export const appRoutes: Routes = [
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
-            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] }
+            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
+            { path: 'purchase-requests', loadComponent: () => import('./app/pages/dashboard/components/purchase-requests').then(m => m.PurchaseRequests) },
+            { path: 'purchase-approvals', loadComponent: () => import('./app/pages/dashboard/components/purchase-approvals').then(m => m.PurchaseApprovals), canActivate: [roleGuard(['Admin', 'Leader'])] }
         ]
     },
     { path: 'onboarding', component: Onboarding },

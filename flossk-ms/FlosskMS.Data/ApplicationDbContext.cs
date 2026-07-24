@@ -51,6 +51,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseVoucher> CourseVouchers { get; set; }
     public DbSet<CourseVoucherRedemption> CourseVoucherRedemptions { get; set; }
     public DbSet<FormResponse> FormResponses { get; set; }
+    public DbSet<PurchaseRequest> PurchaseRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -887,6 +888,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.GoogleFormId);
             entity.HasIndex(e => e.SubmittedAt);
             entity.HasIndex(e => new { e.CourseId, e.SubmittedAt });
+        });
+
+        // ===== Purchase Requests =====
+        builder.Entity<PurchaseRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ItemName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Reason).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Link).HasMaxLength(2000);
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.RejectionReason).HasMaxLength(2000);
+            entity.Property(e => e.CreatedByUserId).IsRequired();
+            entity.Property(e => e.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedByUserId);
+            entity.HasIndex(e => e.CreatedAt);
         });
     }
 }

@@ -25,6 +25,12 @@ export class AppMenu {
         return roles.includes('Admin');
     });
 
+    isBoard = computed(() => {
+        const user = this.authService.currentUser();
+        const roles: string[] = user?.roles ?? (user?.role ? [user.role] : []);
+        return roles.includes('Admin') || roles.includes('Leader');
+    });
+
     model = computed<MenuItem[]>(() => [
         {
             label: 'Home',
@@ -44,6 +50,15 @@ export class AppMenu {
                 { label: 'Course Portal', icon: 'pi pi-fw pi-globe', routerLink: ['/dashboard/course-portal'] },
                 // { label: 'RFID Configurer', icon: 'pi pi-fw pi-id-card', routerLink: ['/dashboard/rfid-configurer'] },
                 // { label: 'Hackerspace Presence (Frontend only)', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/dashboard/hackerspace-presence'] },
+            ]
+        },
+        {
+            label: 'Purchasing',
+            items: [
+                { label: 'Purchase Requests', icon: 'pi pi-fw pi-shopping-bag', routerLink: ['/dashboard/purchase-requests'] },
+                ...(this.isBoard() ? [
+                    { label: 'Purchase Approvals', icon: 'pi pi-fw pi-check-square', routerLink: ['/dashboard/purchase-approvals'] },
+                ] : []),
             ]
         },
         {
