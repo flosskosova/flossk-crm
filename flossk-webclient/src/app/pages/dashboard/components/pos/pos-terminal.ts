@@ -190,7 +190,7 @@ import { PosService, PosCategory, PosProduct, PosCustomer } from '@/pages/servic
             </div>
         </div>
 
-        <p-dialog header="Process Payment" [(visible)]="showPaymentDialog" [modal]="true" [style]="{ width: '460px' }" [closable]="false">
+        <p-dialog header="Process Payment" [(visible)]="showPaymentDialog" [modal]="true" [style]="{ width: '460px' }" [breakpoints]="{ '575px': '95vw' }" [closable]="false">
             <div class="space-y-4">
                 <div class="bg-surface-50 dark:bg-surface-700 rounded-lg p-3 space-y-1 text-sm">
                     @for (item of posService.cart(); track item.product.id) {
@@ -257,7 +257,7 @@ import { PosService, PosCategory, PosProduct, PosCustomer } from '@/pages/servic
             </div>
         </p-dialog>
 
-        <p-dialog header="Start Shift" [(visible)]="showStartDialog" [modal]="true" [style]="{ width: '400px' }">
+        <p-dialog header="Start Shift" [(visible)]="showStartDialog" [modal]="true" [style]="{ width: '400px' }" [breakpoints]="{ '575px': '95vw' }">
             <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Starting Cash (€)</label>
@@ -274,7 +274,7 @@ import { PosService, PosCategory, PosProduct, PosCustomer } from '@/pages/servic
             </div>
         </p-dialog>
 
-        <p-dialog header="End Shift" [(visible)]="showEndDialog" [modal]="true" [style]="{ width: '420px' }">
+        <p-dialog header="End Shift" [(visible)]="showEndDialog" [modal]="true" [style]="{ width: '420px' }" [breakpoints]="{ '575px': '95vw' }">
             @if (openShift(); as s) {
                 <div class="space-y-3">
                     <div class="bg-surface-50 dark:bg-surface-700 rounded-lg p-3 text-sm space-y-1">

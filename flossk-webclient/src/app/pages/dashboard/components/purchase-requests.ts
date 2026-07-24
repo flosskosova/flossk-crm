@@ -75,7 +75,7 @@ import { PurchaseRequestsService, PurchaseRequest } from '@/pages/service/purcha
         </div>
 
         <!-- Create dialog -->
-        <p-dialog header="New Purchase Request" [(visible)]="showCreate" [modal]="true" [style]="{ width: '480px' }">
+        <p-dialog header="New Purchase Request" [(visible)]="showCreate" [modal]="true" [style]="{ width: '480px' }" [breakpoints]="{ '575px': '95vw' }">
             <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Item Name <span class="text-red-500">*</span></label>
@@ -89,7 +89,7 @@ import { PurchaseRequestsService, PurchaseRequest } from '@/pages/service/purcha
                     <label class="block text-sm font-medium mb-1">Link (where to buy)</label>
                     <input pInputText [(ngModel)]="form.link" class="w-full" placeholder="https://..." />
                 </div>
-                <div class="flex gap-3">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label class="block text-sm font-medium mb-1">Price (€) <span class="text-red-500">*</span></label>
                         <p-inputNumber [(ngModel)]="form.price" [min]="0" mode="currency" currency="EUR" styleClass="w-full"></p-inputNumber>
@@ -111,7 +111,7 @@ import { PurchaseRequestsService, PurchaseRequest } from '@/pages/service/purcha
         </p-dialog>
 
         <!-- View dialog -->
-        <p-dialog header="Request Details" [(visible)]="showView" [modal]="true" [style]="{ width: '460px' }">
+        <p-dialog header="Request Details" [(visible)]="showView" [modal]="true" [style]="{ width: '460px' }" [breakpoints]="{ '575px': '95vw' }">
             @if (selected(); as r) {
                 <div class="space-y-3 text-sm">
                     <div class="flex justify-between"><span class="text-surface-500">Item</span><span class="font-medium">{{ r.itemName }}</span></div>

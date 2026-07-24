@@ -374,7 +374,7 @@ interface DonorEntry {
     </div>
 
     <!-- ── Add Transaction Dialog ── -->
-    <p-dialog header="Add Transaction" [(visible)]="showDialog" [modal]="true" [style]="{width:'520px'}" [draggable]="false">
+    <p-dialog header="Add Transaction" [(visible)]="showDialog" [modal]="true" [style]="{width:'520px'}" [breakpoints]="{ '575px': '95vw' }" [draggable]="false">
         <div class="flex flex-col gap-4 pt-2">
 
             <!-- Type toggle -->

@@ -71,7 +71,7 @@ import { PurchaseRequestsService, PurchaseRequest } from '@/pages/service/purcha
             </p-table>
         </div>
 
-        <p-dialog header="Purchase Request" [(visible)]="showView" [modal]="true" [style]="{ width: '480px' }">
+        <p-dialog header="Purchase Request" [(visible)]="showView" [modal]="true" [style]="{ width: '480px' }" [breakpoints]="{ '575px': '95vw' }">
             @if (selected(); as r) {
                 <div class="space-y-3 text-sm">
                     <div class="flex justify-between"><span class="text-surface-500">Item</span><span class="font-medium">{{ r.itemName }}</span></div>

@@ -34,7 +34,7 @@ import { Projects } from './projects';
     template: `
         <p-confirmdialog></p-confirmdialog>
 
-        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Project' : 'Edit Project'" [modal]="true" [style]="{width: '50rem'}" [breakpoints]="{ '1199px': '75vw', '575px': '95vw' }" [contentStyle]="{'max-height': '70vh', 'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="projectName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Project Name</label>
@@ -131,7 +131,7 @@ import { Projects } from './projects';
             </ng-template>
         </p-dialog>
 
-        <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Task' : 'Edit Task'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="objectiveDialogVisible" [header]="objectiveDialogMode === 'add' ? 'New Task' : 'Edit Task'" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objectiveTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -163,7 +163,7 @@ import { Projects } from './projects';
         </p-dialog>
 
         <!-- Resource Dialog -->
-        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource to Project' : 'Edit Project Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
+        <p-dialog [(visible)]="resourceDialogVisible" [header]="resourceDialogMode === 'add' ? 'Add Resource to Project' : 'Edit Project Resource'" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="resourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
@@ -251,7 +251,7 @@ import { Projects } from './projects';
         </p-dialog>
 
         <!-- Task Detail Dialog -->
-        <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="objectiveDetailDialogVisible" [header]="viewingObjective?.title" [modal]="true" [style]="{width: '50rem'}" [breakpoints]="{ '1199px': '75vw', '575px': '95vw' }" [contentStyle]="{'max-height': '80vh', 'overflow': 'auto'}" appendTo="body" [maximizable]="true">
             <div *ngIf="viewingObjective" class="flex flex-col gap-5">
                 <!-- Creator & Date -->
                 <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 flex flex-col gap-2">
@@ -390,7 +390,7 @@ import { Projects } from './projects';
         </p-dialog>
 
         <!-- Task Resource Dialog -->
-        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Task' : 'Edit Task Resource'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
+        <p-dialog [(visible)]="objectiveResourceDialogVisible" [header]="objectiveResourceDialogMode === 'add' ? 'Add Resource to Task' : 'Edit Task Resource'" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="objResourceTitle" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title *</label>
@@ -478,7 +478,7 @@ import { Projects } from './projects';
         </p-dialog>
 
         <!-- Assign Members to Project Dialog -->
-        <p-dialog [(visible)]="assignMembersToProjectDialogVisible" [header]="'Assign Members to: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="assignMembersToProjectDialogVisible" [header]="'Assign Members to: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
@@ -525,7 +525,7 @@ import { Projects } from './projects';
         </p-dialog>
 
         <!-- Assign Members to Task Dialog -->
-        <p-dialog [(visible)]="assignMembersToObjectiveDialogVisible" [header]="'Assign Members to: ' + (assigningObjective?.title || '')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="assignMembersToObjectiveDialogVisible" [header]="'Assign Members to: ' + (assigningObjective?.title || '')" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Select Team Members</label>
@@ -573,7 +573,7 @@ import { Projects } from './projects';
         </p-dialog>
 
         <!-- Assign Moderator Dialog -->
-        <p-dialog [(visible)]="assignModeratorDialogVisible" [header]="'Manage Moderators: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="assignModeratorDialogVisible" [header]="'Manage Moderators: ' + (selectedProject?.title || 'Project')" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" [contentStyle]="{'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <!-- Current moderators list -->
                 <div>

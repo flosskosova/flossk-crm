@@ -308,7 +308,7 @@ import { environment } from '@environments/environment.prod';
     <p-dialog
         [(visible)]="viewResourceDialogVisible"
         [modal]="true"
-        [style]="{ width: '36rem' }"
+        [style]="{ width: '36rem' }" [breakpoints]="{ '575px': '95vw' }"
         appendTo="body"
     >
         <div *ngIf="viewingResource" class="flex flex-col gap-4 pt-2">

@@ -69,7 +69,7 @@ import { environment } from '@environments/environment.prod';
 
         <!-- Main Content -->
         <ng-container *ngIf="!isProfileLoading">
-        <p-dialog [(visible)]="editDialogVisible" header="Edit Profile" [modal]="true" [style]="{width: '70rem'}" [contentStyle]="{'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="editDialogVisible" header="Edit Profile" [modal]="true" [style]="{width: '70rem'}" [breakpoints]="{ '1199px': '90vw', '575px': '95vw' }" [contentStyle]="{'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Column 1: Profile Picture -->
                 <div class="flex flex-col gap-4">

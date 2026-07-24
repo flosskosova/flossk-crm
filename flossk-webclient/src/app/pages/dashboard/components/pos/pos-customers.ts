@@ -66,7 +66,7 @@ import { PosService, PosCustomer } from '@/pages/service/pos.service';
             </p-table>
         </div>
 
-        <p-dialog [header]="editingCustomer ? 'Edit Customer' : 'New Customer'" [(visible)]="showDialog" [modal]="true" [style]="{ width: '400px' }">
+        <p-dialog [header]="editingCustomer ? 'Edit Customer' : 'New Customer'" [(visible)]="showDialog" [modal]="true" [style]="{ width: '400px' }" [breakpoints]="{ '575px': '95vw' }">
             <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">First Name</label>

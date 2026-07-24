@@ -548,7 +548,7 @@ const colors: {
                 [(visible)]="isEditModalVisible"
                 [modal]="true"
                 [closable]="!isSaving"
-                [style]="{ width: '42rem' }"
+                [style]="{ width: '42rem' }" [breakpoints]="{ '575px': '95vw' }"
                 [contentStyle]="{ overflow: 'visible' }"
                 [draggable]="false"
                 [resizable]="false"

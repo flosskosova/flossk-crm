@@ -102,7 +102,7 @@ interface SessionFormState {
             [(visible)]="courseDialogVisible"
             [header]="courseDialogMode === 'add' ? 'New Course' : 'Edit Course'"
             [modal]="true"
-            [style]="{ width: '56rem' }"
+            [style]="{ width: '56rem' }" [breakpoints]="{ '1199px': '75vw', '575px': '95vw' }"
             [contentStyle]="{ 'max-height': '75vh', 'overflow-y': 'auto' }"
             appendTo="body"
             [maximizable]="true"
@@ -199,7 +199,7 @@ interface SessionFormState {
             [(visible)]="moduleDialogVisible"
             [header]="moduleDialogMode === 'add' ? 'Add Module' : 'Edit Module'"
             [modal]="true"
-            [style]="{ width: '40rem' }"
+            [style]="{ width: '40rem' }" [breakpoints]="{ '575px': '95vw' }"
             appendTo="body"
         >
             <div class="flex flex-col gap-4 pt-2">
@@ -223,7 +223,7 @@ interface SessionFormState {
             [(visible)]="resourceDialogVisible"
             [header]="resourceDialogMode === 'add' ? 'Add Resource' : 'Edit Resource'"
             [modal]="true"
-            [style]="{ width: '44rem' }"
+            [style]="{ width: '44rem' }" [breakpoints]="{ '575px': '95vw' }"
             appendTo="body"
         >
             <div class="flex flex-col gap-4 pt-2">
@@ -333,7 +333,7 @@ interface SessionFormState {
         <p-dialog
             [(visible)]="sessionDialogVisible"
             [modal]="true"
-            [style]="{ width: '42rem' }"
+            [style]="{ width: '42rem' }" [breakpoints]="{ '575px': '95vw' }"
             appendTo="body"
         >
             <div class="flex flex-col gap-4 pt-2">
@@ -371,7 +371,7 @@ interface SessionFormState {
             [(visible)]="voucherDialogVisible"
             header="Create Vouchers"
             [modal]="true"
-            [style]="{ width: '36rem' }"
+            [style]="{ width: '36rem' }" [breakpoints]="{ '575px': '95vw' }"
             appendTo="body"
         >
             <div class="flex flex-col gap-4 pt-2">

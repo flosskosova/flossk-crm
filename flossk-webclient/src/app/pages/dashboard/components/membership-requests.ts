@@ -138,7 +138,7 @@ interface JoinRequest {
         </ng-container>
 
         <!-- View Request Dialog -->
-        <p-dialog [(visible)]="viewDialogVisible" [header]="selectedRequest ? selectedRequest.fullName : 'Request Details'" [modal]="true" [style]="{width: '50rem'}" appendTo="body">
+        <p-dialog [(visible)]="viewDialogVisible" [header]="selectedRequest ? selectedRequest.fullName : 'Request Details'" [modal]="true" [style]="{width: '50rem'}" [breakpoints]="{ '1199px': '75vw', '575px': '95vw' }" appendTo="body">
             <div *ngIf="selectedRequest" class="flex flex-col gap-4">
                 <div class="grid grid-cols-12 gap-4">
                     <div class="col-span-6">

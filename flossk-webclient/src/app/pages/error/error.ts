@@ -58,7 +58,7 @@ import { AppFloatingConfigurator } from '../../layout/component/app.floatingconf
             </div>
         </div>
 
-        <p-dialog [(visible)]="contactDialogVisible" header="Contact an Admin" [modal]="true" [style]="{width: '28rem'}" [dismissableMask]="true" appendTo="body">
+        <p-dialog [(visible)]="contactDialogVisible" header="Contact an Admin" [modal]="true" [style]="{width: '28rem'}" [breakpoints]="{ '575px': '95vw' }" [dismissableMask]="true" appendTo="body">
             <div class="flex flex-col gap-5">
                 <div>
                     <label for="contactName" class="block text-surface-700 dark:text-surface-200 text-sm font-medium mb-1.5">Name</label>

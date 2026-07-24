@@ -129,7 +129,7 @@ import { PosService, PosCategory, PosProduct } from '@/pages/service/pos.service
             </p-tabs>
         </div>
 
-        <p-dialog [header]="editingProduct ? 'Edit Product' : 'New Product'" [(visible)]="showProductDialog" [modal]="true" [style]="{ width: '420px' }">
+        <p-dialog [header]="editingProduct ? 'Edit Product' : 'New Product'" [(visible)]="showProductDialog" [modal]="true" [style]="{ width: '420px' }" [breakpoints]="{ '575px': '95vw' }">
             <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Name</label>
@@ -139,7 +139,7 @@ import { PosService, PosCategory, PosProduct } from '@/pages/service/pos.service
                     <label class="block text-sm font-medium mb-1">Category</label>
                     <p-select [(ngModel)]="productForm.categoryId" [options]="categories()" optionLabel="name" optionValue="id" placeholder="Select a category" styleClass="w-full" />
                 </div>
-                <div class="flex gap-3">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label class="block text-sm font-medium mb-1">Price (€)</label>
                         <p-inputNumber [(ngModel)]="productForm.price" [min]="0" mode="currency" currency="EUR" styleClass="w-full"></p-inputNumber>
@@ -163,7 +163,7 @@ import { PosService, PosCategory, PosProduct } from '@/pages/service/pos.service
             </div>
         </p-dialog>
 
-        <p-dialog [header]="editingCategory ? 'Edit Category' : 'New Category'" [(visible)]="showCategoryDialog" [modal]="true" [style]="{ width: '400px' }">
+        <p-dialog [header]="editingCategory ? 'Edit Category' : 'New Category'" [(visible)]="showCategoryDialog" [modal]="true" [style]="{ width: '400px' }" [breakpoints]="{ '575px': '95vw' }">
             <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Name</label>
