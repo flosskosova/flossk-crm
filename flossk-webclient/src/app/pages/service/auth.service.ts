@@ -85,6 +85,8 @@ export interface AuthResponse {
     user?: User;
     message?: string;
     courseId?: string;
+    requiresMfa?: boolean;
+    userId?: string;
 }
 
 @Injectable({
@@ -97,6 +99,8 @@ export class AuthService {
     currentUser = signal<User | null>(null);
     isLoading = signal<boolean>(false);
     error = signal<string | null>(null);
+    mfaRequired = signal<boolean>(false);
+    mfaUserId = signal<string | null>(null);
 
     constructor(private http: HttpClient, private router: Router) {
         // Try to load user on service init if token exists
@@ -111,6 +115,12 @@ export class AuthService {
         
         return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
             tap(response => {
+                if (response.requiresMfa) {
+                    this.mfaRequired.set(true);
+                    this.mfaUserId.set(response.userId ?? null);
+                    this.isLoading.set(false);
+                    return;
+                }
                 if (response.token) {
                     this.setToken(response.token);
                 }
@@ -122,6 +132,36 @@ export class AuthService {
             catchError(err => {
                 this.isLoading.set(false);
                 this.error.set(err.error?.message || 'Login failed');
+                throw err;
+            })
+        );
+    }
+
+    verifyMfaCode(code: string, recoveryCode?: string): Observable<AuthResponse> {
+        const userId = this.mfaUserId();
+        if (!userId) {
+            this.error.set('Session expired. Please log in again.');
+            this.mfaRequired.set(false);
+            throw new Error('No MFA session');
+        }
+        this.isLoading.set(true);
+        this.error.set(null);
+
+        return this.http.post<AuthResponse>(`${environment.apiUrl}/Mfa/login?userId=${userId}`, {
+            code,
+            recoveryCode
+        }).pipe(
+            tap(response => {
+                if (response.token) {
+                    this.setToken(response.token);
+                }
+                this.mfaRequired.set(false);
+                this.mfaUserId.set(null);
+                this.isLoading.set(false);
+            }),
+            catchError(err => {
+                this.isLoading.set(false);
+                this.error.set(err.error?.message || 'Verification failed');
                 throw err;
             })
         );
@@ -179,10 +219,18 @@ export class AuthService {
         );
     }
 
+    cancelMfa(): void {
+        this.mfaRequired.set(false);
+        this.mfaUserId.set(null);
+        this.isLoading.set(false);
+        this.error.set(null);
+    }
+
     logout(): void {
         localStorage.removeItem('auth_token');
-        // Keep theme preference in localStorage even after logout
         this.currentUser.set(null);
+        this.mfaRequired.set(false);
+        this.mfaUserId.set(null);
         this.router.navigate(['/auth/login']);
     }
 

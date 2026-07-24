@@ -25,6 +25,12 @@ export class AppMenu {
         return roles.includes('Admin');
     });
 
+    isBoard = computed(() => {
+        const user = this.authService.currentUser();
+        const roles: string[] = user?.roles ?? (user?.role ? [user.role] : []);
+        return roles.includes('Admin') || roles.includes('Leader');
+    });
+
     model = computed<MenuItem[]>(() => [
         {
             label: 'Home',
@@ -44,6 +50,22 @@ export class AppMenu {
                 { label: 'Course Portal', icon: 'pi pi-fw pi-globe', routerLink: ['/dashboard/course-portal'] },
                 // { label: 'RFID Configurer', icon: 'pi pi-fw pi-id-card', routerLink: ['/dashboard/rfid-configurer'] },
                 // { label: 'Hackerspace Presence (Frontend only)', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/dashboard/hackerspace-presence'] },
+            ]
+        },
+        {
+            label: 'POS',
+            items: [
+                { label: 'POS Terminal', icon: 'pi pi-fw pi-credit-card', routerLink: ['/dashboard/pos'] },
+                { label: 'Inventory', icon: 'pi pi-fw pi-box', routerLink: ['/dashboard/pos/inventory'] },
+                { label: 'Customers', icon: 'pi pi-fw pi-users', routerLink: ['/dashboard/pos/customers'] },
+                { label: 'Shifts', icon: 'pi pi-fw pi-clock', routerLink: ['/dashboard/pos/shifts'] },
+                ...(this.isBoard() ? [
+                    { label: 'Payment Logs', icon: 'pi pi-fw pi-receipt', routerLink: ['/dashboard/pos/payment-logs'] },
+                    { label: 'Analytics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/pos/analytics'] },
+                ] : []),
+                ...(this.adminOnly() ? [
+                    { label: 'Operators', icon: 'pi pi-fw pi-user-plus', routerLink: ['/dashboard/pos/operators'] },
+                ] : []),
             ]
         },
         {

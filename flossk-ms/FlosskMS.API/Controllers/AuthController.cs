@@ -15,12 +15,16 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <summary>
     /// Quick login with default dev credentials (Development only)
     /// </summary>
+    [HttpPost("dev-disable-mfa")]
+    public async Task<IActionResult> DevDisableMfa()
+        => await _authService.DevDisableMfaAsync();
+
     [HttpPost("dev-login")]
     public async Task<IActionResult> DevLogin()
         => await _authService.LoginAsync(new LoginRequestDto
         {
             Email = "daorsahyseni@gmail.com",
-            Password = "P@ssword321"
+            Password = "P@ssword123"
         });
 
     [HttpPost("register")]

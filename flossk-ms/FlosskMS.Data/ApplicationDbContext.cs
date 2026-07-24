@@ -52,6 +52,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseVoucherRedemption> CourseVoucherRedemptions { get; set; }
     public DbSet<FormResponse> FormResponses { get; set; }
     public new DbSet<UserPasskey> UserPasskeys { get; set; }
+    public DbSet<PosCategory> PosCategories { get; set; }
+    public DbSet<PosProduct> PosProducts { get; set; }
+    public DbSet<PosCustomer> PosCustomers { get; set; }
+    public DbSet<PosOrder> PosOrders { get; set; }
+    public DbSet<PosOrderItem> PosOrderItems { get; set; }
+    public DbSet<PosPaymentLog> PosPaymentLogs { get; set; }
+    public DbSet<PosHiddenLog> PosHiddenLogs { get; set; }
+    public DbSet<PosShift> PosShifts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -888,6 +896,155 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.GoogleFormId);
             entity.HasIndex(e => e.SubmittedAt);
             entity.HasIndex(e => new { e.CourseId, e.SubmittedAt });
+        });
+
+        // ===== POS System =====
+        builder.Entity<PosCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        builder.Entity<PosProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.CreatedByUserId).IsRequired();
+
+            entity.HasOne(e => e.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.CategoryId);
+            entity.HasIndex(e => e.Name);
+        });
+
+        builder.Entity<PosCustomer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FirstName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(256);
+            entity.Property(e => e.TotalSpent).HasColumnType("decimal(18,2)");
+            entity.HasIndex(e => e.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
+        });
+
+        builder.Entity<PosOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OrderNumber).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Donation).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Total).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.AmountGiven).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Change).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.OperatorName).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.CreatedByUserId).IsRequired();
+
+            entity.HasOne(e => e.Customer)
+                .WithMany(c => c.Orders)
+                .HasForeignKey(e => e.CustomerId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Shift)
+                .WithMany()
+                .HasForeignKey(e => e.ShiftId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.OrderNumber).IsUnique();
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasIndex(e => e.ShiftId);
+        });
+
+        builder.Entity<PosOrderItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProductName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)").IsRequired();
+
+            entity.HasOne(e => e.Order)
+                .WithMany(o => o.Items)
+                .HasForeignKey(e => e.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.OrderId);
+        });
+
+        builder.Entity<PosPaymentLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OrderNumber).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.OperatorName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Donation).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Total).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.AmountGiven).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Change).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
+            entity.HasIndex(e => e.OrderNumber);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        builder.Entity<PosHiddenLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OrderNumber).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.OperatorName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Donation).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Total).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.AmountGiven).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.Change).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
+            entity.HasIndex(e => e.OrderNumber);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        builder.Entity<PosShift>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OperatorName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.StartingCash).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(e => e.EndingCash).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.ExpectedCash).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.TotalSales).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.TotalDonations).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.CreatedByUserId).IsRequired();
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.StartedAt);
         });
     }
 }

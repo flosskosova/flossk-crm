@@ -51,6 +51,7 @@ public class MfaService(
                     Id = p.Id.ToString(),
                     Name = p.Name,
                     DeviceType = p.DeviceType,
+                    Transports = p.Transports,
                     CreatedAt = p.CreatedAt,
                     LastUsedAt = p.LastUsedAt
                 })
@@ -176,7 +177,7 @@ public class MfaService(
         });
     }
 
-    public async Task<IActionResult> RegisterPasskeyStartAsync(string? userId)
+    public async Task<IActionResult> RegisterPasskeyStartAsync(string? userId, string rpId)
     {
         if (string.IsNullOrEmpty(userId))
             return new UnauthorizedResult();
@@ -193,14 +194,16 @@ public class MfaService(
         return new OkObjectResult(new
         {
             challenge = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
-            rpId = "localhost",
+            rpId,
             rpName = "FLOSSK CRM",
             userId = user.Id,
             userName = user.Email,
             userDisplayName = $"{user.FirstName} {user.LastName}".Trim(),
             pubKeyCredParams = """[{"type":"public-key","alg":-7},{"type":"public-key","alg":-257}]""",
-            timeout = 60000,
+            timeout = 120000,
             attestation = "none",
+            authenticatorSelection = """{"residentKey":"required","userVerification":"preferred"}""",
+            hints = """["security-key","client-device"]""",
             excludeCredentials = existingCredentials
         });
     }
@@ -215,9 +218,10 @@ public class MfaService(
             return new NotFoundResult();
 
         var jsonElement = System.Text.Json.JsonSerializer.SerializeToElement(request);
-        var credentialJson = jsonElement.GetProperty("credentialJson").GetRawText();
+        var credentialJson = jsonElement.GetProperty("credentialJson").GetString()!;
         var name = jsonElement.GetProperty("name").GetString() ?? $"Passkey ({DateTime.UtcNow:yyyy-MM-dd})";
         var deviceType = jsonElement.GetProperty("deviceType").GetString() ?? "cross-platform";
+        var transports = jsonElement.TryGetProperty("transports", out var t) ? t.GetString() : null;
 
         var credentialId = "";
         try
@@ -234,6 +238,7 @@ public class MfaService(
         {
             existing.Name = name;
             existing.DeviceType = deviceType;
+            existing.Transports = transports;
             existing.CreatedAt = DateTime.UtcNow;
         }
         else
@@ -246,6 +251,7 @@ public class MfaService(
                 CredentialJson = credentialJson,
                 Name = name,
                 DeviceType = deviceType,
+                Transports = transports,
                 CreatedAt = DateTime.UtcNow
             });
         }
@@ -294,10 +300,24 @@ public class MfaService(
                 return new BadRequestObjectResult(new { message = "Invalid verification code." });
         }
 
-        return new OkObjectResult(new { message = "MFA verification successful." });
+        var token = await GenerateJwtTokenAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
+        return new OkObjectResult(new AuthResponseDto
+        {
+            Success = true,
+            Token = token,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email ?? string.Empty,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Roles = roles.ToList()
+            }
+        });
     }
 
-    public async Task<IActionResult> AssertionStartAsync()
+    public async Task<IActionResult> AssertionStartAsync(string rpId)
     {
         var challengeBytes = RandomNumberGenerator.GetBytes(32);
         var challenge = WebAuthnHelper.Base64UrlEncode(challengeBytes);
@@ -312,7 +332,7 @@ public class MfaService(
         return new OkObjectResult(new PasskeyAssertionOptionsDto
         {
             Challenge = challenge,
-            RpId = "localhost",
+            RpId = rpId,
             RpName = "FLOSSK CRM",
             Timeout = 60000
         });

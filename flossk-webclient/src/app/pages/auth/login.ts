@@ -4,6 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputOtpModule } from 'primeng/inputotp';
 import { PasswordModule } from 'primeng/password';
 import { RippleModule } from 'primeng/ripple';
 import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
@@ -15,7 +16,7 @@ import { CommonModule } from '@angular/common';
 @Component({
     selector: 'app-login',
     standalone: true,
-    imports: [ButtonModule, CheckboxModule, InputTextModule, PasswordModule, FormsModule, RouterModule, RippleModule, AppFloatingConfigurator, MessageModule, CommonModule],
+    imports: [ButtonModule, CheckboxModule, InputTextModule, InputOtpModule, PasswordModule, FormsModule, RouterModule, RippleModule, AppFloatingConfigurator, MessageModule, CommonModule],
     template: `
         <app-floating-configurator />
         <div class="flex min-h-screen min-w-screen overflow-hidden bg-surface-50 dark:bg-surface-950">
@@ -91,7 +92,30 @@ import { CommonModule } from '@angular/common';
                         <p-message severity="success" text="Registration successful! Please log in." styleClass="w-full mb-4"></p-message>
                     }
 
-                    @if (isLoginMode) {
+                    @if (authService.mfaRequired()) {
+                        <div class="space-y-6">
+                            <div class="text-center">
+                                <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                </div>
+                                <h2 class="text-xl font-bold text-surface-900 dark:text-surface-0">Two-Factor Authentication</h2>
+                                <p class="text-surface-500 dark:text-surface-400 mt-1 text-sm">Enter the 6-digit code from your authenticator app or use a passkey.</p>
+                            </div>
+                            <div>
+                                <label for="mfaCode" class="block text-surface-700 dark:text-surface-200 text-sm font-medium mb-2 text-center">Authentication Code</label>
+                                <div class="flex justify-center gap-2">
+                                    <p-inputOtp id="mfaCode" [(ngModel)]="mfaCode" [integerOnly]="true" [length]="6"></p-inputOtp>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <p-button label="Verify Code" styleClass="w-full" [loading]="authService.isLoading()" (onClick)="onVerifyMfaCode()" [disabled]="mfaCode.length !== 6"></p-button>
+                                <p-button label="Use Passkey Instead" styleClass="w-full" severity="secondary" [outlined]="true" [loading]="authService.isLoading()" (onClick)="onVerifyWithPasskey()"></p-button>
+                                <p-button label="Cancel" styleClass="w-full" severity="danger" [link]="true" (onClick)="onCancelMfa()"></p-button>
+                            </div>
+                        </div>
+                    } @else if (isLoginMode) {
                         <div class="space-y-5">
                             <div>
                                 <label for="email1" class="block text-surface-700 dark:text-surface-200 text-sm font-medium mb-1.5">Email</label>
@@ -197,6 +221,8 @@ export class Login implements AfterViewInit {
 
     confirmPassword: string = '';
 
+    mfaCode: string = '';
+
     ngAfterViewInit() {
         const paths = this.logoSvg.nativeElement.querySelectorAll<SVGPathElement>('.draw-path');
         const gap = 400;
@@ -224,6 +250,7 @@ export class Login implements AfterViewInit {
         this.registerSuccess = false;
         this.forgotPasswordSent = false;
         this.authService.error.set(null);
+        this.authService.cancelMfa();
     }
 
     setMode(mode: 'login' | 'register' | 'forgot') {
@@ -232,11 +259,15 @@ export class Login implements AfterViewInit {
         this.registerSuccess = false;
         this.forgotPasswordSent = false;
         this.authService.error.set(null);
+        this.authService.cancelMfa();
     }
 
     onPasskeyLogin() {
         this.authService.passkeyLogin().subscribe({
-            next: () => this.router.navigate(['/dashboard']),
+            next: () => {
+                this.authService.loadCurrentUser();
+                this.router.navigate(['/dashboard']);
+            },
             error: (err) => console.error('Passkey login failed:', err)
         });
     }
@@ -255,6 +286,10 @@ export class Login implements AfterViewInit {
     onLogin() {
         this.authService.login({ email: this.email, password: this.password, rememberMe: this.checked }).subscribe({
             next: () => {
+                if (this.authService.mfaRequired()) {
+                    this.mfaCode = '';
+                    return;
+                }
                 this.authService.loadCurrentUser();
                 this.router.navigate(['/dashboard']);
             },
@@ -262,6 +297,31 @@ export class Login implements AfterViewInit {
                 console.error('Login failed:', err);
             }
         });
+    }
+
+    onVerifyMfaCode() {
+        this.authService.verifyMfaCode(this.mfaCode).subscribe({
+            next: () => {
+                this.authService.loadCurrentUser();
+                this.router.navigate(['/dashboard']);
+            },
+            error: (err) => console.error('MFA verification failed:', err)
+        });
+    }
+
+    onVerifyWithPasskey() {
+        this.authService.passkeyLogin().subscribe({
+            next: () => {
+                this.authService.loadCurrentUser();
+                this.router.navigate(['/dashboard']);
+            },
+            error: (err) => console.error('Passkey MFA failed:', err)
+        });
+    }
+
+    onCancelMfa() {
+        this.mfaCode = '';
+        this.authService.cancelMfa();
     }
 
     onRegister() {

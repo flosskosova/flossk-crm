@@ -175,7 +175,7 @@ import { ButtonModule } from 'primeng/button';
                         <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-0 mb-3">12. Contact and Supervisory Authority</h2>
                         <p class="mb-3">
                             <strong>Data Controller:</strong> FLOSSK (Free Libre Open Source Software Kosova)<br>
-                            Email: crm@flossk.org
+                            Email: info@flossk.org
                         </p>
                         <p>
                             <strong>Supervisory Authority:</strong> Agjencia p&euml;r Mbrojtjen e t&euml; Dh&euml;nave Personale<br>
@@ -187,4 +187,4 @@ import { ButtonModule } from 'primeng/button';
         </div>
     `
 })
-export class PrivacyPolicy {}
+export class PrivacyPolicy { }

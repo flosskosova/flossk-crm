@@ -45,7 +45,7 @@ public class MfaController(IMfaService mfaService) : ControllerBase
     [Authorize]
     [HttpPost("passkeys/register-start")]
     public async Task<IActionResult> RegisterPasskeyStart()
-        => await _mfaService.RegisterPasskeyStartAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        => await _mfaService.RegisterPasskeyStartAsync(User.FindFirstValue(ClaimTypes.NameIdentifier), Request.Host.Host);
 
     [Authorize]
     [HttpPost("passkeys/register-complete")]
@@ -59,7 +59,7 @@ public class MfaController(IMfaService mfaService) : ControllerBase
 
     [HttpPost("passkeys/assertion-start")]
     public async Task<IActionResult> AssertionStart()
-        => await _mfaService.AssertionStartAsync();
+        => await _mfaService.AssertionStartAsync(Request.Host.Host);
 
     [HttpPost("passkeys/assertion-complete")]
     public async Task<IActionResult> AssertionComplete([FromBody] PasskeyAssertionCompleteDto request)

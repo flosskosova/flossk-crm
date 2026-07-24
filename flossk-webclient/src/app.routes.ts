@@ -67,7 +67,19 @@ export const appRoutes: Routes = [
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
-            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] }
+            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
+            {
+                path: 'pos',
+                children: [
+                    { path: '', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-terminal').then(m => m.PosTerminal) },
+                    { path: 'inventory', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-inventory').then(m => m.PosInventory) },
+                    { path: 'customers', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-customers').then(m => m.PosCustomers) },
+                    { path: 'analytics', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-analytics').then(m => m.PosAnalytics), canActivate: [roleGuard(['Admin', 'Leader'])] },
+                    { path: 'payment-logs', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-payment-logs').then(m => m.PosPaymentLogs), canActivate: [roleGuard(['Admin', 'Leader'])] },
+                    { path: 'shifts', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-shifts').then(m => m.PosShifts) },
+                    { path: 'operators', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-operators').then(m => m.PosOperators), canActivate: [roleGuard(['Admin'])] }
+                ]
+            }
         ]
     },
     { path: 'onboarding', component: Onboarding },
@@ -76,6 +88,7 @@ export const appRoutes: Routes = [
     { path: 'verify/:token', component: VerifyCertificate },
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
+    { path: 'error', loadChildren: () => import('./app/pages/error/error.routes') },
     { path: 'notfound', component: Notfound },
     { path: 'privacy', component: PrivacyPolicy },
     { path: 'terms', component: TermsOfService },

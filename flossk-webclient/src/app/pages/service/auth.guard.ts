@@ -25,7 +25,7 @@ export const authGuard: CanActivateFn = (route, state) => {
     }
 
     // Redirect to error page if not authenticated
-    router.navigate(['/auth/error']);
+    router.navigate(['/error']);
     return false;
 };
 
@@ -34,20 +34,20 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => (route, stat
     const router = inject(Router);
 
     if (!authService.isAuthenticated()) {
-        router.navigate(['/auth/error']);
+        router.navigate(['/error']);
         return false;
     }
 
-    // If currentUser is already loaded, check immediately
     const existingUser = authService.currentUser();
-    if (existingUser) {
+    const hasRoles = existingUser && (existingUser.roles?.length || existingUser.role);
+    if (existingUser && hasRoles) {
         const userRoles: string[] = existingUser.roles ?? (existingUser.role ? [existingUser.role] : []);
         const hasRole = allowedRoles.some(r => userRoles.includes(r));
         if (!hasRole) router.navigate(['/notfound']);
         return hasRole;
     }
 
-    // On refresh: currentUser is null but token exists — wait for load
+    // currentUser is null or loaded without roles — wait for load
     return authService.loadCurrentUser$().pipe(
         map(user => {
             const userRoles: string[] = user?.roles ?? (user?.role ? [user.role] : []);

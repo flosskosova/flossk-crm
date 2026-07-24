@@ -104,6 +104,16 @@ public class AuthService(
             });
         }
 
+        if (user.TwoFactorEnabled)
+        {
+            return new OkObjectResult(new AuthResponseDto
+            {
+                Success = true,
+                RequiresMfa = true,
+                UserId = user.Id
+            });
+        }
+
         var expireMinutes = request.RememberMe ? 60 * 24 * 10 : _jwtSettings.ExpirationInMinutes;
         var token = await GenerateJwtTokenAsync(user, expireMinutes);
         var expiration = DateTime.UtcNow.AddMinutes(expireMinutes);
@@ -1407,5 +1417,22 @@ public class AuthService(
         await _userManager.RemoveAuthenticationTokenAsync(user, "PasswordReset", "IssuedAt");
 
         return new OkObjectResult(new { Message = "Password has been reset successfully. You can now log in." });
+    }
+
+    public async Task<IActionResult> DevDisableMfaAsync()
+    {
+        var protectedEmail = "daorsahyseni@gmail.com";
+        var devUser = await _userManager.FindByEmailAsync(protectedEmail);
+        if (devUser == null)
+            return new NotFoundObjectResult(new { message = "User not found" });
+
+        if (devUser.TwoFactorEnabled)
+        {
+            await _userManager.SetTwoFactorEnabledAsync(devUser, false);
+            await _userManager.ResetAuthenticatorKeyAsync(devUser);
+            return new OkObjectResult(new { message = "2FA disabled for daorsahyseni@gmail.com" });
+        }
+
+        return new OkObjectResult(new { message = "2FA was already disabled" });
     }
 }

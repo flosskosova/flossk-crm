@@ -35,6 +35,7 @@ public class PasskeyDto
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string DeviceType { get; set; } = string.Empty;
+    public string? Transports { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? LastUsedAt { get; set; }
 }

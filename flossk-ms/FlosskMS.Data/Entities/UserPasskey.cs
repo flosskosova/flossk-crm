@@ -8,6 +8,7 @@ public class UserPasskey
     public string CredentialJson { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string DeviceType { get; set; } = string.Empty;
+    public string? Transports { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastUsedAt { get; set; }
 

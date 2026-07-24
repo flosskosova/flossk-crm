@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -15,6 +15,7 @@ import { DividerModule } from 'primeng/divider';
 import { TabsModule } from 'primeng/tabs';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { InputOtpModule } from 'primeng/inputotp';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AuthService, getInitials } from '@/pages/service/auth.service';
 import { LogService, LogEntry } from '@/pages/service/log.service';
@@ -60,6 +61,7 @@ const ACTION_ICON: Record<string, string> = {
         CommonModule, FormsModule, ButtonModule, InputTextModule, TextareaModule,
         PasswordModule, AvatarModule, TagModule, SkeletonModule, TooltipModule,
         SelectModule, DatePickerModule, DividerModule, TabsModule, ToastModule, ConfirmDialogModule,
+        InputOtpModule,
     ],
     providers: [ConfirmationService, MessageService],
     template: `
@@ -209,64 +211,130 @@ const ACTION_ICON: Record<string, string> = {
                         </div>
 
                         <p-divider />
-                        <div class="mt-8 mb-8">
-                            <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0 mb-1">Two-Factor Authentication</h3>
-                            <p class="text-sm text-muted-color mb-4">Add an extra layer of security to your account.</p>
+                        <div class="mt-8">
+                            <div class="flex items-center gap-3 mb-1">
+                                <i class="pi pi-shield text-primary text-2xl"></i>
+                                <div>
+                                    <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0">Two-Factor Authentication</h3>
+                                    <p class="text-sm text-muted-color m-0 mt-0.5">Add an extra layer of security to your account.</p>
+                                </div>
+                            </div>
 
                             @if (mfaStatus === null) {
-                                <p-button label="Check Status" icon="pi pi-refresh" (onClick)="loadMfaStatus()" [loading]="isMfaLoading" />
+                                <p-button label="Check Status" icon="pi pi-refresh" (onClick)="loadMfaStatus()" [loading]="isMfaLoading" class="mt-4" />
                             } @else if (!mfaStatus.twoFactorEnabled) {
                                 @if (!mfaSetup) {
-                                    <div class="flex flex-col gap-4 max-w-md">
-                                        <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                            <p class="text-sm text-muted-color m-0">Status: <span class="text-red-500 font-medium">Disabled</span></p>
+                                    <div class="mt-5 p-6 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 max-w-lg">
+                                        <div class="flex items-start gap-4">
+                                            <div class="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                                                <i class="pi pi-exclamation-triangle text-red-500 text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-semibold text-surface-900 dark:text-surface-0">2FA is not enabled</div>
+                                                <p class="text-sm text-muted-color m-0 mt-1">Without 2FA, your account is protected by your password only. An authenticator app adds a second verification step, keeping your account safer even if your password is compromised.</p>
+                                                <p-button label="Enable Two-Factor Authentication" icon="pi pi-shield" (onClick)="setupMfa()" [loading]="isMfaLoading" class="mt-4" />
+                                            </div>
                                         </div>
-                                        <p-button label="Set Up Two-Factor Authentication" icon="pi pi-shield" (onClick)="setupMfa()" [loading]="isMfaLoading" />
                                     </div>
                                 } @else {
-                                    <div class="flex flex-col gap-4 max-w-md">
-                                        <p class="text-sm text-muted-color">Scan this QR code with your authenticator app (like Google Authenticator or Authy):</p>
-                                        <div class="bg-white dark:bg-surface-800 p-4 rounded-xl flex justify-center">
-                                            <img [src]="mfaQrCodeUrl" class="w-48 h-48" alt="QR Code" />
+                                    <div class="mt-5 max-w-lg">
+                                        <div class="flex items-center gap-3 mb-6">
+                                            <span class="w-8 h-8 rounded-full bg-primary text-primary-contrast flex items-center justify-center text-sm font-bold">1</span>
+                                            <span class="font-medium text-surface-900 dark:text-surface-0">Scan with authenticator app</span>
                                         </div>
-                                        <p class="text-sm text-muted-color">Or enter this key manually: <code class="text-surface-900 dark:text-surface-0 font-mono text-xs break-all">{{ mfaSetupKey }}</code></p>
-                                        <div>
-                                            <label class="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-1.5">Enter the 6-digit code from your authenticator app</label>
-                                            <input pInputText [(ngModel)]="mfaVerifyCode" class="w-full text-center text-xl tracking-widest" maxlength="6" placeholder="000000" />
+                                        <div class="flex flex-col sm:flex-row gap-6 items-start mb-8">
+                                            <div class="bg-white dark:bg-surface-800 p-3 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm shrink-0">
+                                                <img [src]="mfaQrCodeUrl" class="w-44 h-44" alt="QR Code" />
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-muted-color font-medium mb-2">Can't scan the code?</p>
+                                                <p class="text-xs text-muted-color mb-2">You can manually enter this key into your authenticator app:</p>
+                                                <div class="flex items-center gap-2 bg-surface-100 dark:bg-surface-700 px-4 py-2.5 rounded-xl">
+                                                    <code class="font-mono text-xs text-surface-900 dark:text-surface-0 break-all select-all">{{ mfaSetupKey }}</code>
+                                                    <button (click)="copyToClipboard(mfaSetupKey)" class="p-1.5 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors border-none cursor-pointer text-muted-color hover:text-surface-900 dark:hover:text-surface-0">
+                                                        <i class="pi pi-copy text-xs"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="flex gap-2">
-                                            <p-button label="Verify & Enable" icon="pi pi-check" (onClick)="verifyMfa()" [loading]="isMfaVerifying" />
-                                            <p-button label="Cancel" severity="secondary" (onClick)="cancelMfaSetup()" />
+
+                                        <div class="flex items-center gap-3 mb-4">
+                                            <span class="w-8 h-8 rounded-full bg-primary text-primary-contrast flex items-center justify-center text-sm font-bold">2</span>
+                                            <span class="font-medium text-surface-900 dark:text-surface-0">Enter the code from your app</span>
+                                        </div>
+                                        <div class="flex flex-col gap-4 p-6 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700">
+                                            <p class="text-sm text-muted-color m-0">Enter the 6-digit verification code displayed in your authenticator app.</p>
+                                            <div class="flex justify-center">
+                                                <p-inputotp [(ngModel)]="mfaVerifyCode" [integerOnly]="true" [length]="6">
+                                                    <ng-template #input let-token let-events="events">
+                                                        <input pInputText class="w-12 h-14 text-center text-xl font-bold rounded-xl" [attr.maxlength]="1" [value]="token" (input)="events.input($event)" (keydown)="events.keydown($event)" (focus)="events.focus()" (blur)="events.blur()" />
+                                                    </ng-template>
+                                                </p-inputotp>
+                                            </div>
+                                            <div class="flex gap-3 justify-center">
+                                                <p-button label="Verify & Enable" icon="pi pi-check" (onClick)="verifyMfa()" [loading]="isMfaVerifying" />
+                                                <p-button label="Cancel" severity="secondary" (onClick)="cancelMfaSetup()" />
+                                            </div>
                                         </div>
                                     </div>
                                 }
                             } @else {
-                                <div class="flex flex-col gap-4 max-w-md">
-                                    <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                                        <p class="text-sm text-green-700 dark:text-green-300 m-0 font-medium">Enabled</p>
+                                <div class="mt-5 max-w-lg">
+                                    <div class="p-6 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-200 dark:border-green-800/40 mb-5">
+                                        <div class="flex items-start gap-4">
+                                            <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-800/30 flex items-center justify-center shrink-0">
+                                                <i class="pi pi-shield text-green-600 dark:text-green-400 text-xl"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="font-semibold text-surface-900 dark:text-surface-0">2FA is active</span>
+                                                    <i class="pi pi-verified text-green-500 text-sm"></i>
+                                                </div>
+                                                <p class="text-sm text-muted-color m-0">Your account is protected with two-factor authentication.</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <p-button label="Recovery Codes ({{ mfaRemainingCodes }} remaining)" icon="pi pi-eye" (onClick)="viewRecoveryCodes()" [loading]="isMfaLoading" severity="warn" />
-                                        <p-button label="Generate New Codes" icon="pi pi-refresh" (onClick)="generateRecoveryCodes()" [loading]="isMfaGeneratingCodes" severity="help" />
-                                        <p-button label="Disable 2FA" icon="pi pi-times" (onClick)="showDisableMfa = true" severity="danger" />
+
+                                    <div class="flex flex-wrap gap-3 mb-5">
+                                        <p-button label="Recovery Codes" [badge]="mfaRemainingCodes.toString()" badgeSeverity="warn" icon="pi pi-key" (onClick)="viewRecoveryCodes()" [loading]="isMfaLoading" severity="warn" [outlined]="true" />
+                                        <p-button label="Generate New Codes" icon="pi pi-refresh" (onClick)="generateRecoveryCodes()" [loading]="isMfaGeneratingCodes" severity="help" [outlined]="true" />
+                                        <p-button label="Disable 2FA" icon="pi pi-times" (onClick)="showDisableMfa = true" severity="danger" [outlined]="true" />
                                     </div>
+
                                     @if (showDisableMfa) {
-                                        <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl flex flex-col gap-3">
-                                            <p class="text-sm text-red-700 dark:text-red-300 m-0 font-medium">Enter your password to disable two-factor authentication:</p>
-                                            <p-password [(ngModel)]="mfaDisablePassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" />
+                                        <div class="p-6 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800/40 mb-5 flex flex-col gap-4">
+                                            <div class="flex items-start gap-3">
+                                                <i class="pi pi-exclamation-triangle text-red-500 mt-0.5"></i>
+                                                <div>
+                                                    <div class="font-medium text-surface-900 dark:text-surface-0 text-sm">Disable two-factor authentication?</div>
+                                                    <p class="text-xs text-muted-color m-0 mt-1">Enter your password to confirm. This will make your account less secure.</p>
+                                                </div>
+                                            </div>
+                                            <p-password [(ngModel)]="mfaDisablePassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" placeholder="Enter your password" />
                                             <div class="flex gap-2">
-                                                <p-button label="Confirm Disable" icon="pi pi-check" (onClick)="disableMfa()" [loading]="isMfaDisabling" severity="danger" />
+                                                <p-button label="Yes, Disable 2FA" icon="pi pi-check" (onClick)="disableMfa()" [loading]="isMfaDisabling" severity="danger" />
                                                 <p-button label="Cancel" severity="secondary" (onClick)="showDisableMfa = false; mfaDisablePassword = ''" />
                                             </div>
                                         </div>
                                     }
+
                                     @if (mfaRecoveryCodes.length > 0) {
-                                        <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                            <p class="text-sm font-medium text-surface-900 dark:text-surface-0 mb-2">Recovery Codes</p>
-                                            <p class="text-xs text-muted-color mb-3">Store these in a safe place. Each code can only be used once.</p>
+                                        <div class="p-6 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <div>
+                                                    <div class="font-semibold text-surface-900 dark:text-surface-0 text-sm">Recovery Codes</div>
+                                                    <p class="text-xs text-muted-color m-0 mt-0.5">Store these in a safe place. Each code can only be used once.</p>
+                                                </div>
+                                                <p-button icon="pi pi-download" severity="secondary" [text]="true" (onClick)="downloadRecoveryCodes()" pTooltip="Download as text file" />
+                                            </div>
                                             <div class="grid grid-cols-2 gap-2">
                                                 @for (code of mfaRecoveryCodes; track code) {
-                                                    <code class="font-mono text-sm bg-surface-100 dark:bg-surface-700 px-3 py-1.5 rounded text-surface-900 dark:text-surface-0">{{ code }}</code>
+                                                    <div class="flex items-center gap-2 bg-surface-100 dark:bg-surface-700/50 px-3 py-2 rounded-lg font-mono text-sm text-surface-900 dark:text-surface-0">
+                                                        <span class="flex-1">{{ code }}</span>
+                                                        <button (click)="copyToClipboard(code)" class="p-1 rounded hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors border-none cursor-pointer text-muted-color">
+                                                            <i class="pi pi-copy text-xs"></i>
+                                                        </button>
+                                                    </div>
                                                 }
                                             </div>
                                         </div>
@@ -277,28 +345,54 @@ const ACTION_ICON: Record<string, string> = {
 
                         <p-divider />
                         <div class="mt-8">
-                            <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0 mb-1">Passkeys</h3>
-                            <p class="text-sm text-muted-color mb-4">Use passkeys to sign in quickly and securely without a password.</p>
+                            <div class="flex items-center gap-3 mb-1">
+                                <i class="pi pi-fingerprint text-primary text-2xl"></i>
+                                <div>
+                                    <h3 class="font-semibold text-surface-900 dark:text-surface-0 m-0">Passkeys</h3>
+                                    <p class="text-sm text-muted-color m-0 mt-0.5">Use your device's biometrics or PIN for quick, password-free sign-in.</p>
+                                </div>
+                            </div>
 
-                            <div class="flex flex-col gap-3 max-w-md">
+                            <div class="mt-5 max-w-lg">
                                 @if (passkeys.length === 0) {
-                                    <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                        <p class="text-sm text-muted-color m-0">No passkeys registered yet.</p>
+                                    <div class="p-6 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 flex flex-col items-center text-center gap-3">
+                                        <div class="w-14 h-14 rounded-full bg-surface-200 dark:bg-surface-700 flex items-center justify-center">
+                                            <i class="pi pi-fingerprint text-2xl text-muted-color"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-surface-900 dark:text-surface-0">No passkeys registered</div>
+                                            <p class="text-xs text-muted-color m-0 mt-1">Register a passkey to sign in with Face ID, Touch ID, or Windows Hello.</p>
+                                        </div>
                                     </div>
                                 } @else {
-                                    @for (passkey of passkeys; track passkey.id) {
-                                        <div class="flex items-center justify-between p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
-                                            <div>
-                                                <div class="font-medium text-surface-900 dark:text-surface-0 text-sm">{{ passkey.name }}</div>
-                                                <p class="text-xs text-muted-color m-0 mt-0.5">{{ passkey.deviceType }} &middot; Added {{ passkey.createdAt | date:'mediumDate' }}</p>
+                                    <div class="flex flex-col gap-3">
+                                        @for (passkey of passkeys; track passkey.id) {
+                                            <div class="flex items-center justify-between p-4 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600 transition-colors">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-400/10 flex items-center justify-center shrink-0">
+                                                        <i class="{{ passkeyIcon(passkey.deviceType) }} text-primary text-lg"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-medium text-surface-900 dark:text-surface-0 text-sm">{{ passkey.name }}</div>
+                                                        <div class="flex items-center gap-2 text-xs text-muted-color mt-0.5">
+                                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-200 dark:bg-surface-700 rounded-md font-medium">{{ passkeyTypeLabel(passkey.deviceType, passkey.transports) }}</span>
+                                                            <span>&middot;</span>
+                                                            <span>Added {{ formatDate(passkey.createdAt) }}</span>
+                                                            @if (passkey.lastUsedAt) {
+                                                            <span>&middot;</span>
+                                                            <span>Last used {{ formatDate(passkey.lastUsedAt) }}</span>
+                                                        }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removePasskey(passkey.id)" [loading]="removingPasskeyId === passkey.id" />
                                             </div>
-                                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removePasskey(passkey.id)" [loading]="removingPasskeyId === passkey.id" />
-                                        </div>
-                                    }
+                                        }
+                                    </div>
                                 }
-                                <p-button label="Register Passkey" icon="pi pi-lock" (onClick)="registerPasskey()" [loading]="isRegisteringPasskey" [disabled]="!passkeySupported" />
+                                <p-button label="Register a Passkey" icon="pi pi-plus" (onClick)="registerPasskey()" [loading]="isRegisteringPasskey" [disabled]="!passkeySupported" class="mt-4" />
                                 @if (!passkeySupported) {
-                                    <p class="text-xs text-muted-color">Passkeys are supported on modern browsers with secure contexts (HTTPS or localhost).</p>
+                                    <p class="text-xs text-muted-color mt-2">Passkeys require a secure context (HTTPS or localhost) with a modern browser.</p>
                                 }
                             </div>
                         </div>
@@ -461,7 +555,7 @@ export class UserSettings implements OnInit {
     mfaSetup: any = null;
     mfaSetupKey = '';
     mfaQrCodeUrl = '';
-    mfaVerifyCode = '';
+    mfaVerifyCode: string | number = '';
     isMfaVerifying = false;
     showDisableMfa = false;
     mfaDisablePassword = '';
@@ -597,12 +691,13 @@ export class UserSettings implements OnInit {
     }
 
     verifyMfa() {
-        if (!this.mfaVerifyCode || this.mfaVerifyCode.length < 6) {
+        const code = String(this.mfaVerifyCode);
+        if (!code || code.length < 6) {
             this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Enter a valid 6-digit code.' });
             return;
         }
         this.isMfaVerifying = true;
-        this.http.post(`${environment.apiUrl}/Mfa/verify`, { code: this.mfaVerifyCode }).subscribe({
+        this.http.post(`${environment.apiUrl}/Mfa/verify`, { code }).subscribe({
             next: (res: any) => {
                 this.isMfaVerifying = false;
                 this.mfaRecoveryCodes = res.recoveryCodes || [];
@@ -623,6 +718,23 @@ export class UserSettings implements OnInit {
         this.mfaSetupKey = '';
         this.mfaQrCodeUrl = '';
         this.mfaVerifyCode = '';
+    }
+
+    copyToClipboard(text: string) {
+        navigator.clipboard.writeText(text).then(() => {
+            this.messageService.add({ severity: 'success', summary: 'Copied', detail: 'Copied to clipboard.' });
+        });
+    }
+
+    downloadRecoveryCodes() {
+        const content = this.mfaRecoveryCodes.join('\n');
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `flossk-recovery-codes-${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        window.URL.revokeObjectURL(url);
     }
 
     disableMfa() {
@@ -687,6 +799,63 @@ export class UserSettings implements OnInit {
         return btoa(binary);
     }
 
+    private detectDeviceType(transports: string[]): string {
+        if (transports.includes('usb')) return 'usb';
+        if (transports.includes('nfc')) return 'nfc';
+        if (transports.includes('ble')) return 'ble';
+        if (transports.includes('internal')) return 'platform';
+        if (transports.includes('hybrid')) return 'hybrid';
+        return 'cross-platform';
+    }
+
+    private buildPasskeyName(transports: string[]): string {
+        const hasUsb = transports.includes('usb');
+        const hasNfc = transports.includes('nfc');
+        const hasBle = transports.includes('ble');
+        const isInternal = transports.includes('internal');
+        const isHybrid = transports.includes('hybrid');
+
+        if (isInternal && (hasUsb || hasNfc || hasBle)) return `Security Key (${new Date().toLocaleDateString()})`;
+        if (isInternal) return `Device Passkey (${new Date().toLocaleDateString()})`;
+        if (hasUsb && hasNfc) return `Security Key (${new Date().toLocaleDateString()})`;
+        if (hasUsb) return `USB Key (${new Date().toLocaleDateString()})`;
+        if (isHybrid) return `Phone Passkey (${new Date().toLocaleDateString()})`;
+        if (hasNfc) return `NFC Key (${new Date().toLocaleDateString()})`;
+        if (hasBle) return `BLE Key (${new Date().toLocaleDateString()})`;
+        return `Passkey (${new Date().toLocaleDateString()})`;
+    }
+
+    passkeyIcon(deviceType: string): string {
+        switch (deviceType) {
+            case 'platform': return 'pi pi-fingerprint';
+            case 'usb': return 'pi pi-key';
+            case 'nfc': case 'ble': return 'pi pi-wifi';
+            case 'hybrid': return 'pi pi-mobile';
+            default: return 'pi pi-key';
+        }
+    }
+
+    passkeyTypeLabel(deviceType: string, transports?: string): string {
+        if (transports) {
+            const t = transports.split(',');
+            const labels: string[] = [];
+            if (t.includes('internal')) labels.push('Device');
+            if (t.includes('usb')) labels.push('USB');
+            if (t.includes('nfc')) labels.push('NFC');
+            if (t.includes('ble')) labels.push('Bluetooth');
+            if (t.includes('hybrid')) labels.push('Phone');
+            if (labels.length) return labels.join(' + ');
+        }
+        switch (deviceType) {
+            case 'platform': return 'Device';
+            case 'usb': return 'USB';
+            case 'nfc': return 'NFC';
+            case 'ble': return 'Bluetooth';
+            case 'hybrid': return 'Phone';
+            default: return 'Cross-Platform';
+        }
+    }
+
     async registerPasskey() {
         if (!this.passkeySupported) {
             this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Passkeys are not supported in this browser.' });
@@ -698,7 +867,12 @@ export class UserSettings implements OnInit {
         this.http.post(`${environment.apiUrl}/Mfa/passkeys/register-start`, {}).subscribe({
             next: async (options: any) => {
                 try {
-                    const publicKey: PublicKeyCredentialCreationOptions = {
+                    const authenticatorSelection = options.authenticatorSelection
+                        ? JSON.parse(options.authenticatorSelection) : undefined;
+                    const hints: string[] = options.hints
+                        ? JSON.parse(options.hints) : undefined;
+
+                    const publicKey: any = {
                         challenge: Uint8Array.from(atob(this.base64UrlToBase64(options.challenge)), c => c.charCodeAt(0)),
                         rp: { id: options.rpId, name: options.rpName },
                         user: {
@@ -709,6 +883,8 @@ export class UserSettings implements OnInit {
                         pubKeyCredParams: JSON.parse(options.pubKeyCredParams),
                         timeout: parseInt(options.timeout),
                         attestation: options.attestation as AttestationConveyancePreference,
+                        authenticatorSelection,
+                        hints,
                         excludeCredentials: options.excludeCredentials.map((id: string) => ({
                             id: Uint8Array.from(atob(this.base64UrlToBase64(id)), c => c.charCodeAt(0)),
                             type: 'public-key' as const
@@ -717,23 +893,28 @@ export class UserSettings implements OnInit {
 
                     const credential = await navigator.credentials.create({ publicKey }) as any;
 
+                    const transports: string[] = credential.response?.getTransports?.() ?? [];
+                    const transportStr = transports.join(',');
+
                     const credentialJson = JSON.stringify({
                         id: credential.id,
                         rawId: this.uint8ArrayToBase64(new Uint8Array(credential.rawId)),
                         type: credential.type,
+                        transports,
                         response: {
                             clientDataJSON: this.uint8ArrayToBase64(new Uint8Array(credential.response.clientDataJSON)),
                             attestationObject: this.uint8ArrayToBase64(new Uint8Array(credential.response.attestationObject))
                         }
                     });
 
-                    const deviceType = credential.response?.authenticatorData?.[0] === 0 ? 'platform' : 'cross-platform';
-                    const name = `Passkey (${new Date().toLocaleDateString()})`;
+                    const deviceType = this.detectDeviceType(transports);
+                    const name = this.buildPasskeyName(transports);
 
                     this.http.post(`${environment.apiUrl}/Mfa/passkeys/register-complete`, {
                         credentialJson,
                         name,
-                        deviceType
+                        deviceType,
+                        transports: transportStr
                     }).subscribe({
                         next: () => {
                             this.isRegisteringPasskey = false;
@@ -889,5 +1070,8 @@ export class UserSettings implements OnInit {
         if (days < 30) return `${days}d ago`;
         return new Date(timestamp).toLocaleDateString();
     }
-    formatDate(timestamp: string): string { return new Date(timestamp).toLocaleString(); }
+    formatDate(timestamp: string | Date): string {
+        if (!timestamp) return '—';
+        return new Date(timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
 }

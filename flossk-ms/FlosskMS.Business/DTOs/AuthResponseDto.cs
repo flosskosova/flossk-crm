@@ -7,5 +7,7 @@ public class AuthResponseDto
     public DateTime? Expiration { get; set; }
     public UserDto? User { get; set; }
     public Guid? CourseId { get; set; }
+    public bool RequiresMfa { get; set; }
+    public string? UserId { get; set; }
     public List<string> Errors { get; set; } = new();
 }
