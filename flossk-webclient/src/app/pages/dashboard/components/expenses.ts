@@ -418,7 +418,7 @@ interface DonorEntry {
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Date *</label>
-                    <p-datepicker [(ngModel)]="newTx.date" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" />
+                    <p-datepicker [(ngModel)]="newTx.date" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" appendTo="body" />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Status</label>

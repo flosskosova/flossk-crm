@@ -101,7 +101,7 @@ import { PurchaseRequestsService, PurchaseRequest } from '@/pages/service/purcha
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Needed By <span class="text-red-500">*</span></label>
-                    <p-datepicker [(ngModel)]="form.neededByDate" [showIcon]="true" dateFormat="M d, yy" styleClass="w-full" [minDate]="today"></p-datepicker>
+                    <p-datepicker [(ngModel)]="form.neededByDate" [showIcon]="true" dateFormat="M d, yy" styleClass="w-full" [minDate]="today" appendTo="body"></p-datepicker>
                 </div>
                 <div class="flex gap-2 justify-end pt-2 border-t border-surface-200 dark:border-surface-700">
                     <button pButton label="Cancel" [outlined]="true" (click)="showCreate = false"></button>
