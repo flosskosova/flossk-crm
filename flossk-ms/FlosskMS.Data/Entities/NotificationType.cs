@@ -20,5 +20,8 @@ public enum NotificationType
     ProjectModeratorDemoted,
     MembershipApplicationReceived,
     MembershipApprovedAdmin,
-    MembershipRejectedAdmin
+    MembershipRejectedAdmin,
+    PurchaseRequestSubmitted,
+    PurchaseRequestApproved,
+    PurchaseRequestRejected
 }
