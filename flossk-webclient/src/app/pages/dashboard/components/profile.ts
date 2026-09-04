@@ -69,7 +69,7 @@ import { environment } from '@environments/environment.prod';
 
         <!-- Main Content -->
         <ng-container *ngIf="!isProfileLoading">
-        <p-dialog [(visible)]="editDialogVisible" header="Edit Profile" [modal]="true" [style]="{width: '70rem'}" [contentStyle]="{'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="editDialogVisible" header="Edit Profile" [modal]="true" [style]="{width: '70rem'}" [breakpoints]="{ '1199px': '90vw', '575px': '95vw' }" [contentStyle]="{'overflow-y': 'auto'}" appendTo="body" [maximizable]="true">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Column 1: Profile Picture -->
                 <div class="flex flex-col gap-4">
@@ -282,7 +282,11 @@ import { environment } from '@environments/environment.prod';
                                             <i class="pi pi-envelope text-sm"></i>
                                              {{ userProfile.email }}
                                         </p>
-                                     
+                                        <p *ngIf="userProfile.memberCode" class="text-muted-color flex items-center gap-2">
+                                            <i class="pi pi-id-card text-sm"></i>
+                                            Member ID <span class="font-mono font-semibold text-surface-700 dark:text-surface-200">{{ userProfile.memberCode }}</span>
+                                        </p>
+
                                         <p *ngIf="userProfile.phone" class="text-muted-color flex items-center gap-2">
                                             <i class="pi pi-phone text-sm"></i>
                                             {{ userProfile.phone }}
@@ -802,6 +806,7 @@ export class Profile implements OnInit {
         firstName: '',
         lastName: '',
         email: '',
+        memberCode: '',
         dateJoined: '',
         activity: 'Online',
         role: '',
@@ -892,6 +897,7 @@ export class Profile implements OnInit {
             firstName: user.firstName || '',
             lastName: user.lastName || '',
             email: user.email || '',
+            memberCode: user.memberCode || '',
             role: user.roles?.[0] || 'Member',
             dateJoined: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
             picture: pictureUrl,
@@ -962,6 +968,7 @@ export class Profile implements OnInit {
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 email: user.email || '',
+                memberCode: (user as any).memberCode || '',
                 role: user.roles?.[0] || 'Member',
                 dateJoined: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
                 picture: pictureUrl,

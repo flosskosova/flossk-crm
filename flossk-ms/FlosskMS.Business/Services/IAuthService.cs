@@ -35,4 +35,6 @@ public interface IAuthService
     Task<IActionResult> ForgotPasswordAsync(ForgotPasswordDto request);
     Task<IActionResult> ResetPasswordAsync(ResetPasswordDto request);
     Task<IActionResult> GetLocationStatsAsync();
+    Task<IActionResult> GetUserSettingsAsync(string? userId);
+    Task<IActionResult> DevDisableMfaAsync();
 }

@@ -137,7 +137,7 @@ interface Pad {
         </ng-container>
 
         <!-- Add/Edit Pad Dialog -->
-        <p-dialog [(visible)]="addPadDialogVisible" [header]="padDialogMode === 'add' ? 'Add Collaboration Pad' : 'Edit Collaboration Pad'" [modal]="true" [style]="{width: '40rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
+        <p-dialog [(visible)]="addPadDialogVisible" [header]="padDialogMode === 'add' ? 'Add Collaboration Pad' : 'Edit Collaboration Pad'" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="padName" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Pad Name *</label>

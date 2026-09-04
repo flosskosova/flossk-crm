@@ -24,6 +24,8 @@ import { Integrations } from '@/pages/dashboard/components/integrations';
 import { CertBuilder } from '@/pages/dashboard/components/cert-builder';
 import { Plugins } from '@/pages/dashboard/components/plugins';
 import { VerifyCertificate } from '@/pages/verify-certificate/verify-certificate';
+import { PrivacyPolicy } from '@/pages/privacy/privacy-policy';
+import { TermsOfService } from '@/pages/terms/terms-of-service';
 import { UserSettings } from '@/pages/dashboard/components/user-settings';
 import { CollaborationPads } from '@/pages/dashboard/components/collaboration-pads';
 import { MembershipRequests } from '@/pages/dashboard/components/membership-requests';
@@ -65,7 +67,31 @@ export const appRoutes: Routes = [
             { path: 'elections', component: Elections },
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
-            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] }
+            { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
+            {
+                path: 'access',
+                canActivate: [roleGuard(['Admin'])],
+                children: [
+                    { path: '', loadComponent: () => import('./app/pages/dashboard/components/access/access-credentials').then(m => m.AccessCredentials) },
+                    { path: 'doors', loadComponent: () => import('./app/pages/dashboard/components/access/access-doors').then(m => m.AccessDoors) },
+                    { path: 'devices', loadComponent: () => import('./app/pages/dashboard/components/access/access-devices').then(m => m.AccessDevices) },
+                    { path: 'logs', loadComponent: () => import('./app/pages/dashboard/components/access/access-logs').then(m => m.AccessLogs) }
+                ]
+            },
+            { path: 'purchase-requests', loadComponent: () => import('./app/pages/dashboard/components/purchase-requests').then(m => m.PurchaseRequests) },
+            { path: 'purchase-approvals', loadComponent: () => import('./app/pages/dashboard/components/purchase-approvals').then(m => m.PurchaseApprovals), canActivate: [roleGuard(['Admin', 'Leader'])] },
+            {
+                path: 'pos',
+                children: [
+                    { path: '', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-terminal').then(m => m.PosTerminal) },
+                    { path: 'inventory', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-inventory').then(m => m.PosInventory) },
+                    { path: 'customers', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-customers').then(m => m.PosCustomers) },
+                    { path: 'analytics', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-analytics').then(m => m.PosAnalytics), canActivate: [roleGuard(['Admin', 'Leader'])] },
+                    { path: 'payment-logs', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-payment-logs').then(m => m.PosPaymentLogs), canActivate: [roleGuard(['Admin', 'Leader'])] },
+                    { path: 'shifts', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-shifts').then(m => m.PosShifts) },
+                    { path: 'operators', loadComponent: () => import('./app/pages/dashboard/components/pos/pos-operators').then(m => m.PosOperators), canActivate: [roleGuard(['Admin'])] }
+                ]
+            }
         ]
     },
     { path: 'onboarding', component: Onboarding },
@@ -74,7 +100,10 @@ export const appRoutes: Routes = [
     { path: 'verify/:token', component: VerifyCertificate },
     { path: 'apply', component: MembershipApplicationForm },
     { path: 'landing', canActivate: [authGuard], component: Landing },
+    { path: 'error', loadChildren: () => import('./app/pages/error/error.routes') },
     { path: 'notfound', component: Notfound },
+    { path: 'privacy', component: PrivacyPolicy },
+    { path: 'terms', component: TermsOfService },
     { path: 'course/:slug', component: Course },
     { path: 'auth/course-login', component: CourseLogin },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },

@@ -12,6 +12,7 @@ public class UserRfidCardDto
 
     // Assignment info (null if unassigned)
     public string? UserId { get; set; }
+    public string? MemberCode { get; set; }
     public string? UserEmail { get; set; }
     public string? UserFullName { get; set; }
     public DateTime? AssignedAt { get; set; }
@@ -24,6 +25,24 @@ public class UserRfidCardDto
     public string? RevokedByUserEmail { get; set; }
     public string? RevocationReason { get; set; }
 
+    // Access control
+    public string CredentialType { get; set; } = "NfcCard";
+    public string Status { get; set; } = "Pending";
+    public string? DeclineReason { get; set; }
+    public int? UserNumber { get; set; }
+    public int? CredentialNumber { get; set; }
+    public DateTime? HomeKeyProvisionedAt { get; set; }
+    public bool AllDoors { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+    public List<AccessDoorRefDto> Doors { get; set; } = [];
+
     // Computed properties
     public bool IsAssigned => UserId != null;
+    public bool IsUsable => Status == "Active" && (CredentialType != "HomeKey" || HomeKeyProvisionedAt != null);
+}
+
+public class AccessDoorRefDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }

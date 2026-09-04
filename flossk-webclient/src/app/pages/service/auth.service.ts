@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, map } from 'rxjs';
+import { Observable, tap, catchError, of, map, from, switchMap } from 'rxjs';
 import { environment } from '@environments/environment.prod';
 
 // Default avatar URL - kept for backwards compatibility but prefer using initials
@@ -54,6 +54,7 @@ export interface RegisterRequest {
 
 export interface User {
     id?: string;
+    memberCode?: string;
     email: string;
     firstName?: string;
     lastName?: string;
@@ -64,11 +65,29 @@ export interface User {
     profilePictureUrl?: string;
 }
 
+export interface PasskeyAssertionOptionsDto {
+    challenge: string;
+    rpId: string;
+    rpName: string;
+    timeout: number;
+}
+
+export interface PasskeyAssertionCompleteDto {
+    id: string;
+    rawId: string;
+    authenticatorData?: string;
+    clientDataJson?: string;
+    signature?: string;
+    userHandle?: string | null;
+}
+
 export interface AuthResponse {
     token?: string;
     user?: User;
     message?: string;
     courseId?: string;
+    requiresMfa?: boolean;
+    userId?: string;
 }
 
 @Injectable({
@@ -81,6 +100,8 @@ export class AuthService {
     currentUser = signal<User | null>(null);
     isLoading = signal<boolean>(false);
     error = signal<string | null>(null);
+    mfaRequired = signal<boolean>(false);
+    mfaUserId = signal<string | null>(null);
 
     constructor(private http: HttpClient, private router: Router) {
         // Try to load user on service init if token exists
@@ -95,6 +116,12 @@ export class AuthService {
         
         return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
             tap(response => {
+                if (response.requiresMfa) {
+                    this.mfaRequired.set(true);
+                    this.mfaUserId.set(response.userId ?? null);
+                    this.isLoading.set(false);
+                    return;
+                }
                 if (response.token) {
                     this.setToken(response.token);
                 }
@@ -106,6 +133,36 @@ export class AuthService {
             catchError(err => {
                 this.isLoading.set(false);
                 this.error.set(err.error?.message || 'Login failed');
+                throw err;
+            })
+        );
+    }
+
+    verifyMfaCode(code: string, recoveryCode?: string): Observable<AuthResponse> {
+        const userId = this.mfaUserId();
+        if (!userId) {
+            this.error.set('Session expired. Please log in again.');
+            this.mfaRequired.set(false);
+            throw new Error('No MFA session');
+        }
+        this.isLoading.set(true);
+        this.error.set(null);
+
+        return this.http.post<AuthResponse>(`${environment.apiUrl}/Mfa/login?userId=${userId}`, {
+            code,
+            recoveryCode
+        }).pipe(
+            tap(response => {
+                if (response.token) {
+                    this.setToken(response.token);
+                }
+                this.mfaRequired.set(false);
+                this.mfaUserId.set(null);
+                this.isLoading.set(false);
+            }),
+            catchError(err => {
+                this.isLoading.set(false);
+                this.error.set(err.error?.message || 'Verification failed');
                 throw err;
             })
         );
@@ -163,10 +220,18 @@ export class AuthService {
         );
     }
 
+    cancelMfa(): void {
+        this.mfaRequired.set(false);
+        this.mfaUserId.set(null);
+        this.isLoading.set(false);
+        this.error.set(null);
+    }
+
     logout(): void {
         localStorage.removeItem('auth_token');
-        // Keep theme preference in localStorage even after logout
         this.currentUser.set(null);
+        this.mfaRequired.set(false);
+        this.mfaUserId.set(null);
         this.router.navigate(['/auth/login']);
     }
 
@@ -180,6 +245,64 @@ export class AuthService {
 
     isAuthenticated(): boolean {
         return !!this.getToken();
+    }
+
+    passkeyLogin(): Observable<AuthResponse> {
+        this.isLoading.set(true);
+        this.error.set(null);
+        const mfaUrl = `${environment.apiUrl}/Mfa`;
+
+        return this.http.post<PasskeyAssertionOptionsDto>(`${mfaUrl}/passkeys/assertion-start`, {}).pipe(
+            switchMap(options =>
+                from(this.getPasskeyAssertion(options))
+            ),
+            switchMap(credential =>
+                this.http.post<AuthResponse>(`${mfaUrl}/passkeys/assertion-complete`, credential)
+            ),
+            tap(response => {
+                if (response.token) {
+                    this.setToken(response.token);
+                }
+                if (response.user) {
+                    this.currentUser.set(response.user);
+                }
+                this.isLoading.set(false);
+            }),
+            catchError(err => {
+                this.isLoading.set(false);
+                this.error.set(err.error?.message || 'Passkey authentication failed');
+                throw err;
+            })
+        );
+    }
+
+    private async getPasskeyAssertion(options: PasskeyAssertionOptionsDto): Promise<PasskeyAssertionCompleteDto> {
+        const credential = await navigator.credentials.get({
+            publicKey: {
+                challenge: Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+                rpId: options.rpId,
+                timeout: options.timeout,
+                userVerification: 'preferred'
+            }
+        }) as PublicKeyCredential;
+
+        const response = credential.response as AuthenticatorAssertionResponse;
+
+        return {
+            id: credential.id,
+            rawId: this.arrayBufferToBase64Url(credential.rawId),
+            authenticatorData: this.arrayBufferToBase64Url(response.authenticatorData),
+            clientDataJson: this.arrayBufferToBase64Url(response.clientDataJSON),
+            signature: this.arrayBufferToBase64Url(response.signature),
+            userHandle: response.userHandle ? this.arrayBufferToBase64Url(response.userHandle) : null
+        };
+    }
+
+    private arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        bytes.forEach(b => binary += String.fromCharCode(b));
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
     forgotPassword(email: string): Observable<any> {

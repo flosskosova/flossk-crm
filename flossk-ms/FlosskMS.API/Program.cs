@@ -5,6 +5,7 @@ using FlosskMS.Business.Configuration;
 using FlosskMS.Business.DomainEvents;
 using FlosskMS.Business.DomainEvents.Announcements;
 using FlosskMS.Business.DomainEvents.Memberships;
+using FlosskMS.Business.DomainEvents.Purchasing;
 using FlosskMS.Business.DomainEvents.Inventory;
 using FlosskMS.Business.DomainEvents.Projects;
 using FlosskMS.Business.Services;
@@ -23,8 +24,9 @@ using FlosskMS.API.Hubs;
 using FlosskMS.API.Services;
 using FlosskMS.Business.Mappings;
 using FlosskMS.Business.DomainEvents.Announcements.Notifications;
+using FlosskMS.Business.DomainEvents.Access;
 
-var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 if (File.Exists(envFile))
     Env.Load(envFile);
 
@@ -79,7 +81,9 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(new MemberCodeInterceptor())
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -187,6 +191,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IFormResponseService, FormResponseService>();
+builder.Services.AddScoped<IMfaService, MfaService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<ProjectCreatedEvent>, ProjectCreatedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<TeamMemberAddedToProjectEvent>, TeamMemberAddedNotificationHandler>();
@@ -202,6 +208,22 @@ builder.Services.AddScoped<IDomainEventHandler<AnnouncementCreatedEvent>, Announ
 builder.Services.AddScoped<IDomainEventHandler<MembershipApplicationSubmittedEvent>, MembershipApplicationSubmittedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipRequestApprovedEvent>, MembershipRequestApprovedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<MembershipRequestRejectedEvent>, MembershipRequestRejectedNotificationHandler>();
+
+builder.Services.AddScoped<IPosService, PosService>();
+
+builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
+builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestSubmittedEvent>, PurchaseRequestSubmittedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestApprovedEvent>, PurchaseRequestApprovedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestRejectedEvent>, PurchaseRequestRejectedNotificationHandler>();
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IAccessProvisioningService, AccessProvisioningService>();
+builder.Services.AddScoped<IAccessService, AccessService>();
+builder.Services.AddScoped<IDomainEventHandler<AccessLogEvent>, AccessLogHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialAssignedEvent>, AccessCredentialAssignedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialAcceptedEvent>, AccessCredentialAcceptedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialDeclinedEvent>, AccessCredentialDeclinedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialRevokedEvent>, AccessCredentialRevokedNotificationHandler>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));

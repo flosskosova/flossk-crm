@@ -15,12 +15,16 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <summary>
     /// Quick login with default dev credentials (Development only)
     /// </summary>
+    [HttpPost("dev-disable-mfa")]
+    public async Task<IActionResult> DevDisableMfa()
+        => await _authService.DevDisableMfaAsync();
+
     [HttpPost("dev-login")]
     public async Task<IActionResult> DevLogin()
         => await _authService.LoginAsync(new LoginRequestDto
         {
             Email = "daorsahyseni@gmail.com",
-            Password = "P@ssword321"
+            Password = "P@ssword123"
         });
 
     [HttpPost("register")]
@@ -162,6 +166,11 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <summary>
     /// Update theme preference for current user
     /// </summary>
+    [Authorize]
+    [HttpGet("me/settings")]
+    public async Task<IActionResult> GetSettings()
+        => await _authService.GetUserSettingsAsync(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
     [Authorize]
     [HttpPatch("me/theme")]
     public async Task<IActionResult> UpdateThemePreference([FromBody] UpdateThemePreferenceDto request)

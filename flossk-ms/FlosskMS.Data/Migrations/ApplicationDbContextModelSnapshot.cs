@@ -18,10 +18,210 @@ namespace FlosskMS.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DoorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EnforceIpCheck")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("FirmwareVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("IsAllowed")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Secret")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoorId");
+
+                    b.HasIndex("IpAddress");
+
+                    b.HasIndex("IsAllowed");
+
+                    b.ToTable("AccessDevices");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDoor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("AccessDoors");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDoorGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DoorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GrantedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RfidCardId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoorId");
+
+                    b.HasIndex("RfidCardId", "DoorId")
+                        .IsUnique();
+
+                    b.ToTable("AccessDoorGrants");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CredentialIdentifier")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CredentialType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DoorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DoorName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<bool?>("Granted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("RfidCardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DoorId");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("RfidCardId");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AccessLogs");
+                });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Announcement", b =>
                 {
@@ -186,6 +386,11 @@ namespace FlosskMS.Data.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MemberCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -229,6 +434,10 @@ namespace FlosskMS.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MemberCode")
+                        .IsUnique()
+                        .HasFilter("\"MemberCode\" <> ''");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -1445,6 +1654,410 @@ namespace FlosskMS.Data.Migrations
                     b.ToTable("ObjectiveTeamMembers");
                 });
 
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PosCategories");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosCustomer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LastVisitAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("TotalSpent")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VisitCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("\"Email\" IS NOT NULL");
+
+                    b.ToTable("PosCustomers");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosHiddenLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("AmountGiven")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Change")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Donation")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OperatorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("OrderNumber");
+
+                    b.ToTable("PosHiddenLogs");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AmountGiven")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Change")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Donation")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OperatorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ShiftId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ShiftId");
+
+                    b.ToTable("PosOrders");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosOrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("PosOrderItems");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosPaymentLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("AmountGiven")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Change")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Donation")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OperatorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("OrderNumber");
+
+                    b.ToTable("PosPaymentLogs");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosProduct", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("PosProducts");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosShift", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("EndingCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("ExpectedCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OperatorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("OrderCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("StartingCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("TotalDonations")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("PosShifts");
+                });
+
             modelBuilder.Entity("FlosskMS.Data.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1557,6 +2170,70 @@ namespace FlosskMS.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ProjectTeamMembers");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PurchaseRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("NeededByDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("PurchaseRequests");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.PushSubscription", b =>
@@ -1784,11 +2461,56 @@ namespace FlosskMS.Data.Migrations
                     b.ToTable("UserContributions");
                 });
 
+            modelBuilder.Entity("FlosskMS.Data.Entities.UserPasskey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CredentialId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CredentialJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Transports")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserPasskeys");
+                });
+
             modelBuilder.Entity("FlosskMS.Data.Entities.UserRfidCard", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("AllDoors")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("AssignedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1801,8 +2523,29 @@ namespace FlosskMS.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("CredentialNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CredentialType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("DeclineReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("HomeKeyProvisionedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HomeKeyProvisionedByUserId")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -1825,8 +2568,16 @@ namespace FlosskMS.Data.Migrations
                     b.Property<string>("RevokedByUserId")
                         .HasColumnType("text");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("UserId")
                         .HasColumnType("text");
+
+                    b.Property<int?>("UserNumber")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1835,11 +2586,15 @@ namespace FlosskMS.Data.Migrations
                     b.HasIndex("CardIdentifier")
                         .IsUnique();
 
+                    b.HasIndex("CredentialType");
+
                     b.HasIndex("IsActive");
 
                     b.HasIndex("RegisteredByUserId");
 
                     b.HasIndex("RevokedByUserId");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("UserId");
 
@@ -1976,6 +2731,85 @@ namespace FlosskMS.Data.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDevice", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.AccessDoor", "Door")
+                        .WithMany("Devices")
+                        .HasForeignKey("DoorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Door");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDoor", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDoorGrant", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.AccessDoor", "Door")
+                        .WithMany("Grants")
+                        .HasForeignKey("DoorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FlosskMS.Data.Entities.UserRfidCard", "RfidCard")
+                        .WithMany("DoorGrants")
+                        .HasForeignKey("RfidCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Door");
+
+                    b.Navigation("RfidCard");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessLog", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlosskMS.Data.Entities.AccessDevice", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlosskMS.Data.Entities.AccessDoor", "Door")
+                        .WithMany()
+                        .HasForeignKey("DoorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlosskMS.Data.Entities.UserRfidCard", "RfidCard")
+                        .WithMany()
+                        .HasForeignKey("RfidCardId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Door");
+
+                    b.Navigation("RfidCard");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.Announcement", b =>
@@ -2466,6 +3300,72 @@ namespace FlosskMS.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosOrder", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FlosskMS.Data.Entities.PosCustomer", "Customer")
+                        .WithMany("Orders")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlosskMS.Data.Entities.PosShift", "Shift")
+                        .WithMany()
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Shift");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosOrderItem", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.PosOrder", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosProduct", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.PosCategory", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosShift", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+                });
+
             modelBuilder.Entity("FlosskMS.Data.Entities.Project", b =>
                 {
                     b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
@@ -2513,6 +3413,24 @@ namespace FlosskMS.Data.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PurchaseRequest", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("ReviewedByUser");
                 });
 
             modelBuilder.Entity("FlosskMS.Data.Entities.PushSubscription", b =>
@@ -2604,6 +3522,17 @@ namespace FlosskMS.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FlosskMS.Data.Entities.UserPasskey", b =>
+                {
+                    b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FlosskMS.Data.Entities.UserRfidCard", b =>
                 {
                     b.HasOne("FlosskMS.Data.Entities.ApplicationUser", "AssignedByUser")
@@ -2687,6 +3616,13 @@ namespace FlosskMS.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("FlosskMS.Data.Entities.AccessDoor", b =>
+                {
+                    b.Navigation("Devices");
+
+                    b.Navigation("Grants");
+                });
+
             modelBuilder.Entity("FlosskMS.Data.Entities.Announcement", b =>
                 {
                     b.Navigation("Reactions");
@@ -2752,6 +3688,21 @@ namespace FlosskMS.Data.Migrations
                     b.Navigation("TeamMembers");
                 });
 
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosCategory", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosCustomer", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.PosOrder", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("FlosskMS.Data.Entities.Project", b =>
                 {
                     b.Navigation("Course");
@@ -2770,6 +3721,11 @@ namespace FlosskMS.Data.Migrations
             modelBuilder.Entity("FlosskMS.Data.Entities.Resource", b =>
                 {
                     b.Navigation("Files");
+                });
+
+            modelBuilder.Entity("FlosskMS.Data.Entities.UserRfidCard", b =>
+                {
+                    b.Navigation("DoorGrants");
                 });
 #pragma warning restore 612, 618
         }

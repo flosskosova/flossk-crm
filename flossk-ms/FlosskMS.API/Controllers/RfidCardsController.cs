@@ -9,9 +9,12 @@ namespace FlosskMS.API.Controllers;
 [Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/[controller]")]
-public class RfidCardsController(IRfidCardService rfidCardService) : ControllerBase
+public class RfidCardsController(IRfidCardService rfidCardService, IAccessService accessService) : ControllerBase
 {
     private readonly IRfidCardService _rfidCardService = rfidCardService;
+    private readonly IAccessService _accessService = accessService;
+
+    private string? ActorId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     /// <summary>
     /// Get all RFID cards with optional filtering and pagination
@@ -134,4 +137,72 @@ public class RfidCardsController(IRfidCardService rfidCardService) : ControllerB
     {
         return await _rfidCardService.DeleteCardAsync(id);
     }
+
+    // ─────────────────── Access control (NFC + Aliro / Home Key) ───────────────────
+
+    /// <summary>
+    /// Assign a new access credential (NFC card or Aliro / Home Key) to a member.
+    /// The credential starts in <c>Pending</c> and does not open any door until accepted.
+    /// </summary>
+    [HttpPost("credentials/assign")]
+    public async Task<IActionResult> AssignCredential([FromBody] AssignAccessCredentialDto dto)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.AssignCredentialAsync(dto, ActorId);
+    }
+
+    /// <summary>Accept / enable a credential (runs SetUser + SetCredential toward the door devices).</summary>
+    [HttpPatch("{id:guid}/accept")]
+    public async Task<IActionResult> AcceptCredential(Guid id)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.AcceptCredentialAsync(id, ActorId);
+    }
+
+    /// <summary>Decline a credential so the door stays locked.</summary>
+    [HttpPatch("{id:guid}/decline")]
+    public async Task<IActionResult> DeclineCredential(Guid id, [FromBody] DeclineAccessCredentialDto dto)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.DeclineCredentialAsync(id, dto, ActorId);
+    }
+
+    /// <summary>Temporarily disable a credential.</summary>
+    [HttpPatch("{id:guid}/disable")]
+    public async Task<IActionResult> DisableCredential(Guid id)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.DisableCredentialAsync(id, ActorId);
+    }
+
+    /// <summary>Re-enable a previously disabled credential.</summary>
+    [HttpPatch("{id:guid}/enable")]
+    public async Task<IActionResult> EnableCredential(Guid id)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.EnableCredentialAsync(id, ActorId);
+    }
+
+    /// <summary>
+    /// Provision an Aliro / Home Key credential onto the member's device. Access is not
+    /// granted until this succeeds and the credential is accepted.
+    /// </summary>
+    [HttpPost("{id:guid}/provision-homekey")]
+    public async Task<IActionResult> ProvisionHomeKey(Guid id)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.ProvisionHomeKeyAsync(id, ActorId);
+    }
+
+    /// <summary>Set which doors a credential can open (or all doors).</summary>
+    [HttpPut("{id:guid}/doors")]
+    public async Task<IActionResult> SetDoors(Guid id, [FromBody] SetCredentialDoorsDto dto)
+    {
+        if (string.IsNullOrEmpty(ActorId)) return Unauthorized();
+        return await _accessService.SetCredentialDoorsAsync(id, dto, ActorId);
+    }
+
+    /// <summary>Access-log entries for one credential.</summary>
+    [HttpGet("{id:guid}/logs")]
+    public Task<IActionResult> GetCredentialLogs(Guid id) => _accessService.GetCredentialLogsAsync(id);
 }

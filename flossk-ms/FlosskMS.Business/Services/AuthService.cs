@@ -104,6 +104,16 @@ public class AuthService(
             });
         }
 
+        if (user.TwoFactorEnabled)
+        {
+            return new OkObjectResult(new AuthResponseDto
+            {
+                Success = true,
+                RequiresMfa = true,
+                UserId = user.Id
+            });
+        }
+
         var expireMinutes = request.RememberMe ? 60 * 24 * 10 : _jwtSettings.ExpirationInMinutes;
         var token = await GenerateJwtTokenAsync(user, expireMinutes);
         var expiration = DateTime.UtcNow.AddMinutes(expireMinutes);
@@ -1186,6 +1196,59 @@ public class AuthService(
         };
     }
 
+    public async Task<IActionResult> GetUserSettingsAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new UnauthorizedResult();
+
+        var user = await _dbContext.Users
+            .Include(u => u.UploadedFiles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new NotFoundResult();
+
+        MembershipRequestDto? membershipRequestDto = null;
+
+        var pendingRequest = await _dbContext.MembershipRequests
+            .Include(mr => mr.ReviewedByUser)
+            .FirstOrDefaultAsync(mr => mr.Email == user.Email && mr.Status == MembershipRequestStatus.Pending);
+
+        if (pendingRequest != null)
+        {
+            membershipRequestDto = new MembershipRequestDto
+            {
+                Id = pendingRequest.Id,
+                FullName = pendingRequest.FullName,
+                Address = pendingRequest.Address,
+                City = pendingRequest.City,
+                PhoneNumber = pendingRequest.PhoneNumber,
+                Email = pendingRequest.Email,
+                SchoolOrCompany = pendingRequest.SchoolOrCompany,
+                DateOfBirth = pendingRequest.DateOfBirth,
+                Statement = pendingRequest.Statement,
+                IdCardNumber = pendingRequest.IdCardNumber,
+                ApplicantSignatureFileId = pendingRequest.ApplicantSignatureFileId,
+                GuardianSignatureFileId = pendingRequest.GuardianSignatureFileId,
+                Status = pendingRequest.Status.ToString(),
+                CreatedAt = pendingRequest.CreatedAt,
+                ReviewedAt = pendingRequest.ReviewedAt,
+                ReviewedByUserId = pendingRequest.ReviewedByUserId,
+                ReviewedByFirstName = pendingRequest.ReviewedByUser?.FirstName,
+                ReviewedByLastName = pendingRequest.ReviewedByUser?.LastName,
+                BoardMemberSignatureFileId = pendingRequest.BoardMemberSignatureFileId,
+                RejectionReason = pendingRequest.RejectionReason,
+                IsUnder14 = pendingRequest.IsUnder14()
+            };
+        }
+
+        return new OkObjectResult(new UserSettingsDto
+        {
+            User = await MapToUserDtoAsync(user),
+            MembershipRequest = membershipRequestDto
+        });
+    }
+
     private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, int? expirationInMinutes = null)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
@@ -1200,7 +1263,8 @@ public class AuthService(
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim("firstName", user.FirstName),
-            new Claim("lastName", user.LastName)
+            new Claim("lastName", user.LastName),
+            new Claim("memberCode", user.MemberCode)
         };
 
         // Add role claims
@@ -1251,6 +1315,7 @@ public class AuthService(
         return new UserDto
         {
             Id = user.Id,
+            MemberCode = user.MemberCode,
             Email = user.Email ?? string.Empty,
             FirstName = user.FirstName,
             LastName = user.LastName,
@@ -1354,5 +1419,22 @@ public class AuthService(
         await _userManager.RemoveAuthenticationTokenAsync(user, "PasswordReset", "IssuedAt");
 
         return new OkObjectResult(new { Message = "Password has been reset successfully. You can now log in." });
+    }
+
+    public async Task<IActionResult> DevDisableMfaAsync()
+    {
+        var protectedEmail = "daorsahyseni@gmail.com";
+        var devUser = await _userManager.FindByEmailAsync(protectedEmail);
+        if (devUser == null)
+            return new NotFoundObjectResult(new { message = "User not found" });
+
+        if (devUser.TwoFactorEnabled)
+        {
+            await _userManager.SetTwoFactorEnabledAsync(devUser, false);
+            await _userManager.ResetAuthenticatorKeyAsync(devUser);
+            return new OkObjectResult(new { message = "2FA disabled for daorsahyseni@gmail.com" });
+        }
+
+        return new OkObjectResult(new { message = "2FA was already disabled" });
     }
 }

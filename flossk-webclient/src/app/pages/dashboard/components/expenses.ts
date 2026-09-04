@@ -374,7 +374,7 @@ interface DonorEntry {
     </div>
 
     <!-- ── Add Transaction Dialog ── -->
-    <p-dialog header="Add Transaction" [(visible)]="showDialog" [modal]="true" [style]="{width:'520px'}" [draggable]="false">
+    <p-dialog header="Add Transaction" [(visible)]="showDialog" [modal]="true" [style]="{width:'520px'}" [breakpoints]="{ '575px': '95vw' }" [draggable]="false">
         <div class="flex flex-col gap-4 pt-2">
 
             <!-- Type toggle -->
@@ -418,7 +418,7 @@ interface DonorEntry {
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Date *</label>
-                    <p-datepicker [(ngModel)]="newTx.date" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" />
+                    <p-datepicker [(ngModel)]="newTx.date" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" appendTo="body" />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Status</label>

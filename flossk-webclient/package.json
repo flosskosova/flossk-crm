@@ -33,6 +33,7 @@
         "angular-calendar-scheduler": "^21.0.0",
         "angular-draggable-droppable": "^9.0.1",
         "angular-resizable-element": "^8.0.3",
+        "animejs": "^4.5.0",
         "aos": "^2.3.4",
         "chart.js": "4.4.2",
         "date-fns": "^4.2.1",

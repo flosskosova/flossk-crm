@@ -256,7 +256,6 @@ export class AppTopbar implements OnInit, OnDestroy {
         } else if (user?.email) {
             initials = user.email.charAt(0).toUpperCase();
         }
-        console.log('User initials in topbar:', initials);
         return initials;
     }
 

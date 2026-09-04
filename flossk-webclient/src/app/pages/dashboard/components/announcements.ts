@@ -50,7 +50,7 @@ interface AnnouncementDisplay {
     template: `
         <p-confirmdialog></p-confirmdialog>
         
-        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Announcement' : 'Edit Announcement'" [modal]="true" [style]="{width: '50rem'}" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
+        <p-dialog [(visible)]="dialogVisible" [header]="dialogMode === 'add' ? 'New Announcement' : 'Edit Announcement'" [modal]="true" [style]="{width: '50rem'}" [breakpoints]="{ '1199px': '75vw', '575px': '95vw' }" [contentStyle]="{'max-height': '70vh', 'overflow': 'visible'}" appendTo="body" [maximizable]="true">
             <div class="flex flex-col gap-4">
                 <div>
                     <label for="title" class="block text-surface-900 dark:text-surface-0 font-medium mb-2">Title</label>
@@ -81,7 +81,7 @@ interface AnnouncementDisplay {
             </div>
         </p-dialog>
         
-        <p-dialog [(visible)]="viewDialogVisible" [header]="selectedAnnouncement?.title" [modal]="true" [style]="{width: '50rem'}" appendTo="body">
+        <p-dialog [(visible)]="viewDialogVisible" [header]="selectedAnnouncement?.title" [modal]="true" [style]="{width: '50rem'}" [breakpoints]="{ '1199px': '75vw', '575px': '95vw' }" appendTo="body">
             <div *ngIf="selectedAnnouncement" class="flex flex-col gap-4">
                 <!-- Author Info -->
                 <div class="flex items-center gap-3 mb-2">

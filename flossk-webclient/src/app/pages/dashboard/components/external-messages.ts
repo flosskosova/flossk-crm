@@ -78,7 +78,7 @@ import { ExternalMessagesService, ExternalMessage } from '@/pages/service/extern
         </div>
         
         <!-- View Message Dialog -->
-        <p-dialog [(visible)]="viewDialogVisible" [header]="selectedMessage ? selectedMessage.firstName + ' ' + selectedMessage.lastName : 'Message Details'" [modal]="true" [style]="{width: '40rem'}" appendTo="body">
+        <p-dialog [(visible)]="viewDialogVisible" [header]="selectedMessage ? selectedMessage.firstName + ' ' + selectedMessage.lastName : 'Message Details'" [modal]="true" [style]="{width: '40rem'}" [breakpoints]="{ '575px': '95vw' }" appendTo="body">
             <div *ngIf="selectedMessage" class="flex flex-col gap-4">
                 <div class="grid grid-cols-12 gap-4">
                     <div class="col-span-6">
