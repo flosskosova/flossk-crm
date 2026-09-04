@@ -61,6 +61,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PosHiddenLog> PosHiddenLogs { get; set; }
     public DbSet<PosShift> PosShifts { get; set; }
     public DbSet<PurchaseRequest> PurchaseRequests { get; set; }
+    public DbSet<AccessDoor> AccessDoors { get; set; }
+    public DbSet<AccessDevice> AccessDevices { get; set; }
+    public DbSet<AccessDoorGrant> AccessDoorGrants { get; set; }
+    public DbSet<AccessLog> AccessLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -70,6 +74,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.Property(e => e.FirstName).HasMaxLength(100);
             entity.Property(e => e.LastName).HasMaxLength(100);
+
+            // Badge code (FOSS-XXXXXXXX). Assigned by MemberCodeInterceptor on insert.
+            entity.Property(e => e.MemberCode).HasMaxLength(20).IsRequired();
+            entity.HasIndex(e => e.MemberCode)
+                .IsUnique()
+                .HasFilter("\"MemberCode\" <> ''");
         });
 
         builder.Entity<ApprovedEmail>(entity =>
@@ -243,9 +253,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.RevokedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.Property(e => e.DeclineReason).HasMaxLength(500);
+            entity.Property(e => e.CredentialType).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
             entity.HasIndex(e => e.CardIdentifier).IsUnique();
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CredentialType);
         });
 
         // Project configuration
@@ -1075,6 +1091,103 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedByUserId);
             entity.HasIndex(e => e.CreatedAt);
+        });
+
+        builder.Entity<AccessDoor>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(150).IsRequired();
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.CreatedByUserId).IsRequired();
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.IsActive);
+        });
+
+        builder.Entity<AccessDevice>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(150).IsRequired();
+            entity.Property(e => e.IpAddress).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Secret).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.FirmwareVersion).HasMaxLength(50);
+            entity.Property(e => e.CreatedByUserId).IsRequired();
+            entity.Ignore(e => e.BaseUrl);
+
+            entity.HasOne(e => e.Door)
+                .WithMany(d => d.Devices)
+                .HasForeignKey(e => e.DoorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.IpAddress);
+            entity.HasIndex(e => e.DoorId);
+            entity.HasIndex(e => e.IsAllowed);
+        });
+
+        builder.Entity<AccessDoorGrant>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.GrantedByUserId).IsRequired();
+
+            entity.HasOne(e => e.RfidCard)
+                .WithMany(c => c.DoorGrants)
+                .HasForeignKey(e => e.RfidCardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Door)
+                .WithMany(d => d.Grants)
+                .HasForeignKey(e => e.DoorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.RfidCardId, e.DoorId }).IsUnique();
+        });
+
+        builder.Entity<AccessLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EventType).HasConversion<string>().HasMaxLength(40);
+            entity.Property(e => e.CredentialType).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.DoorName).HasMaxLength(150);
+            entity.Property(e => e.CredentialIdentifier).HasMaxLength(200);
+            entity.Property(e => e.Metadata).HasColumnType("text");
+
+            entity.HasOne(e => e.Door)
+                .WithMany()
+                .HasForeignKey(e => e.DoorId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Device)
+                .WithMany()
+                .HasForeignKey(e => e.DeviceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.RfidCard)
+                .WithMany()
+                .HasForeignKey(e => e.RfidCardId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ActorUser)
+                .WithMany()
+                .HasForeignKey(e => e.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.EventType);
+            entity.HasIndex(e => e.DoorId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.RfidCardId);
         });
     }
 }

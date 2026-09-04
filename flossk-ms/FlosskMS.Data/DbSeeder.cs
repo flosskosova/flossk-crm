@@ -15,6 +15,37 @@ public static class DbSeeder
     {
         await SeedRolesAsync(roleManager, logger);
         await SeedAdminUserAsync(userManager, dbContext, logger);
+        await BackfillMemberCodesAsync(dbContext, logger);
+    }
+
+    /// <summary>
+    /// Gives every member without a badge code one on each startup. New members normally
+    /// get theirs from <see cref="MemberCodeInterceptor"/>; this covers anything that
+    /// slipped through (e.g. rows created before the feature shipped).
+    /// </summary>
+    private static async Task BackfillMemberCodesAsync(ApplicationDbContext dbContext, ILogger? logger)
+    {
+        var pending = await dbContext.Users
+            .Where(u => u.MemberCode == "")
+            .OrderBy(u => u.CreatedAt)
+            .ThenBy(u => u.Id)
+            .ToListAsync();
+
+        if (pending.Count == 0)
+            return;
+
+        var taken = new HashSet<string>(
+            await dbContext.Users.Where(u => u.MemberCode != "").Select(u => u.MemberCode).ToListAsync());
+
+        foreach (var user in pending)
+        {
+            string code;
+            do { code = MemberCode.New(); } while (!taken.Add(code));
+            user.MemberCode = code;
+        }
+
+        await dbContext.SaveChangesAsync();
+        logger?.LogInformation("Seeder: assigned member codes to {Count} existing member(s)", pending.Count);
     }
 
     private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger? logger)

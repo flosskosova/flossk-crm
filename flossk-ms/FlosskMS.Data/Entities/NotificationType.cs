@@ -23,5 +23,9 @@ public enum NotificationType
     MembershipRejectedAdmin,
     PurchaseRequestSubmitted,
     PurchaseRequestApproved,
-    PurchaseRequestRejected
+    PurchaseRequestRejected,
+    AccessCredentialAssigned,
+    AccessCredentialAccepted,
+    AccessCredentialDeclined,
+    AccessCredentialRevoked
 }

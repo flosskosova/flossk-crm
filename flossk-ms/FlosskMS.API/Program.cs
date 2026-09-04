@@ -24,6 +24,7 @@ using FlosskMS.API.Hubs;
 using FlosskMS.API.Services;
 using FlosskMS.Business.Mappings;
 using FlosskMS.Business.DomainEvents.Announcements.Notifications;
+using FlosskMS.Business.DomainEvents.Access;
 
 var envFile = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 if (File.Exists(envFile))
@@ -81,6 +82,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(new MemberCodeInterceptor())
            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -213,6 +215,15 @@ builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
 builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestSubmittedEvent>, PurchaseRequestSubmittedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestApprovedEvent>, PurchaseRequestApprovedNotificationHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PurchaseRequestRejectedEvent>, PurchaseRequestRejectedNotificationHandler>();
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IAccessProvisioningService, AccessProvisioningService>();
+builder.Services.AddScoped<IAccessService, AccessService>();
+builder.Services.AddScoped<IDomainEventHandler<AccessLogEvent>, AccessLogHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialAssignedEvent>, AccessCredentialAssignedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialAcceptedEvent>, AccessCredentialAcceptedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialDeclinedEvent>, AccessCredentialDeclinedNotificationHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AccessCredentialRevokedEvent>, AccessCredentialRevokedNotificationHandler>();
 
 builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 builder.Services.Configure<ClamAvSettings>(builder.Configuration.GetSection("ClamAvSettings"));
