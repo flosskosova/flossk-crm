@@ -22,6 +22,7 @@ public class RfidCardService : IRfidCardService
             .Include(c => c.RegisteredByUser)
             .Include(c => c.AssignedByUser)
             .Include(c => c.RevokedByUser)
+            .Include(c => c.DoorGrants).ThenInclude(g => g.Door)
             .AsQueryable();
 
         if (activeOnly.HasValue)
@@ -238,6 +239,7 @@ public class RfidCardService : IRfidCardService
         }
 
         card.IsActive = false;
+        card.Status = AccessCredentialStatus.Revoked;
         card.RevokedAt = DateTime.UtcNow;
         card.RevokedByUserId = revokedByUserId;
         card.RevocationReason = dto.Reason;
@@ -282,6 +284,7 @@ public class RfidCardService : IRfidCardService
         }
 
         card.IsActive = true;
+        card.Status = AccessCredentialStatus.Active;
         card.RevokedAt = null;
         card.RevokedByUserId = null;
         card.RevocationReason = null;
@@ -343,6 +346,7 @@ public class RfidCardService : IRfidCardService
             .Include(c => c.RegisteredByUser)
             .Include(c => c.AssignedByUser)
             .Include(c => c.RevokedByUser)
+            .Include(c => c.DoorGrants).ThenInclude(g => g.Door)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
@@ -358,6 +362,7 @@ public class RfidCardService : IRfidCardService
             IsActive = card.IsActive,
             Notes = card.Notes,
             UserId = card.UserId,
+            MemberCode = card.User?.MemberCode,
             UserEmail = card.User?.Email,
             UserFullName = card.User != null ? $"{card.User.FirstName} {card.User.LastName}".Trim() : null,
             AssignedAt = card.AssignedAt,
@@ -366,7 +371,16 @@ public class RfidCardService : IRfidCardService
             RevokedAt = card.RevokedAt,
             RevokedByUserId = card.RevokedByUserId,
             RevokedByUserEmail = card.RevokedByUser?.Email,
-            RevocationReason = card.RevocationReason
+            RevocationReason = card.RevocationReason,
+            CredentialType = card.CredentialType.ToString(),
+            Status = card.Status.ToString(),
+            DeclineReason = card.DeclineReason,
+            UserNumber = card.UserNumber,
+            CredentialNumber = card.CredentialNumber,
+            HomeKeyProvisionedAt = card.HomeKeyProvisionedAt,
+            AllDoors = card.AllDoors,
+            LastUsedAt = card.LastUsedAt,
+            Doors = card.DoorGrants?.Select(g => new AccessDoorRefDto { Id = g.DoorId, Name = g.Door?.Name ?? "" }).ToList() ?? []
         };
     }
 }

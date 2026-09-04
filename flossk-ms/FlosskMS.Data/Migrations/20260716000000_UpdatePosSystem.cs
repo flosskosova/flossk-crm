@@ -1,10 +1,14 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using FlosskMS.Data;
 
 #nullable disable
 
 namespace FlosskMS.Data.Migrations
 {
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260716000000_UpdatePosSystem")]
     public partial class UpdatePosSystem : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

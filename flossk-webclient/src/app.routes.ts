@@ -68,6 +68,16 @@ export const appRoutes: Routes = [
             { path: 'cert-builder', component: CertBuilder, canActivate: [roleGuard(['Admin', 'Full Member'])] },
             { path: 'expenses', component: Expenses, canActivate: [roleGuard(['Admin'])] },
             { path: 'admin-settings', component: AdminSettings, canActivate: [roleGuard(['Admin'])] },
+            {
+                path: 'access',
+                canActivate: [roleGuard(['Admin'])],
+                children: [
+                    { path: '', loadComponent: () => import('./app/pages/dashboard/components/access/access-credentials').then(m => m.AccessCredentials) },
+                    { path: 'doors', loadComponent: () => import('./app/pages/dashboard/components/access/access-doors').then(m => m.AccessDoors) },
+                    { path: 'devices', loadComponent: () => import('./app/pages/dashboard/components/access/access-devices').then(m => m.AccessDevices) },
+                    { path: 'logs', loadComponent: () => import('./app/pages/dashboard/components/access/access-logs').then(m => m.AccessLogs) }
+                ]
+            },
             { path: 'purchase-requests', loadComponent: () => import('./app/pages/dashboard/components/purchase-requests').then(m => m.PurchaseRequests) },
             { path: 'purchase-approvals', loadComponent: () => import('./app/pages/dashboard/components/purchase-approvals').then(m => m.PurchaseApprovals), canActivate: [roleGuard(['Admin', 'Leader'])] },
             {

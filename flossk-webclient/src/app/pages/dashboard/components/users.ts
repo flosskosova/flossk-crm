@@ -19,7 +19,8 @@ import { UserStatusIndicator } from './user-status-indicator';
 
 interface User {
     id: string;
-    firstName: string; 
+    memberCode: string;
+    firstName: string;
     lastName: string;
     email: string;
     profilePictureUrl: string;
@@ -53,6 +54,7 @@ interface User {
                 <ng-template #header>
                     <tr>
                         <th>Avatar</th>
+                        <th pSortableColumn="memberCode">Member ID <p-sortIcon field="memberCode" /></th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
@@ -85,6 +87,7 @@ interface User {
                                 />
                             </div>
                         </td>
+                        <td class="font-mono text-sm">{{ user.memberCode || '—' }}</td>
                         <td>{{ user.firstName }} {{ user.lastName }}</td>
                         <td>{{ user.email }}</td>
                         <td>{{ user.roles[0] || 'User' }}</td>
@@ -207,7 +210,7 @@ export class Users implements OnInit {
 
     loadUsers() {
         this.loading = true;
-        this.http.get<any>(`${environment.apiUrl}/Auth/users?page=1&pageSize=10`).subscribe({
+        this.http.get<any>(`${environment.apiUrl}/Auth/users?page=1&pageSize=100`).subscribe({
             next: (response) => {
                 console.log('Users response:', response);
                 this.users = response.users;

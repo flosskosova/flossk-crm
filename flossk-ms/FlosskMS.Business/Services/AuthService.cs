@@ -1263,7 +1263,8 @@ public class AuthService(
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim("firstName", user.FirstName),
-            new Claim("lastName", user.LastName)
+            new Claim("lastName", user.LastName),
+            new Claim("memberCode", user.MemberCode)
         };
 
         // Add role claims
@@ -1314,6 +1315,7 @@ public class AuthService(
         return new UserDto
         {
             Id = user.Id,
+            MemberCode = user.MemberCode,
             Email = user.Email ?? string.Empty,
             FirstName = user.FirstName,
             LastName = user.LastName,

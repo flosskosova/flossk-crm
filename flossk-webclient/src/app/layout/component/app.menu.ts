@@ -31,63 +31,82 @@ export class AppMenu {
         return roles.includes('Admin') || roles.includes('Leader');
     });
 
-    model = computed<MenuItem[]>(() => [
-        {
-            label: 'Home',
-            items: [
-                { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] },
-                { label: 'Collaboration Pads', icon: 'pi pi-fw pi-clipboard', routerLink: ['/dashboard/collaboration-pads'] },
-                { label: 'Profile', icon: 'pi pi-fw pi-user', routerLink: ['/dashboard/profile'] },
-                { label: 'Projects', icon: 'pi pi-fw pi-hammer', routerLink: ['/dashboard/projects'] },
-                { label: 'Notifications', icon: 'pi pi-fw pi-inbox', routerLink: ['/dashboard/notifications'] },
-                { label: 'Users', icon: 'pi pi-fw pi-users', routerLink: ['/dashboard/users'] },
-                { label: 'Announcements', icon: 'pi pi-fw pi-megaphone', routerLink: ['/dashboard/announcements'] },
-                { label: 'Inventory', icon: 'pi pi-fw pi-box', routerLink: ['/dashboard/inventory'] },
-                { label: 'Elections', icon: 'pi pi-fw pi-vote', routerLink: ['/dashboard/elections'] },
-                { label: 'General Statistics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/statistics'] },
-                { label: 'Leaderboard', icon: 'pi pi-fw pi-graduation-cap', routerLink: ['/dashboard/leaderboard'] },
-                { label: 'Integrations', icon: 'pi pi-fw pi-th-large', routerLink: ['/dashboard/integrations'] },
-                { label: 'Course Portal', icon: 'pi pi-fw pi-globe', routerLink: ['/dashboard/course-portal'] },
-                // { label: 'RFID Configurer', icon: 'pi pi-fw pi-id-card', routerLink: ['/dashboard/rfid-configurer'] },
-                // { label: 'Hackerspace Presence (Frontend only)', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/dashboard/hackerspace-presence'] },
-            ]
-        },
-        {
-            label: 'POS',
-            items: [
-                { label: 'POS Terminal', icon: 'pi pi-fw pi-credit-card', routerLink: ['/dashboard/pos'] },
-                { label: 'Inventory', icon: 'pi pi-fw pi-box', routerLink: ['/dashboard/pos/inventory'] },
-                { label: 'Customers', icon: 'pi pi-fw pi-users', routerLink: ['/dashboard/pos/customers'] },
-                { label: 'Shifts', icon: 'pi pi-fw pi-clock', routerLink: ['/dashboard/pos/shifts'] },
-                ...(this.isBoard() ? [
-                    { label: 'Payment Logs', icon: 'pi pi-fw pi-receipt', routerLink: ['/dashboard/pos/payment-logs'] },
-                    { label: 'Analytics', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/pos/analytics'] },
-                ] : []),
-                ...(this.adminOnly() ? [
-                    { label: 'Operators', icon: 'pi pi-fw pi-user-plus', routerLink: ['/dashboard/pos/operators'] },
-                ] : []),
-            ]
-        },
-        {
-            label: 'Purchasing',
-            items: [
-                { label: 'Purchase Requests', icon: 'pi pi-fw pi-shopping-bag', routerLink: ['/dashboard/purchase-requests'] },
-                ...(this.isBoard() ? [
-                    { label: 'Purchase Approvals', icon: 'pi pi-fw pi-check-square', routerLink: ['/dashboard/purchase-approvals'] },
-                ] : []),
-            ]
-        },
-        {
-            label: 'Administration',
-            items: this.adminOnly() ? [
-                { label: 'External Messages', icon: 'pi pi-fw pi-envelope', routerLink: ['/dashboard/external-messages'] },
-                { label: 'Membership Requests', icon: 'pi pi-fw pi-bell', routerLink: ['/dashboard/membership-requests'] },
-                { label: 'Expenses Tracking (Frontend only)', icon: 'pi pi-fw pi-wallet', routerLink: ['/dashboard/expenses'] },
-                { label: 'Plugins (Frontend only)', icon: 'pi pi-fw pi-objects-column', routerLink: ['/dashboard/plugins'] },
-                { label: 'Certificate Builder', icon: 'pi pi-fw pi-sparkles', routerLink: ['/dashboard/cert-builder'] },
-                { label: 'Audit Logs', icon: 'pi pi-fw pi-server', routerLink: ['/dashboard/audit-logs'] },
-                { label: 'Administration Settings', icon: 'pi pi-fw pi-cog', routerLink: ['/dashboard/admin-settings'] },
-            ] : [],
-        }
-    ]);
+    model = computed<MenuItem[]>(() => {
+        const admin = this.adminOnly();
+        const board = this.isBoard();
+
+        // Each "category" is a collapsible dropdown; empty ones are dropped automatically.
+        const category = (label: string, icon: string, items: (MenuItem | false)[]): MenuItem | null => {
+            const visible = items.filter(Boolean) as MenuItem[];
+            return visible.length ? { label, icon: `pi pi-fw ${icon}`, items: visible } : null;
+        };
+
+        const section = (label: string, categories: (MenuItem | null)[]): MenuItem | null => {
+            const items = categories.filter(Boolean) as MenuItem[];
+            return items.length ? { label, items } : null;
+        };
+
+        const link = (label: string, icon: string, route: string): MenuItem => ({
+            label,
+            icon: `pi pi-fw ${icon}`,
+            routerLink: [route]
+        });
+
+        return [
+            section('Menu', [
+                category('Overview', 'pi-compass', [
+                    link('Dashboard', 'pi-home', '/dashboard'),
+                    link('Announcements', 'pi-megaphone', '/dashboard/announcements'),
+                    link('Notifications', 'pi-inbox', '/dashboard/notifications'),
+                    link('Profile', 'pi-user', '/dashboard/profile')
+                ]),
+                category('Community', 'pi-users', [
+                    link('Users', 'pi-users', '/dashboard/users'),
+                    (admin || board) && link('Membership Requests', 'pi-user-plus', '/dashboard/membership-requests'),
+                    link('Collaboration Pads', 'pi-clipboard', '/dashboard/collaboration-pads'),
+                    link('Course Portal', 'pi-globe', '/dashboard/course-portal'),
+                    link('Elections', 'pi-verified', '/dashboard/elections'),
+                    link('Leaderboard', 'pi-graduation-cap', '/dashboard/leaderboard')
+                ]),
+                category('Operations', 'pi-briefcase', [
+                    link('Projects', 'pi-hammer', '/dashboard/projects'),
+                    link('Inventory', 'pi-box', '/dashboard/inventory')
+                ]),
+                category('Point of Sale', 'pi-shopping-cart', [
+                    link('POS Terminal', 'pi-credit-card', '/dashboard/pos'),
+                    link('Inventory', 'pi-box', '/dashboard/pos/inventory'),
+                    link('Customers', 'pi-id-card', '/dashboard/pos/customers'),
+                    link('Shifts', 'pi-clock', '/dashboard/pos/shifts'),
+                    board && link('Payment Logs', 'pi-receipt', '/dashboard/pos/payment-logs'),
+                    board && link('Analytics', 'pi-chart-line', '/dashboard/pos/analytics'),
+                    admin && link('Operators', 'pi-user-edit', '/dashboard/pos/operators')
+                ]),
+                category('Purchasing', 'pi-shopping-bag', [
+                    link('Purchase Requests', 'pi-file-edit', '/dashboard/purchase-requests'),
+                    board && link('Purchase Approvals', 'pi-check-square', '/dashboard/purchase-approvals')
+                ]),
+                category('Insights', 'pi-chart-bar', [
+                    link('General Statistics', 'pi-chart-pie', '/dashboard/statistics'),
+                    admin && link('Audit Logs', 'pi-server', '/dashboard/audit-logs')
+                ])
+            ]),
+
+            section('Admin', [
+                category('Access Control', 'pi-lock', [
+                    admin && link('Credentials', 'pi-id-card', '/dashboard/access'),
+                    admin && link('Doors', 'pi-building', '/dashboard/access/doors'),
+                    admin && link('ESP32 Devices', 'pi-wifi', '/dashboard/access/devices'),
+                    admin && link('Access Logs', 'pi-list', '/dashboard/access/logs')
+                ]),
+                category('Administration', 'pi-cog', [
+                    admin && link('External Messages', 'pi-envelope', '/dashboard/external-messages'),
+                    admin && link('Certificate Builder', 'pi-sparkles', '/dashboard/cert-builder'),
+                    admin && link('Integrations', 'pi-th-large', '/dashboard/integrations'),
+                    admin && link('Expenses Tracking', 'pi-wallet', '/dashboard/expenses'),
+                    admin && link('Plugins', 'pi-objects-column', '/dashboard/plugins'),
+                    admin && link('Settings', 'pi-cog', '/dashboard/admin-settings')
+                ])
+            ])
+        ].filter(Boolean) as MenuItem[];
+    });
 }
