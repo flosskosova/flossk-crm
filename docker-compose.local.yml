@@ -1,0 +1,14 @@
+# Local-only overrides for docker-compose.prod.yml
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d --build postgres clamav api frontend caddy
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+  api:
+    ports:
+      - "8080:8080"
+
+  frontend:
+    ports:
+      - "8081:80"
